@@ -1,0 +1,14 @@
+{
+  "title": "مكونات الرواتب",
+  "addComponent": "إضافة مكون",
+  "allowances": "البدلات",
+  "deductions": "الخصومات",
+  "cancel": "إلغاء",
+  "save": "حفظ",
+  "form": {
+    "title": "العنوان",
+    "rule": "القاعدة",
+    "titlePlaceholder": "عنوان المكون",
+    "rulePlaceholder": "قاعدة المكون"
+  }
+}

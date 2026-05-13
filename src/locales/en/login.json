@@ -1,0 +1,13 @@
+{
+  "title": "Login to HRMS workspace",
+  "subtitle": "Enter your information below to login to your HRMS workspace",
+  "emailLabel": "Email or phone number",
+  "emailPlaceholder": "Add email or phone no.",
+  "passwordLabel": "Password",
+  "forgotPassword": "Forgot your password?",
+  "passwordPlaceholder": "******",
+  "rememberMe": "Remember me",
+  "loginButton": "Login",
+  "noAccount": "Still don't have a workspace?",
+  "createAccount": "Create account"
+}

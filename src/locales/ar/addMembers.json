@@ -1,0 +1,11 @@
+{
+  "title": "إضافة أعضاء",
+  "description": "ابحث عن الموظفين وأضفهم إلى الفريق.",
+  "teamContext": "إضافة أعضاء إلى {{name}}",
+  "unassigned": "غير مُعین ({count})",
+  "assigned": "مُعین ({count})",
+  "searchPlaceholder": "ابحث عن الموظفين",
+  "cancel": "إلغاء",
+  "save": "احفظ",
+  "noEmployees": "لم يتم العثور على موظفين"
+}

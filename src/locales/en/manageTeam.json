@@ -1,0 +1,27 @@
+{
+  "title": "Manage team",
+  "description": "Edit the team name, department, and member roles.",
+  "teamName": "Team name",
+  "department": "Department",
+  "departments": {
+    "engineering": "Engineering",
+    "sales": "Sales",
+    "marketing": "Marketing",
+    "design": "Design"
+  },
+  "roles": {
+    "manager": "Manager",
+    "member": "Member"
+  },
+  "table": {
+    "name": "Member name",
+    "email": "Email",
+    "role": "Role",
+    "department": "Department",
+    "rowsSelected": "{{count}} of {{total}} row(s) selected.",
+    "rowsPerPage": "Rows per page",
+    "pageCounter": "Page {{current}} of {{total}}"
+  },
+  "cancel": "Cancel",
+  "save": "Save changes"
+}

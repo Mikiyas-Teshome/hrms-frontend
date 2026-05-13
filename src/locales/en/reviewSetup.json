@@ -1,0 +1,48 @@
+{
+  "header": {
+    "title": "Review your setup",
+    "subtitle": "Before confirming the creation of your company, please review the info added and teams created one last time."
+  },
+  "sections": {
+    "companyInfo": "Company Info",
+    "employeesAndTeams": "Employees and teams",
+    "orgStructure": "Organization structure",
+    "payrollSetup": "Payroll setup",
+    "hrPolicies": "HR policies"
+  },
+  "actions": {
+    "edit": "Edit",
+    "finish": "Finish Setup"
+  },
+  "company": {
+    "logo": "Company logo",
+    "legalName": "Legal Entity Name",
+    "industry": "Industry",
+    "size": "Size",
+    "country": "Country",
+    "city": "City (HQ location)",
+    "currency": "Currency",
+    "timezone": "Time zone",
+    "website": "Company website",
+    "email": "Company contact email"
+  },
+  "stats": {
+    "employees": "Employees",
+    "teams": "Teams",
+    "managers": "Managers"
+  },
+  "org": {
+    "departments": "Departments",
+    "locations": "Locations"
+  },
+  "payroll": {
+    "cycle": "Cycle",
+    "processing": "Processing",
+    "allowances": "Included Allowances"
+  },
+  "hr": {
+    "workingHours": "Working Hours",
+    "leave": "Leave",
+    "holidays": "Standard holidays apply"
+  }
+}

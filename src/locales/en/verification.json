@@ -1,0 +1,21 @@
+{
+  "title": "Enter verification code",
+  "subtitle": "We sent a 6-digit code to your email.",
+  "label": "Verification code",
+  "hint": "Enter the 6-digit code sent to your email.",
+  "submit": "Verify",
+  "resendPrompt": "Didn't receive the code?",
+  "resendLink": "Resend",
+  "resending": "Resending...",
+  "resendSuccessTitle": "OTP Resent",
+  "resendSuccessDescription": "A new verification code has been sent to your email.",
+  "success": {
+    "title": "Your email has been verified!",
+    "subtitle": "You can proceed to creating your organization.",
+    "button": "Proceed to organization creation"
+  },
+  "errors": {
+    "verificationFailed": "Verification failed. Please check the code and try again.",
+    "resendFailed": "Failed to resend the verification code. Please try again later."
+  }
+}

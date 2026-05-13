@@ -1,0 +1,53 @@
+{
+  "topBar": {
+    "save": "احفظ واستمر لاحقاً"
+  },
+  "header": {
+    "title": "قم بإعداد ملف تعريف مؤسستك",
+    "subtitle": "أخبرنا عن مؤسستك. ستُستخدم هذه المعلومات لتكوين مساحة عمل الموارد البشرية وإعدادات الرواتب."
+  },
+  "steps": {
+    "step": "الخطوة {{current}} من {{total}}"
+  },
+  "sections": {
+    "locationAndTime": "الموقع والوقت",
+    "companyBranding": "هوية المؤسسة البصرية"
+  },
+  "fields": {
+    "city": "المدينة (موقع المقر الرئيسي)",
+    "cityPlaceholder": "مثال: Dubai",
+    "timezone": "المنطقة الزمنية",
+    "timezonePlaceholder": "مثال: دبي - الإمارات العربية المتحدة (GMT+4)",
+    "currency": "العملة",
+    "currencyPlaceholder": "مثال: درهم إماراتي",
+    "websitePlaceholder": "مثال: https://www.company.com",
+    "emailPlaceholder": "مثال: contact@company.com",
+    "logo": "قم بتحميل شعارك",
+    "logoHint": "انقر لتحميل شعارك",
+    "logoSubtext": "يجب أن يكون الملف بصيغة jpg أو png وأقل من ٥ ميجابايت",
+    "website": "موقع المؤسسة",
+    "websiteOptional": "(اختياري)",
+    "email": "البريد الإلكتروني للتواصل مع المؤسسة",
+    "emailOptional": "(اختياري)",
+    "themeColor": "لون السمة",
+    "colors": {
+      "blue": "أزرق",
+      "cyan": "سماوي",
+      "green": "أخضر",
+      "purple": "أرجواني",
+      "orange": "برتقالي",
+      "light-brown": "بني فاتح"
+    }
+  },
+  "actions": {
+    "back": "عودة",
+    "continue": "تابع إلى إعداد المنظمة"
+  },
+  "errors": {
+    "cityRequired": "المدينة مطلوبة",
+    "timezoneRequired": "المنطقة الزمنية مطلوبة",
+    "currencyRequired": "العملة مطلوبة",
+    "invalidWebsite": "يرجى إدخال رابط صحيح",
+    "invalidEmail": "يرجى إدخال بريد إلكتروني صحيح"
+  }
+}

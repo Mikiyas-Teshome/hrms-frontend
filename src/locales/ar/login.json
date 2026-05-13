@@ -1,0 +1,13 @@
+{
+  "title": "تسجيل الدخول إلى مساحة عمل HRMS",
+  "subtitle": "أدخل معلوماتك أدناه لتسجيل الدخول إلى مساحة عمل HRMS الخاصة بك",
+  "emailLabel": "البريد الإلكتروني أو رقم الهاتف",
+  "emailPlaceholder": "أضف البريد الإلكتروني أو رقم الهاتف",
+  "passwordLabel": "كلمة المرور",
+  "forgotPassword": "هل نسيت كلمة المرور؟",
+  "passwordPlaceholder": "******",
+  "rememberMe": "تذكرني",
+  "loginButton": "تسجيل الدخول",
+  "noAccount": "لا تملك مساحة عمل بعد؟",
+  "createAccount": "إنشاء حساب"
+}

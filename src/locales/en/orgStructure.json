@@ -1,0 +1,117 @@
+{
+  "header": {
+    "title": "Define your organization structure",
+    "subtitle": "Create the basic structure of your organization by adding departments, locations, and reporting levels."
+  },
+  "steps": {
+    "step": "Step {current} of {total}"
+  },
+  "proTip": {
+    "title": "Pro Tip",
+    "description": "You can bulk import departments and locations using an Excel or CSV file or later from the Settings menu.",
+    "import": "Import now"
+  },
+  "sections": {
+    "departments": "Departments",
+    "locations": "Locations"
+  },
+  "fields": {
+    "departmentName": "Department name",
+    "departmentNamePlaceholder": "Information technology",
+    "description": "Description",
+    "descriptionOptional": "(Optional)",
+    "officeName": "Office / Branch name",
+    "fullAddress": "Full address",
+    "addNew": "Add new"
+  },
+  "tabs": {
+    "hierarchy": "Organizational hierarchy",
+    "builder": "Organization unit builder"
+  },
+  "builder": {
+    "groupName": "Group name",
+    "groupNamePlaceholder": "ABC holdings",
+    "addUnit": "Add {{type}}",
+    "sheet": {
+      "addTitle": "Add a {{type}}",
+      "editTitle": "Edit {{type}}",
+      "info": "{{type}} info",
+      "fields": {
+        "name": "Name",
+        "parent": "Select parent",
+        "country": "Country",
+        "industry": "Industry",
+        "size": "Size",
+        "manager": "{{type}} manager",
+        "description": "Description",
+        "descriptionPlaceholder": "Add description",
+        "hqAddress": "HQ address",
+        "address": "Address (if different from company)",
+        "locationAddress": "Location address",
+        "type": "Type",
+        "function": "Function / Specialty",
+        "scope": "Scope",
+        "members": "Number of members",
+        "timezone": "Timezone",
+        "currency": "Currency",
+        "legalName": "Legal company name",
+        "taxId": "Tax identification number (TIN)",
+        "registrationNumber": "Business registration number",
+        "tradeLicenseNumber": "Trade license number",
+        "dunsNumber": "DUNS number",
+        "themeColor": "Theme color",
+        "themeSetup": "Theme Setup",
+        "colors": {
+          "blue": "Blue",
+          "cyan": "Cyan",
+          "green": "Green",
+          "purple": "Purple",
+          "orange": "Orange",
+          "light-brown": "Light brown"
+        },
+        "managerHint": "No employees yet. Add employees first."
+      }
+    },
+    "menu": {
+      "view": "View",
+      "edit": "Edit",
+      "addChild": "Add child",
+      "remove": "Remove"
+    },
+    "unitCreated": "Unit successfully created",
+    "unitUpdated": "Unit successfully updated",
+    "unitDeleted": "Unit successfully removed"
+  },
+  "hierarchy": {
+    "title": "Organizational hierarchy",
+    "level": "Level {{number}}",
+    "levelName": "Level name",
+    "levels": {
+      "level1": "Group",
+      "level2": "Company",
+      "level3": "Division",
+      "level4": "Sub-division",
+      "level5": "Department"
+    },
+    "customizeAlert": "You can customize these to match your organization structure!",
+    "continueToBuilder": "Continue to builder",
+    "nomenclatureUpdated": "Hierarchy labels successfully updated"
+  },
+  "info": {
+    "assignHeads": "You can assign department heads after adding employees in the team setup step."
+  },
+  "actions": {
+    "back": "Back",
+    "continue": "Continue to HR policies",
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading..."
+  },
+  "errors": {
+    "departmentNameRequired": "Department name is required",
+    "locationNameRequired": "Office/Branch name is required",
+    "addressRequired": "Full address is required",
+    "levelNameRequired": "Level name is required"
+  },
+  "fetchingHierarchy": "Fetching organization hierarchy, please wait..."
+}

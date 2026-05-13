@@ -1,0 +1,11 @@
+{
+  "title": "Add member to team",
+  "description": "Search for employees and add them to the team.",
+  "teamContext": "Currently adding members to {{name}}",
+  "unassigned": "Unassigned employees ({{count}})",
+  "assigned": "Members assigned ({{count}})",
+  "searchPlaceholder": "Search members...",
+  "cancel": "Cancel",
+  "save": "Save Changes",
+  "noEmployees": "No employees found"
+}

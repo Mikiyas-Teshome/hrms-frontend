@@ -1,0 +1,21 @@
+{
+  "title": "Payroll Cycle & Processing",
+  "processingDay": "Processing Day",
+  "warning": "Changing the processing date may affect current active pay cycles.",
+  "cancel": "Cancel",
+  "save": "Save",
+  "cycles": {
+    "monthly": {
+      "name": "Monthly",
+      "desc": "Calculated once every month"
+    },
+    "bi-weekly": {
+      "name": "Bi-weekly",
+      "desc": "Calculated every 14 days"
+    },
+    "weekly": {
+      "name": "Weekly",
+      "desc": "Calculated every 6 days"
+    }
+  }
+}

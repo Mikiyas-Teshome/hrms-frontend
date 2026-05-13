@@ -1,0 +1,27 @@
+{
+  "title": "إدارة الفريق",
+  "description": "عدّل اسم الفريق والقسم وأدوار الأعضاء.",
+  "teamName": "اسم الفريق",
+  "department": "القسم",
+  "departments": {
+    "engineering": "الهندسة",
+    "sales": "المبيعات",
+    "marketing": "التسويق",
+    "design": "التصميم"
+  },
+  "roles": {
+    "manager": "مدير",
+    "member": "عضو"
+  },
+  "table": {
+    "name": "اسم العضو",
+    "email": "البريد الإلكتروني",
+    "role": "الدور",
+    "department": "القسم",
+    "rowsSelected": "تم تحديد {{count}} من {{total}} صف(وف).",
+    "rowsPerPage": "الصفوف لكل صفحة",
+    "pageCounter": "الصفحة {{current}} من {{total}}"
+  },
+  "cancel": "إلغاء",
+  "save": "حفظ التغييرات"
+}

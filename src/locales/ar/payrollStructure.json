@@ -1,0 +1,123 @@
+{
+  "setup": {
+    "title": "تكوين هيكل الرواتب حسب الشركة",
+    "selectCompany": "اختر الشركة",
+    "selectCompanyPlaceholder": "اختر الشركة",
+    "savePolicy": "حفظ السياسة",
+    "configuredPoliciesTitle": "السياسات المكونة",
+    "success": "تم بنجاح",
+    "successMessage": "تم حفظ هيكل الرواتب بنجاح!",
+    "error": "خطأ",
+    "errorMessage": "فشل في حفظ هيكل الرواتب.",
+    "selectCompanyFirst": "يرجى اختيار شركة أولاً."
+  },
+  "header": {
+    "title": "إعداد هيكل الرواتب",
+    "subtitle": "حدد مكونات الرواتب ودورات الرواتب حتى يتمكن النظام من حساب تعويضات الموظفين بشكل صحيح."
+  },
+  "sections": {
+    "payrollCycle": "دورة الرواتب والمعالجة",
+    "payrollComponents": "مكونات الرواتب",
+    "configureStructure": "تكوين هيكل الرواتب حسب الشركة"
+  },
+  "cycles": {
+    "monthly": "شهري",
+    "monthlyDesc": "معالجة كشوف المرتبات الشهرية.",
+    "bi-weekly": "كل أسبوعين",
+    "bi-weeklyDesc": "تتم المعالجة كل أسبوعين.",
+    "weekly": "أسبوعي",
+    "weeklyDesc": "تتم المعالجة كل أسبوع."
+  },
+  "fields": {
+    "processingDay": "يوم المعالجة",
+    "processingDayHint": "يتم معالجة المدفوعات عادةً في هذا اليوم من كل شهر.",
+    "processingDayWarning": "تغيير تاريخ المعالجة قد يؤثر على دورات الرواتب النشطة الحالية. يرجى التأكد من اكتمال جميع التعديلات اليدوية.",
+    "processingDayOptions": {
+      "25th": "٢٥ من الشهر",
+      "last": "آخر يوم في الشهر",
+      "1st": "١ من الشهر"
+    }
+  },
+  "components": {
+    "title": "مكونات الرواتب",
+    "addNew": "إضافة مكون",
+    "editTitle": "تعديل المكون",
+    "allowances": "بدلات",
+    "deductions": "خصومات",
+    "nameLabel": "اسم المكون",
+    "namePlaceholder": "مثلاً: بدل سكن",
+    "descriptionLabel": "الوصف",
+    "descriptionPlaceholder": "أضف تفاصيل حول هذا المكون",
+    "typeLabel": "الفئة",
+    "calcType": "النوع",
+    "fixed": "ثابت",
+    "percentage": "نسبة مئوية",
+    "value": "القيمة",
+    "taxable": "خاضع للضريبة",
+    "recurring": "متكرر",
+    "updated": "تم تحديث المكون بنجاح",
+    "deleted": "تم حذف المكون بنجاح",
+    "deleteError": "فشل في حذف المكون",
+    "existsError": "المكون موجود بالفعل",
+    "items": {
+      "percentageAllowance": "{{value}} ٪ من الراتب الأساسي",
+      "percentageDeduction": "{{value}} ٪ من الأساسي + بدل المعيشة",
+      "fixedAmount": "{{value}} {{currency}}",
+      "hra": {
+        "name": "بدل سكن (HRA)",
+        "description": "٤٠٪ من الراتب الأساسي"
+      },
+      "conveyance": {
+        "name": "بدل نقل",
+        "description": "ثابت: ٢٠٠.٠٠ دولار"
+      },
+      "medical": {
+        "name": "بدل طبي",
+        "description": "ثابت: ١٥٠.٠٠ دولار"
+      },
+      "tds": {
+        "name": "ضريبة الدخل (TDS)",
+        "description": "بناءً على قواعد شرائح الضرائب"
+      },
+      "pf": {
+        "name": "صندوق الادخار (PF)",
+        "description": "١٢٪ من الأساسي + بدل المعيشة"
+      },
+      "loans": {
+        "name": "سداد القروض",
+        "description": "١٢٪ نسبة الفائدة"
+      }
+    }
+  },
+  "overtime": {
+    "title": "قواعد العمل الإضافي",
+    "standard": "العمل الإضافي القياسي",
+    "standardDesc": "سعر الساعات التي يتم العمل بها لأكثر من 8 ساعات في أيام العمل.",
+    "standardSub": "أيام الأسبوع والساعات العادية",
+    "weekend": "العمل الإضافي في عطلة نهاية الأسبوع",
+    "weekendDesc": "سعر الساعات التي يتم العمل بها في عطلات نهاية الأسبوع.",
+    "weekendSub": "أيام السبت والأحد",
+    "public holiday": "العطلة الرسمية",
+    "publicHolidayDesc": "سعر الساعات التي يتم العمل بها في العطلات الرسمية.",
+    "publicHolidaySub": "العطلات الرسمية",
+    "rateSuffix": "x السعر",
+    "flatRateSuffix": "سعر ثابت ($)",
+    "nightShift": "تمكين علاوة الوردية الليلية",
+    "nightShiftDesc": "تطبيق ١٠٪ إضافية للساعات بين ١٠ مساءً - ٦ صباحاً"
+  },
+  "actions": {
+    "back": "رجوع",
+    "continue": "متابعة لإعداد الفريق",
+    "finishSetup": "إنهاء الإعداد",
+    "cancel": "إلغاء",
+    "save": "حفظ التغييرات",
+    "add": "إضافة"
+  },
+  "errors": {
+    "payrollCycleRequired": "دورة الرواتب مطلوبة",
+    "processingDayRequired": "يوم المعالجة مطلوب",
+    "standardRequired": "سعر العمل الإضافي القياسي مطلوب",
+    "weekendRequired": "سعر العمل الإضافي في عطلة نهاية الأسبوع مطلوب",
+    "publicHolidayRequired": "سعر العمل الإضافي في العطلات الرسمية مطلوب"
+  }
+}

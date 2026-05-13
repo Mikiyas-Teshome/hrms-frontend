@@ -1,0 +1,51 @@
+{
+  "topBar": {
+    "save": "احفظ واستمر لاحقاً"
+  },
+  "header": {
+    "title": "قم بإعداد ملف تعريف شركتك",
+    "subtitle": "أخبرنا عن مؤسستك. ستُستخدم هذه المعلومات لتكوين مساحة عمل الموارد البشرية وإعدادات الرواتب."
+  },
+  "steps": {
+    "step": "الخطوة {{current}} من {{total}}"
+  },
+  "sections": {
+    "locationAndTime": "الموقع والوقت",
+    "companyBranding": "علامة الشركة التجارية"
+  },
+  "fields": {
+    "city": "المدينة (موقع المقر الرئيسي)",
+    "cityPlaceholder": "Dubai",
+    "timezone": "المنطقة الزمنية",
+    "timezonePlaceholder": "دبي - الإمارات العربية المتحدة (GMT+4)",
+    "currency": "العملة",
+    "currencyPlaceholder": "درهم إماراتي",
+    "logo": "قم بتحميل شعارك",
+    "logoHint": "انقر لتحميل شعارك",
+    "logoSubtext": "يجب أن يكون الملف بصيغة jpg أو png وأقل من ٥ ميجابايت",
+    "website": "موقع الشركة",
+    "websiteOptional": "(اختياري)",
+    "email": "البريد الإلكتروني لجهة اتصال الشركة",
+    "emailOptional": "(اختياري)",
+    "themeColor": "لون السمة",
+    "colors": {
+      "blue": "أزرق",
+      "green": "أخضر",
+      "brown": "بني",
+      "purple": "أرجواني",
+      "orange": "برتقالي",
+      "red": "أحمر"
+    }
+  },
+  "actions": {
+    "back": "عودة",
+    "continue": "تابع إلى إعداد المنظمة"
+  },
+  "errors": {
+    "cityRequired": "المدينة مطلوبة",
+    "timezoneRequired": "المنطقة الزمنية مطلوبة",
+    "currencyRequired": "العملة مطلوبة",
+    "invalidWebsite": "يرجى إدخال رابط صحيح",
+    "invalidEmail": "يرجى إدخال بريد إلكتروني صحيح"
+  }
+}

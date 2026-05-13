@@ -1,0 +1,61 @@
+{
+  "breadcrumb": "Payroll officer signup / Payroll structure",
+  "title": "Payroll structure",
+  "subtitle": "Review the current payroll setup before processing salaries.",
+  "alert": "Payroll data contains sensitive employee information. Ensure that payroll operations are reviewed before final processing.",
+  "edit": "Edit",
+  "finishSetup": "Finish Setup",
+  "sections": {
+    "cycle": "Payroll Cycle & Processing",
+    "components": "Payroll Components",
+    "overtime": "Overtime Rules"
+  },
+  "cycle": {
+    "processingDay": "Processing Day",
+    "payrollCycle": "Payroll cycle",
+    "value25th": "25th of the month",
+    "valueMonthly": "Monthly"
+  },
+  "components": {
+    "allowances": "Allowances",
+    "deductions": "Deductions",
+    "hra": {
+      "name": "House Rent Allowance (HRA)",
+      "desc": "40% of Basic Salary"
+    },
+    "conveyance": {
+      "name": "Conveyance Allowance",
+      "desc": "Fixed: $200.00/month"
+    },
+    "medical": {
+      "name": "Medical Allowance",
+      "desc": "Fixed: $150.00/month"
+    },
+    "tds": {
+      "name": "Income Tax (TDS)",
+      "desc": "Based on tax slab rules"
+    },
+    "pf": {
+      "name": "Provident Fund (PF)",
+      "desc": "12% of Basic + DA"
+    },
+    "loans": {
+      "name": "Loans",
+      "desc": "12% interest rate"
+    }
+  },
+  "overtime": {
+    "standard": "Standard Overtime",
+    "standardDesc": "Weekdays & Regular hours",
+    "weekend": "Weekend Overtime",
+    "weekendDesc": "Saturdays and Sundays",
+    "holiday": "Public Holiday",
+    "holidayDesc": "Gazetted holidays",
+    "nightShift": "Enable Night Shift Premium",
+    "nightShiftDesc": "Apply extra 10% for hours between 10 PM - 6 AM",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "rate15": "1.5x",
+    "rate20": "2.0x"
+  }
+}

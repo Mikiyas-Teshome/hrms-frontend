@@ -1,0 +1,34 @@
+{
+  "title": "فريقك",
+  "subtitle": "راجع وأدر الفرق التي تم تعيينها لك كمدير.",
+  "proTip": {
+    "title": "نصيحة احترافية",
+    "description": "يمكنك استيراد موظفيك بكميات كبيرة باستخدام ملف Excel أو CSV.",
+    "import": "استيراد الآن"
+  },
+  "teamMembers": "أعضاء الفريق ({count})",
+  "department": "القسم",
+  "dateCreated": "تاريخ الإنشاء",
+  "addMember": "أضف عضو",
+  "manageTeam": "إدارة الفريق",
+  "finishSetup": "إنهاء الإعداد",
+  "teams": {
+    "designOperations": "عمليات التصميم",
+    "development": "التطوير"
+  },
+  "departments": {
+    "engineering": "الهندسة",
+    "sales": "المبيعات",
+    "marketing": "التسويق",
+    "design": "التصميم"
+  },
+  "roles": {
+    "manager": "مدير",
+    "member": "عضو",
+    "designer": "مصمم",
+    "developer": "مطور",
+    "salesManager": "مدير مبيعات",
+    "sales": "مبيعات",
+    "you": "(أنت)"
+  }
+}

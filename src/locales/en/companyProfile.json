@@ -1,0 +1,51 @@
+{
+  "topBar": {
+    "save": "Save & Continue Later"
+  },
+  "header": {
+    "title": "Set up your organization profile",
+    "subtitle": "Tell us about your organization. This information will be used to configure your HR workspace and payroll settings."
+  },
+  "steps": {
+    "step": "Step {{current}} of {{total}}"
+  },
+  "sections": {
+    "locationAndTime": "Location & Time",
+    "companyBranding": "Company Branding"
+  },
+  "fields": {
+    "city": "City (HQ location)",
+    "cityPlaceholder": "Dubai",
+    "timezone": "Time zone",
+    "timezonePlaceholder": "Dubai - United Arab Emirates (GMT+4)",
+    "currency": "Currency",
+    "currencyPlaceholder": "DRM",
+    "logo": "Upload your logo",
+    "logoHint": "Click to upload your logo",
+    "logoSubtext": "The file must be jpg or png and below 5MB",
+    "website": "Company website",
+    "websiteOptional": "(Optional)",
+    "email": "Company contact email",
+    "emailOptional": "(Optional)",
+    "themeColor": "Theme color",
+    "colors": {
+      "blue": "Blue",
+      "green": "Green",
+      "brown": "Brown",
+      "purple": "Purple",
+      "orange": "Orange",
+      "red": "Red"
+    }
+  },
+  "actions": {
+    "back": "Back",
+    "continue": "Continue to organization setup"
+  },
+  "errors": {
+    "cityRequired": "Please select your city",
+    "timezoneRequired": "Please select your timezone",
+    "currencyRequired": "Please select your preferred currency",
+    "websiteInvalid": "Please enter a valid URL",
+    "emailInvalid": "Please enter a valid email address"
+  }
+}

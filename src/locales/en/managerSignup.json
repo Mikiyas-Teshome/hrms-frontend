@@ -1,0 +1,19 @@
+{
+  "title": "Create your account",
+  "email": "Email",
+  "emailHint": "This is the email your account registered with",
+  "password": "Password",
+  "confirmPassword": "Confirm Password",
+  "confirmPasswordHint": "Must be at least 8 characters long.",
+  "submit": "Create Account",
+  "termsText": "By creating an account, i agree to",
+  "termsLink": "HRMS's Terms",
+  "privacyText": "including the payment term and",
+  "privacyLink": "Privacy Policy",
+  "banner": {
+    "title": "You've been invited to join HRMS as a team manager.",
+    "companyLabel": "Company",
+    "reviewTeam": "Review Team",
+    "verifyMembers": "Verify Members"
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "header": {
+    "title": "دعوة فريقك",
+    "subtitle": "أضف الأشخاص الذين سيديرون ويستخدمون النظام. يمكنك دعوة مديري الموارد البشرية، وموظفي الرواتب، والموظفين."
+  },
+  "tabs": {
+    "directory": "دليل الموظفين",
+    "creation": "إنشاء فريق",
+    "department": "تعيين المديرين"
+  },
+  "proTip": {
+    "title": "نصيحة احترافية",
+    "description": "يمكنك استيراد موظفيك بكميات كبيرة باستخدام ملف Excel أو CSV.",
+    "import": "استيراد الآن"
+  },
+  "add": {
+    "title": "إضافة موظفين",
+    "hint": "أي أنك ستكمل بقية المعلومات بعد إعداد الشركة",
+    "name": "اسم الموظف",
+    "namePlaceholder": "جون دو",
+    "email": "البريد الإلكتروني",
+    "emailPlaceholder": "example@someone.com",
+    "department": "القسم",
+    "role": "الدور",
+    "addToList": "إرسال إلى الموظف",
+    "na": "غير متوفر"
+  },
+  "creation": {
+    "title": "إنشاء فريق",
+    "name": "اسم الفريق",
+    "namePlaceholder": "فريق الواجهة الأمامية",
+    "manager": "مدير الفريق",
+    "managerPlaceholder": "بحث عن مدراء",
+    "department": "القسم",
+    "unassigned": "غير مخصص",
+    "assigned": "مخصص",
+    "searchPlaceholder": "البحث عن موظفين",
+    "saveTeam": "حفظ الفريق"
+  },
+  "department": {
+    "title": "تعيين قائد القسم",
+    "addNew": "إضافة قسم",
+    "assignLead": "تعيين قائد",
+    "placeholder": "اختر قائد القسم"
+  },
+  "table": {
+    "name": "اسم الموظف",
+    "email": "البريد الإلكتروني",
+    "role": "الدور",
+    "department": "القسم",
+    "jobTitle": "المسمى الوظيفي",
+    "jobType": "نوع الوظيفة",
+    "rowsSelected": "تم اختيار {{count}} من أصل {{total}} من الصفوف.",
+    "rowsPerPage": "الصفوف لكل صفحة",
+    "pageCounter": "الصفحة {{current}} من {{total}}",
+    "previous": "السابق",
+    "next": "التالي"
+  },
+  "teamTable": {
+    "name": "اسم الفريق",
+    "members": "عدد الأعضاء",
+    "manager": "مدير",
+    "department": "القسم"
+  },
+  "info": {
+    "text": "سيتلقى الموظفون المستوردون دعوة عبر البريد الإلكتروني تلقائياً بمجرد الانتهاء من إعداد شركتك. سيكون لديهم وصول إلى النظام بناءً على الدور المعين لهم والفريق الذي ينتمون إليه."
+  },
+  "actions": {
+    "back": "عودة",
+    "continue": "تابع المراجعة"
+  },
+  "assignManagers": {
+    "title": "تعيين المديرين",
+    "selectLevel": "اختر المستوى",
+    "selectLevelPlaceholder": "اختر المستوى",
+    "assignManagerLabel": "تعيين مدير",
+    "selectManagerPlaceholder": "اختر مديراً",
+    "saveAssignment": "حفظ التعيينات",
+    "noUnits": "لم يتم العثور على وحدات لهذا المستوى.",
+    "loading": "جاري التحميل...",
+    "successMessage": "تم حفظ تعيينات المديرين بنجاح",
+    "errorMessage": "فشل في حفظ التعيينات"
+  },
+  "status": {
+    "pending": "قيد الانتظار",
+    "active": "نشط",
+    "na": "غير متوفر"
+  },
+  "common": {
+    "loading": "جاري التحميل...",
+    "noData": "لا توجد بيانات",
+    "employee": "موظف"
+  },
+  "unitTable": {
+    "name": "اسم الوحدة",
+    "membersCount": "عدد الأعضاء",
+    "members": "الأعضاء",
+    "manager": "المدير"
+  }
+}

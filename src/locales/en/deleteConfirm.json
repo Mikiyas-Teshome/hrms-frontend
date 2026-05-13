@@ -1,0 +1,5 @@
+{
+  "message": "Are you sure you want to remove this employee from the {{team}} team?",
+  "cancel": "Cancel",
+  "confirm": "Remove"
+}

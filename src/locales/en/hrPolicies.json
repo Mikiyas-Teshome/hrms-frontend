@@ -1,0 +1,121 @@
+{
+  "setup": {
+    "title": "Configure policies by company",
+    "selectCompany": "Select company",
+    "selectCompanyPlaceholder": "Select company",
+    "savePolicy": "Save Policy",
+    "configuredPoliciesTitle": "Configured policies",
+    "noPolicies": "No policies configured yet.",
+    "leavePolicies": "Leave policies",
+    "holidays": "Holidays"
+  },
+  "header": {
+    "title": "Configure your HR policies",
+    "subtitle": "Define the policies that govern leave, work hours, and employee approvals."
+  },
+  "workingHours": {
+    "title": "Working hours",
+    "gregorian": {
+      "title": "Standard hours",
+      "description": "Mon-Fri, 9:00 AM - 5:00 PM. Standard office schedule."
+    },
+    "hijri": {
+      "title": "Hijri calendar",
+      "description": "Sun-Thu, 9:00 AM - 5:00 PM. Standard office schedule."
+    },
+    "custom": {
+      "title": "Custom schedule",
+      "description": "Define your own specific days and shifts manually."
+    },
+    "workDays": "Work days",
+    "days": {
+      "Mon": "Mon",
+      "Tue": "Tue",
+      "Wed": "Wed",
+      "Thu": "Thu",
+      "Fri": "Fri",
+      "Sat": "Sat",
+      "Sun": "Sun"
+    },
+    "shiftStart": "Shift start",
+    "shiftStartPlaceholder": "09:00 AM",
+    "shiftEnd": "Shift End",
+    "shiftEndPlaceholder": "05:00 PM"
+  },
+  "leavePolicies": {
+    "title": "Leave Policies",
+    "addNew": "Add New Leave Type",
+    "days": "Days",
+    "addLeaveType": {
+      "title": "Add a leave type",
+      "titleUpdate": "Edit leave type",
+      "leaveInfo": "Leave info",
+      "leaveName": "Leave name",
+      "leaveNamePlaceholder": "Enter leave name",
+      "status": "Status",
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "maxDays": "Maximum days per year",
+      "maxDaysPlaceholder": "0",
+      "condition": "Condition",
+      "conditionPaid": "Paid",
+      "conditionUnpaid": "Unpaid",
+      "description": "Description",
+      "descriptionPlaceholder": "Add description",
+      "actions": {
+        "cancel": "Cancel",
+        "save": "Save leave type",
+        "saveUpdate": "Update leave type"
+      }
+    },
+    "types": {
+      "annual": {
+        "name": "Annual Leave",
+        "description": "Paid vacation time for employees."
+      },
+      "sick": {
+        "name": "Sick Leave",
+        "description": "Medical recovery or appointments."
+      },
+      "maternity": {
+        "name": "Maternity Leave",
+        "description": "Parental support for new mothers."
+      }
+    }
+  },
+  "holidays": {
+    "title": "Holiday calendar",
+    "addNew": "Add custom holiday",
+    "import": "Import local holiday",
+    "list": {
+      "newYear": "New Year's Day",
+      "goodFriday": "Good Friday",
+      "independence": "Independence Day",
+      "newYearDate": "Mon, Jan 01",
+      "goodFridayDate": "Fri, Mar 29",
+      "independenceDate": "Thu, Jul 04"
+    },
+    "addHoliday": {
+      "title": "Add custom holiday",
+      "holidayName": "Holiday name",
+      "holidayNamePlaceholder": "Enter holiday name",
+      "holidayDate": "Holiday date",
+      "holidayDatePlaceholder": "Select date",
+      "actions": {
+        "cancel": "Cancel",
+        "save": "Save holiday"
+      }
+    }
+  },
+  "errors": {
+    "workDaysRequired": "Please select at least one work day",
+    "shiftStartRequired": "Shift start time is required",
+    "shiftEndRequired": "Shift end time is required",
+    "holidayNameRequired": "Holiday name is required",
+    "holidayDateRequired": "Holiday date is required"
+  },
+  "actions": {
+    "back": "Back",
+    "continue": "Continue to Payroll Setup"
+  }
+}

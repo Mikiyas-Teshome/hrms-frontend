@@ -1,0 +1,41 @@
+{
+  "title": "اختر خطة.",
+  "subtitle": ".جرّب خطة لمدة 30 يومًا",
+  "yearly": "سنوي",
+  "monthly": "شهري",
+  "saveNote": "(وفر حتى 20%)",
+  "features": "الميزات",
+  "cta": "ابدأ تجربتك المجانية",
+  "perEmployee": "/ موظف",
+  "perYear": "/ سنة",
+  "plans": {
+    "essential": {
+      "name": "أساسي",
+      "description": "تم تصميم هذه الفئة للشركات الصغيرة أو الناشئة التي تحتاج إلى رقمنة الموارد البشرية الأساسية.",
+      "price": "3$ / موظف"
+    },
+    "professional": {
+      "name": "محترف",
+      "description": "تدعم هذه الفئة جميع عمليات الموارد البشرية بما في ذلك الرواتب والمزايا.",
+      "price": "6$ / موظف"
+    },
+    "enterprise": {
+      "name": "مؤسسي",
+      "description": "تتضمن هذه الفئة جميع القدرات بما في ذلك الامتثال، وتحليلات الذكاء الاصطناعي، والتكاملات.",
+      "price": "أسعار مخصصة"
+    }
+  },
+  "featureList": {
+    "employeeManagement": "إدارة الموظفين",
+    "leaveManagement": "إدارة الإجازات",
+    "attendanceTracking": "تتبع الحضور",
+    "shiftManagement": "إدارة الورديات",
+    "payrollEngine": "محرك الرواتب",
+    "benefitsManagement": "إدارة المزايا",
+    "complianceTracking": "تتبع الامتثال",
+    "wpsPayroll": "رواتب WPS",
+    "aiAnalytics": "تحليلات الذكاء الاصطناعي",
+    "customReportBuilder": "منشئ التقارير المخصصة",
+    "erpIntegrations": "تكاملات ERP"
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "setup": {
+    "title": "تكوين السياسات حسب الشركة",
+    "selectCompany": "اختر الشركة",
+    "selectCompanyPlaceholder": "اختر الشركة",
+    "savePolicy": "حفظ السياسة",
+    "configuredPoliciesTitle": "السياسات المكونة",
+    "noPolicies": "لم يتم تكوين أي سياسات بعد.",
+    "leavePolicies": "سياسات الإجازات",
+    "holidays": "العطلات"
+  },
+  "header": {
+    "title": "قم بتكوين سياسات الموارد البشرية الخاصة بك",
+    "subtitle": "حدد السياسات التي تحكم الإجازات وساعات العمل وموافقات الموظفين."
+  },
+  "workingHours": {
+    "title": "ساعات العمل",
+    "gregorian": {
+      "title": "الساعات القياسية",
+      "description": "من الاثنين إلى الجمعة، 9:00 صباحاً - 5:00 مساءً. جدول المكتب القياسي."
+    },
+    "hijri": {
+      "title": "التقويم الهجري",
+      "description": "من الأحد إلى الخميس، 9:00 صباحاً - 5:00 مساءً. جدول المكتب القياسي."
+    },
+    "custom": {
+      "title": "جدول مخصص",
+      "description": "حدد أيامك ونوباتك الخاصة يدوياً."
+    },
+    "workDays": "أيام العمل",
+    "days": {
+      "Mon": "الإثنين",
+      "Tue": "الثلاثاء",
+      "Wed": "الأربعاء",
+      "Thu": "الخميس",
+      "Fri": "الجمعة",
+      "Sat": "السبت",
+      "Sun": "الأحد"
+    },
+    "shiftStart": "بداية النوبة",
+    "shiftStartPlaceholder": "09:00 صباحاً",
+    "shiftEnd": "نهاية النوبة",
+    "shiftEndPlaceholder": "05:00 مساءً"
+  },
+  "leavePolicies": {
+    "title": "سياسات الإجازات",
+    "addNew": "أضف نوع إجازة جديد",
+    "days": "الأيام",
+    "addLeaveType": {
+      "title": "أضف نوع إجازة",
+      "titleUpdate": "تعديل نوع الإجازة",
+      "leaveInfo": "معلومات الإجازة",
+      "leaveName": "اسم الإجازة",
+      "leaveNamePlaceholder": "أدخل اسم الإجازة",
+      "status": "الحالة",
+      "statusActive": "نشط",
+      "statusInactive": "غير نشط",
+      "maxDays": "الحد الأقصى للأيام في السنة",
+      "maxDaysPlaceholder": "٠",
+      "condition": "الحالة",
+      "conditionPaid": "مدفوع",
+      "conditionUnpaid": "غير مدفوع",
+      "description": "الوصف",
+      "descriptionPlaceholder": "أضف وصفاً",
+      "actions": {
+        "cancel": "إلغاء",
+        "save": "حفظ نوع الإجازة",
+        "saveUpdate": "تحديث نوع الإجازة"
+      }
+    },
+    "types": {
+      "annual": {
+        "name": "إجازة سنوية",
+        "description": "وقت إجازة مدفوع للموظفين."
+      },
+      "sick": {
+        "name": "إجازة مرضية",
+        "description": "الشفاء الطبي أو المواعيد."
+      },
+      "maternity": {
+        "name": "إجازة أمومة",
+        "description": "دعم الوالدين للأمهات الجدد."
+      }
+    }
+  },
+  "holidays": {
+    "title": "تقويم العطلات",
+    "addNew": "أضف عطلة مخصصة",
+    "import": "استيراد عطلة محلية",
+    "list": {
+      "newYear": "عيد رأس السنة الجديدة",
+      "goodFriday": "الجمعة العظيمة",
+      "independence": "عيد الاستقلال",
+      "newYearDate": "الإثنين، ١ يناير",
+      "goodFridayDate": "الجمعة، ٢٩ مارس",
+      "independenceDate": "الخميس، ٤ يوليو"
+    },
+    "addHoliday": {
+      "title": "أضف عطلة مخصصة",
+      "holidayName": "اسم العطلة",
+      "holidayNamePlaceholder": "أدخل اسم العطلة",
+      "holidayDate": "تاريخ العطلة",
+      "holidayDatePlaceholder": "اختر التاريخ",
+      "actions": {
+        "cancel": "إلغاء",
+        "save": "حفظ العطلة"
+      }
+    }
+  },
+    "actions": {
+    "back": "عودة",
+    "continue": "استمرار إلى إعداد الرواتب"
+  },
+  "errors": {
+    "workDaysRequired": "يرجى اختيار يوم عمل واحد على الأقل",
+    "shiftStartRequired": "وقت بدء النوبة مطلوب",
+    "shiftEndRequired": "وقت نهاية النوبة مطلوب",
+    "holidayNameRequired": "اسم العطلة مطلوب",
+    "holidayDateRequired": "تاريخ العطلة مطلوب"
+  }
+}

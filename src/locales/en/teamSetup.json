@@ -1,0 +1,111 @@
+{
+  "header": {
+    "title": "Invite your team",
+    "subtitle": "Add the people who will manage and use the system. You can invite HR managers, payroll staff, and employees."
+  },
+  "tabs": {
+    "directory": "Employee directory",
+    "creation": "Assign members",
+    "department": "Assign Managers"
+  },
+  "proTip": {
+    "title": "Pro Tip",
+    "description": "You can bulk import your employees using an Excel or CSV file.",
+    "import": "Import now"
+  },
+  "add": {
+    "title": "Add employees",
+    "hint": "i.e. You will fill the rest of the info after company setup",
+    "name": "Employee name",
+    "namePlaceholder": "John Doe",
+    "firstName": "First name",
+    "firstNamePlaceholder": "First name",
+    "lastName": "Last name",
+    "lastNamePlaceholder": "Last name",
+    "email": "Email",
+    "emailPlaceholder": "example@someone.com",
+    "department": "Department",
+    "selectDepartment": "Select department",
+    "role": "Role",
+    "selectRole": "Select role",
+    "organizationUnit": "Organization unit",
+    "selectOrganizationUnit": "Select organization unit",
+    "addToList": "Send to employee",
+    "successTitle": "Invitation Sent",
+    "successDescription": "The employee has been invited successfully.",
+    "errorTitle": "Invitation Failed",
+    "na": "N/A"
+  },
+  "creation": {
+    "title": "Create team",
+    "name": "Team name",
+    "namePlaceholder": "Front-End team",
+    "manager": "Team manager",
+    "managerPlaceholder": "Search managers",
+    "department": "Department",
+    "unassigned": "Unassigned",
+    "assigned": "Assigned",
+    "searchPlaceholder": "Search for employees",
+    "saveTeam": "Save team"
+  },
+  "department": {
+    "title": "Assign department lead",
+    "addNew": "Add Department",
+    "assignLead": "Assign lead",
+    "placeholder": "Select a department lead"
+  },
+  "table": {
+    "name": "Employee name",
+    "email": "Email",
+    "role": "Role",
+    "department": "Department",
+    "jobTitle": "Job title",
+    "jobType": "Job type",
+    "rowsSelected": "{{count}} of {{total}} row(s) selected.",
+    "rowsPerPage": "Rows per page",
+    "pageCounter": "Page {{current}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "teamTable": {
+    "name": "Team name",
+    "members": "No. of members",
+    "manager": "Manager",
+    "department": "Department"
+  },
+  "info": {
+    "text": "Imported employees will receive an email invitation automatically once you finish setting up your company. They will have access to the system based on the role assigned to them and the team they belong to."
+  },
+  "actions": {
+    "back": "Back",
+    "continue": "Continue to review"
+  },
+  "assignManagers": {
+    "title": "Assign managers",
+    "selectLevel": "Select level",
+    "selectLevelPlaceholder": "Select level",
+    "assignManagerLabel": "Assign manager",
+    "selectManagerPlaceholder": "Select a manager",
+    "saveAssignment": "Save assignment",
+    "noUnits": "No units found for this level.",
+    "loading": "Loading units...",
+    "successMessage": "Manager assignments saved successfully",
+    "errorMessage": "Failed to save assignments"
+  },
+  "status": {
+    "pending": "Pending",
+    "active": "Active",
+    "na": "N/A"
+  },
+  "common": {
+    "loading": "Loading...",
+    "noData": "No data found",
+    "employee": "Employee"
+  },
+  "unitTable": {
+    "name": "Unit name",
+    "membersCount": "No. of members",
+    "members": "Members",
+    "manager": "Manager"
+  }
+}

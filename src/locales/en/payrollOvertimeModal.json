@@ -1,0 +1,18 @@
+{
+  "title": "Overtime Rules",
+  "fields": {
+    "standard": "Standard Overtime",
+    "standardHint": "Weekdays & Regular hours",
+    "weekend": "Weekend Overtime",
+    "weekendHint": "Saturdays and Sundays",
+    "holiday": "Public Holiday",
+    "holidayHint": "Gazetted holidays",
+    "rateSuffix": "x Rate",
+    "nightShift": "Enable Night Shift Premium",
+    "nightShiftHint": "Apply extra 10% for hours between 10 PM - 6 AM"
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "save": "Save"
+  }
+}

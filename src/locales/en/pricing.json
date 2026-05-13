@@ -1,0 +1,41 @@
+{
+  "title": "Choose a plan.",
+  "subtitle": "Try a plan for 30 days,",
+  "yearly": "Yearly",
+  "monthly": "Monthly",
+  "saveNote": "(Save up to 20%)",
+  "features": "Features",
+  "cta": "Start your free trial",
+  "perEmployee": "/ employee",
+  "perYear": "/ year",
+  "plans": {
+    "essential": {
+      "name": "Essential",
+      "description": "This tier is designed for small businesses or startups that need basic HR digitization.",
+      "price": "$3 / employee"
+    },
+    "professional": {
+      "name": "Professional",
+      "description": "This tier supports full HR operations including payroll and benefits.",
+      "price": "$6 / employee"
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "description": "This tier includes all capabilities including compliance, AI analytics, and integrations.",
+      "price": "Custom pricing"
+    }
+  },
+  "featureList": {
+    "employeeManagement": "Employee Management",
+    "leaveManagement": "Leave Management",
+    "attendanceTracking": "Attendance Tracking",
+    "shiftManagement": "Shift Management",
+    "payrollEngine": "Payroll Engine",
+    "benefitsManagement": "Benefits Management",
+    "complianceTracking": "Compliance Tracking",
+    "wpsPayroll": "WPS Payroll",
+    "aiAnalytics": "AI Analytics",
+    "customReportBuilder": "Custom Report Builder",
+    "erpIntegrations": "ERP Integrations"
+  }
+}

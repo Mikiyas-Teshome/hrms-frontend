@@ -1,0 +1,36 @@
+{
+  "back": "Back",
+  "title": "Enter your billing details",
+  "subtitle": "Try a plan for 30 days,",
+  "methods": {
+    "card": "Credit card",
+    "paypal": "PayPal",
+    "apple": "Apple Pay",
+    "google": "Google Pay"
+  },
+  "detailsTitle": "Billing details",
+  "paymentInfo": "Payment info",
+  "cardNumber": "Credit card number",
+  "expiry": "Expiration date",
+  "cvc": "Security code",
+  "addressTitle": "Billing address",
+  "email": "Email address",
+  "country": "Country",
+  "zip": "Zip code",
+  "summary": {
+    "title": "Order summary",
+    "planLabel": "Your plan",
+    "planName": "Professional",
+    "planPrice": "$6.0 / Employee",
+    "employeesLabel": "Number of employee",
+    "employeesHint": "You need to register at least 5 employees.",
+    "planFee": "Plan fee",
+    "noOfEmployees": "No. of employees",
+    "tax": "Tax",
+    "total": "Total",
+    "dueNow": "Due now",
+    "perMonth": "/ Month",
+    "cta": "Start your free trial",
+    "footerNote": "You will be charged ${{amount}} on {{date}}, then monthly."
+  }
+}

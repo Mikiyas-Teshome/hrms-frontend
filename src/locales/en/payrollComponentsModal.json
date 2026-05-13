@@ -1,0 +1,14 @@
+{
+  "title": "Payroll Components",
+  "addComponent": "Add Component",
+  "allowances": "Allowances",
+  "deductions": "Deductions",
+  "cancel": "Cancel",
+  "save": "Save",
+  "form": {
+    "title": "Title",
+    "rule": "Rule",
+    "titlePlaceholder": "Component Title",
+    "rulePlaceholder": "Component Rule"
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "header": {
+    "title": "حدد هيكل منظمتك",
+    "subtitle": "أنشئ الهيكل الأساسي لشركتك من خلال إضافة الأقسام والمواقع ومستويات التقارير."
+  },
+  "steps": {
+    "step": "الخطوة {current} من {total}"
+  },
+  "proTip": {
+    "title": "نصيحة احترافية",
+    "description": "يمكنك استيراد الأقسام والمواقع بكميات كبيرة باستخدام ملف Excel أو CSV أو لاحقاً من قائمة الإعدادات.",
+    "import": "استيراد الآن"
+  },
+  "sections": {
+    "departments": "الأقسام",
+    "locations": "المواقع"
+  },
+  "fields": {
+    "departmentName": "اسم القسم",
+    "departmentNamePlaceholder": "تكنولوجيا المعلومات",
+    "description": "الوصف",
+    "descriptionOptional": "(اختياري)",
+    "officeName": "اسم المكتب / الفرع",
+    "fullAddress": "العنوان الكامل",
+    "addNew": "إضافة جديد"
+  },
+  "tabs": {
+    "hierarchy": "التسلسل الهرمي للمنظمة",
+    "builder": "منشئ وحدات المنظمة"
+  },
+  "builder": {
+    "groupName": "اسم المجموعة",
+    "groupNamePlaceholder": "مجموعة ABC",
+    "addUnit": "إضافة {{type}}",
+    "sheet": {
+      "addTitle": "إضافة {{type}}",
+      "editTitle": "تعديل {{type}}",
+      "info": "معلومات {{type}}",
+      "fields": {
+        "name": "الاسم",
+        "parent": "اختر الأصل",
+        "country": "الدولة",
+        "industry": "القطاع",
+        "size": "الحجم",
+        "manager": "مدير {{type}}",
+        "description": "الوصف",
+        "descriptionPlaceholder": "أضف وصفاً",
+        "hqAddress": "عنوان المقر الرئيسي",
+        "address": "العنوان (إذا كان مختلفاً عن الشركة)",
+        "locationAddress": "عنوان الموقع",
+        "type": "النوع",
+        "function": "الوظيفة / التخصص",
+        "scope": "النطاق",
+        "members": "عدد الأعضاء",
+        "timezone": "المنطقة الزمنية",
+        "currency": "العملة",
+        "legalName": "الاسم القانوني للشركة",
+        "taxId": "رقم التعريف الضريبي (TIN)",
+        "registrationNumber": "رقم التسجيل التجاري",
+        "tradeLicenseNumber": "رقم الرخصة التجارية",
+        "dunsNumber": "رقم DUNS",
+        "themeColor": "لون النظام",
+        "themeSetup": "إعداد النظام البصري",
+        "colors": {
+          "blue": "أزرق",
+          "cyan": "سماوي",
+          "green": "أخضر",
+          "purple": "بنفسجي",
+          "orange": "برتقالي",
+          "light-brown": "بني فاتح"
+        },
+        "managerHint": "لا يوجد موظفون بعد. أضف الموظفين أولاً."
+      }
+    },
+    "menu": {
+      "view": "عرض",
+      "edit": "تعديل",
+      "addChild": "إضافة فرع",
+      "remove": "حذف"
+    },
+    "unitCreated": "تم إنشاء الوحدة بنجاح",
+    "unitUpdated": "تم تحديث الوحدة بنجاح",
+    "unitDeleted": "تم حذف الوحدة بنجاح"
+  },
+  "info": {
+    "assignHeads": "يمكنك تعيين رؤساء الأقسام بعد إضافة الموظفين في خطوة إعداد الفريق."
+  },
+  "hierarchy": {
+    "title": "التسلسل الهرمي للمنظمة",
+    "level": "المستوى {{number}}",
+    "levelName": "اسم المستوى",
+    "levels": {
+      "level1": "مجموعة",
+      "level2": "شركة",
+      "level3": "قسم",
+      "level4": "قسم فرعي",
+      "level5": "إدارة"
+    },
+    "customizeAlert": "يمكنك تخصيص هذه لتناسب هيكل منظمتك!",
+    "continueToBuilder": "متابعة إلى المنشئ",
+    "nomenclatureUpdated": "تم تحديث تسميات التسلسل الهرمي بنجاح"
+  },
+  "actions": {
+    "back": "عودة",
+    "continue": "تابع إلى سياسات الموارد البشرية",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "loading": "جاري التحميل..."
+  },
+  "errors": {
+    "departmentNameRequired": "اسم القسم مطلوب",
+    "locationNameRequired": "اسم المكتب/الفرع مطلوب",
+    "addressRequired": "العنوان الكامل مطلوب",
+    "levelNameRequired": "اسم المستوى مطلوب"
+  },
+  "fetchingHierarchy": "جاري جلب هيكل المؤسسة، يرجى الانتظار..."
+}

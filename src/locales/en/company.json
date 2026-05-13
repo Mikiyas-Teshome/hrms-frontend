@@ -1,0 +1,29 @@
+{
+  "title": "Create Your Company",
+  "subtitle": "Set up your company. You can complete the rest later.",
+  "name": "Company name",
+  "legalName": "Legal Entity Name",
+  "size": "Company size",
+  "industry": "Industry",
+  "country": "Country",
+  "submit": "Create company",
+  "sizes": {
+    "1-10": "1 - 10 Employees",
+    "11-50": "11 - 50 Employees",
+    "51-200": "51 - 200 Employees",
+    "201+": "201+ Employees"
+  },
+  "industries": {
+    "it": "Information technology",
+    "finance": "Finance",
+    "healthcare": "Healthcare",
+    "education": "Education"
+  },
+  "errors": {
+    "nameRequired": "Company name must be at least 2 characters",
+    "legalNameRequired": "Legal entity name must be at least 2 characters",
+    "sizeRequired": "Please select company size",
+    "industryRequired": "Please select an industry",
+    "countryRequired": "Please select a country"
+  }
+}

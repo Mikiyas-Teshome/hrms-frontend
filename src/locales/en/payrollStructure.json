@@ -1,0 +1,123 @@
+{
+  "setup": {
+    "title": "Configure Payroll structure by company",
+    "selectCompany": "Select company",
+    "selectCompanyPlaceholder": "Select company",
+    "savePolicy": "Save Policy",
+    "configuredPoliciesTitle": "Configured policies",
+    "success": "Success",
+    "successMessage": "Payroll structure successfully saved!",
+    "error": "Error",
+    "errorMessage": "Failed to save payroll structure.",
+    "selectCompanyFirst": "Please select a company first."
+  },
+  "header": {
+    "title": "Set up payroll structure",
+    "subtitle": "Define salary components and payroll cycles so the system can calculate employee compensation correctly."
+  },
+  "sections": {
+    "payrollCycle": "Payroll Cycle & Processing",
+    "payrollComponents": "Payroll Components",
+    "configureStructure": "Configure Payroll structure by company"
+  },
+  "cycles": {
+    "monthly": "Monthly",
+    "monthlyDesc": "Calculated once every month",
+    "bi-weekly": "Bi-weekly",
+    "bi-weeklyDesc": "Calculated every 14 days",
+    "weekly": "Weekly",
+    "weeklyDesc": "Calculated every 6 days"
+  },
+  "fields": {
+    "processingDay": "Processing Day",
+    "processingDayHint": "Payments are typically processed on this day each month.",
+    "processingDayWarning": "Changing the processing date may affect current active pay cycles. Please ensure all manual adjustments are complete.",
+    "processingDayOptions": {
+      "25th": "25th of the month",
+      "last": "Last day of the month",
+      "1st": "1st of the month"
+    }
+  },
+  "components": {
+    "title": "Payroll Components",
+    "addNew": "Add Component",
+    "editTitle": "Edit Component",
+    "allowances": "Allowances",
+    "deductions": "Deductions",
+    "nameLabel": "Component Name",
+    "namePlaceholder": "e.g. Housing Allowance",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Add details about this component",
+    "typeLabel": "Category",
+    "calcType": "Type",
+    "fixed": "Fixed",
+    "percentage": "Percentage",
+    "value": "Value",
+    "taxable": "Taxable",
+    "recurring": "Recurring",
+    "updated": "Component updated successfully",
+    "deleted": "Component deleted successfully",
+    "deleteError": "Failed to delete component",
+    "existsError": "Component already exists",
+    "items": {
+      "percentageAllowance": "{{value}} %",
+      "percentageDeduction": "{{value}} %",
+      "fixedAmount": "{{currency}} {{value}}",
+      "hra": {
+        "name": "House Rent Allowance (HRA)",
+        "description": "40%"
+      },
+      "conveyance": {
+        "name": "Conveyance Allowance",
+        "description": "Fixed: $200.00"
+      },
+      "medical": {
+        "name": "Medical Allowance",
+        "description": "Fixed: $150.00"
+      },
+      "tds": {
+        "name": "Income Tax (TDS)",
+        "description": "Based on tax slab rules"
+      },
+      "pf": {
+        "name": "Provident Fund (PF)",
+        "description": "12%"
+      },
+      "loans": {
+        "name": "Loan Repayment",
+        "description": "12% interest rate"
+      }
+    }
+  },
+  "overtime": {
+    "title": "Overtime Rules",
+    "standard": "Standard Overtime",
+    "standardDesc": "Rate for hours worked beyond 8 hours on workdays.",
+    "standardSub": "Weekdays & Regular hours",
+    "weekend": "Weekend Overtime",
+    "weekendDesc": "Rate for hours worked on weekends.",
+    "weekendSub": "Saturdays and Sundays",
+    "public holiday": "Public Holiday",
+    "publicHolidayDesc": "Rate for hours worked on public holidays.",
+    "publicHolidaySub": "Gazetted holidays",
+    "rateSuffix": "x Rate",
+    "flatRateSuffix": "Flat rate ($)",
+    "nightShift": "Enable Night Shift Premium",
+    "nightShiftDesc": "Apply extra 10% for hours between 10 PM - 6 AM"
+  },
+  "actions": {
+    "back": "Back",
+    "continue": "Continue to Team Setup",
+    "finishSetup": "Finish Setup",
+    "cancel": "Cancel",
+    "save": "Save Changes",
+    "add": "Add"
+  },
+  "errors": {
+    "payrollCycleRequired": "Payroll cycle is required",
+    "processingDayRequired": "Processing day is required",
+    "standardRequired": "Standard overtime rate is required",
+    "weekendRequired": "Weekend overtime rate is required",
+    "publicHolidayRequired": "Public holiday overtime rate is required"
+  }
+}

@@ -1,0 +1,906 @@
+{
+  "sidebar": {
+    "platform": "Platform",
+    "dashboard": "Dashboard",
+    "roles": "Roles",
+    "employees": {
+      "title": "Employees",
+      "directory": "Employee directory",
+      "lifecycle": "Employee lifecycle",
+      "contractManagement": "Contract management",
+      "add": "Add employee"
+    },
+    "organization": {
+      "title": "Organization",
+      "hierarchy": "Organisational hierarchy",
+      "company": "Company",
+      "division": "Division",
+      "subDivision": "Sub-division",
+      "department": "Department"
+    },
+    "attendance": {
+      "totalTime": "Total time",
+      "finished": "Finished",
+      "title": "Attendance",
+      "overview": "Overview",
+      "shifts": "Shifts",
+      "overtime": "Overtime",
+      "addShift": "Add shift"
+    },
+    "leave": {
+      "title": "Leave",
+      "requests": "Requests",
+      "types": "Types",
+      "policies": "Policies",
+      "balances": "Balances"
+    },
+    "payroll": {
+      "title": "Payroll",
+      "runs": "Payroll runs",
+      "salaries": "Employee salaries",
+      "components": "Payroll components",
+      "payslips": "Payslips"
+    },
+    "reports": {
+      "title": "Reports",
+      "hr": "HR reports",
+      "payroll": "Payroll reports",
+      "custom": "Custom reports"
+    },
+    "system": "System",
+    "settings": "Settings",
+    "assistant": "Assistant",
+    "help": "Help & support",
+    "logout": "Logout",
+    "managerReview": {
+        "title": "Manager Onboarding",
+        "dashboard": "Dashboard",
+        "team": "Team review and management"
+    },
+    "payrollOfficer": {
+        "title": "Payroll Officer",
+        "dashboard": "Admin dashboard",
+        "payroll": "Payroll structure"
+    },
+    "benefits": {
+      "title": "Benefits",
+      "insurance": "Insurance",
+      "entitlements": "Entitlements"
+    },
+    "documents": {
+      "title": "Documents",
+      "employee": "Employee documents",
+      "compliance": "Compliance tracking",
+      "categories": "Document categories"
+    }
+  },
+  "managerDashboard": {
+    "welcome": "Welcome to your team manager, {{name}}",
+    "subtitle": "Here's what's happening with your team today.",
+    "totalMembers": "Total Members",
+    "pendingLeave": "Pending Leave Requests",
+    "onLeave": "On leave",
+    "avgPerformance": "Average Performance",
+    "reviewTitle": "Review your team to get started",
+    "reviewSubtitle": "Please review your team so you can start managing your teams attendance and workflow.",
+    "reviewButton": "Review team"
+  },
+  "managerTeamReview": {
+    "title": "Team review and management",
+    "subtitle": "Here's what's happening with your team today.",
+    "designOps": "Design operations",
+    "development": "Development",
+    "manageTeam": "Manage team",
+    "addMember": "Add member",
+    "proTipTitle": "Pro tip: Streamline your workspace",
+    "proTipDesc": "Need an extra hand or missing a teammate? Click 'Add member' to bring them onboard and keep your projects running smoothly."
+  },
+  "payrollOfficerDashboard": {
+    "title": "Admin dashboard / Empty at startup",
+    "welcome": "Welcome to your team manager, {{name}}",
+    "subtitle": "Here's what's happening with your team today.",
+    "totalPayroll": "Total Employees in Payroll",
+    "netPayroll": "Net Payroll Amount",
+    "totalAllowances": "Total Allowances",
+    "totalDeductions": "Total Deductions",
+    "reviewTitle": "Review payroll structure to get started",
+    "reviewSubtitle": "Please review payroll structure so you can process salaries, manage payroll records, and generate employee payslips.",
+    "reviewButton": "Review payroll"
+  },
+  "setup": {
+    "selectCompany": "Select Company",
+    "selectCompanyPlaceholder": "Select a company",
+    "loadingCompanies": "Loading..."
+  },
+  "header": {
+    "searchPlaceholder": "Search for employees, tasks, files...",
+    "welcome": "Welcome back, {{name}}",
+    "subtitle": "Here's what's happening with your workforce today.",
+    "editDashboard": "Edit dashboard"
+  },
+  "employeeDashboard": {
+    "subtitle": "Here's a quick overview of your work and requests.",
+    "pendingLeaveRequests": "Pending Leave Requests",
+    "totalTime": "Total Time",
+    "attendanceRate": "Attendance Rate",
+    "netSalary": "Net Salary",
+    "myLeaveRequests": "My leave requests",
+    "requestLeave": "Request leave",
+    "leaveFrom": "Leave from",
+    "leaveTo": "Leave to",
+    "overtime": "Overtime",
+    "viewAll": "View all overtime"
+  },
+  "stats": {
+    "totalEmployees": "Total Employees",
+    "pendingApprove": "Pending Approve",
+    "upcomingPayroll": "Upcoming payroll date",
+    "activeJobs": "Active jobs"
+  },
+  "edit": {
+    "title": "Customize your dashboard",
+    "dashboardName": "{{name}}’s dashboard",
+    "dashboardDescription": "Personalize your dashboard to increase your productivity.",
+    "cancel": "Cancel",
+    "saveChanges": "Save change",
+    "addCards": "Add cards",
+    "addKpiCard": "Add KPI card",
+    "deleteConfirmTitle": "Delete dashboard KPI card",
+    "deleteConfirmDescription": "Are you sure you want to delete this KPI card from the dashboard?",
+    "delete": "Delete",
+    "rearrange": "Rearrange",
+    "removeKpiCards": "Remove KPI cards",
+    "editTable": "Edit table",
+    "editChart": "Edit chart",
+    "editQuickAction": "Edit quick action",
+    "changeSize": "Change size",
+    "rearrangeColumn": "Rearrange column",
+    "addKpiCardTitle": "Add a KPI card",
+    "addCardTitle": "Add a card",
+    "searchKpiPlaceholder": "Search for KPI cards",
+    "searchCardPlaceholder": "Search for cards",
+    "saveRole": "Save role",
+
+    "categories": {
+      "workforce": "Workforce",
+      "attendance": "Attendance KPIs",
+      "attendanceAndTime": "Attendance & Time",
+      "leave": "Leave",
+      "payroll": "Payroll",
+      "compliance": "Compliance KPIs",
+      "documentsAndCompliance": "Documents & Compliance",
+      "benefits": "Benefits",
+      "notifications": "Notifications & alerts",
+      "actions": "Actions",
+      "reportsAndInsights": "Report & insights",
+      "others": "Others"
+    },
+    "organizationCards": "Organization cards",
+    "workforceCards": "Workforce",
+    "kpis": {
+      "totalEmployees": {
+        "title": "Total Employees",
+        "desc": "Employees number in the company you have access to."
+      },
+      "activeEmployees": {
+        "title": "Active Employees",
+        "desc": "people who active and working."
+      },
+      "newHires": {
+        "title": "New Hires (this month)",
+        "desc": "Employees hired in this month"
+      },
+      "attritionRate": {
+        "title": "Attrition Rate",
+        "desc": "Performance and work quality degradation rate."
+      }
+    },
+    "dashboardCards": {
+      "employeeDistribution": {
+        "title": "Employee Distribution",
+        "desc": "Employees by department",
+        "details": "Details: Department name, Employee count",
+        "type": "Bar chart"
+      },
+      "newHiresExits": {
+        "title": "New Hires & Exits",
+        "desc": "Hires vs exits over time",
+        "type": "Line chart"
+      },
+      "statusOverview": {
+        "title": "Employee Status Overview",
+        "desc": "Active, On Leave, Inactive",
+        "type": "Pie chart"
+      }
+    }
+  },
+  "employeeRequests": {
+    "title": "Employee requests",
+    "employee": "Employee",
+    "requestType": "Request type",
+    "date": "Date",
+    "status": "Status",
+    "viewAll": "View all requests"
+  },
+  "quickActions": {
+    "title": "Quick actions",
+    "addEmployee": "Add employee",
+    "addDepartment": "Add department",
+    "approveRequests": "Approve requests",
+    "createAnnouncements": "Create announcements",
+    "generateReport": "Generate report"
+  },
+  "charts": {
+    "attendanceRate": "Attendance rate",
+    "employeesInsights": "Employees insights",
+    "last7Days": "Last 7 days",
+    "last30Days": "Last 30 days",
+    "last3Months": "Last 3 months",
+    "newHires": "New hires",
+    "employeesOnLeave": "Employees on leave"
+  },
+  "recentActivity": {
+    "title": "Recent Activity",
+    "searchPlaceholder": "Search for activities...",
+    "alert": "Alert",
+    "announcements": "Announcements",
+    "notifications": "Notifications",
+    "type": "Type",
+    "content": "Content",
+    "source": "Source",
+    "date": "Date",
+    "priority": "Priority",
+    "status": "Status",
+    "viewAll": "View All Activity"
+  },
+  "common": {
+    "all": "All",
+    "pending": "Pending",
+    "approved": "Approved",
+    "denied": "Denied",
+    "table": {
+      "rowsPerPage": "Rows per page",
+      "pageOf": "Page {{current}} of {{total}}",
+      "rowsSelected": "{{selected}} of {{total}} row(s) selected",
+      "days": "days",
+      "empty": "No data found.",
+      "actions": "Actions"
+    },
+    "pageNotFound": "Page Not Found",
+    "pageNotFoundDesc": "The page was not found.",
+    "goBack": "Go Back",
+    "backToHome": "Back to Home"
+  },
+  "companySetup": {
+    "title": "Organization setup",
+    "complete": "{{percent}}% Complete",
+    "steps": {
+      "profile": "Organization profile",
+      "structure": "Organization structure",
+      "hrPolicies": "HR policies",
+      "payrollStructure": "Payroll structure",
+      "addEmployees": "Add employees"
+    },
+    "empty": {
+      "title": "You haven't setup your organization yet",
+      "subtitle": "Please set up your organization so you can start managing your team, attendance, and payroll.",
+      "button": "Setup organization"
+    }
+  },
+  "staffOnboarding": {
+    "empty": {
+      "title": "Check your email to finish setup",
+      "subtitle": "A setup link has been sent to your email. Please check your inbox and follow the instructions to complete your onboarding process."
+    }
+  },
+  "footer": {
+    "copyright": "All Rights Reserved © HRMS"
+  },
+  "attendance": {
+    "overviewTitle": "Attendance overview",
+    "shiftsTitle": "Shifts",
+    "overtimeTitle": "Overtime",
+    "addShift": "Add shift",
+    "filterEmployee": "Employee",
+    "filterLocation": "Location",
+    "filterShift": "Shift",
+    "filterStatus": "Status",
+    "allEmployees": "All employees",
+    "allLocations": "All locations",
+    "allShifts": "All shifts",
+    "all": "All",
+    "applyFilters": "Apply filters",
+    "resetFilters": "Reset filters",
+    "searchPlaceholder": "Search for employees",
+    "importBtn": "Import",
+    "exportBtn": "Export",
+    "filter": "Filter",
+    "deleteConfirmTitle": "Delete Attendance Record",
+    "deleteConfirmMessage": "Are you sure you want to delete the attendance record for {{name}}?",
+    "deleteShiftTitle": "Delete Shift",
+    "deleteShiftMessage": "Are you sure you want to delete the shift \"{{name}}\"?",
+    "deleteOvertimeTitle": "Delete Overtime Record",
+    "deleteOvertimeMessage": "Are you sure you want to delete the overtime record for {{name}}?",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "requestOvertimeTitle": "Request an overtime",
+    "requestOvertimeInfo": "Overtime request info",
+    "dateWorked": "Date worked",
+    "hoursWorked": "Hours worked",
+    "reasonForOvertime": "Reason for overtime",
+    "justification": "Justification",
+    "justificationPlaceholder": "List out the tasks completed on overtime.",
+    "submitRequest": "Submit request",
+    "reasons": {
+      "urgent_task": "Urgent task completion",
+      "project_deadline": "Project deadline",
+      "shift_coverage": "Shift coverage",
+      "system_maintenance": "System maintenance",
+      "emergency_support": "Emergency support",
+      "others": "Others"
+    }
+  },
+  "leaveTypes": {
+    "title": "Leave types",
+    "addLeaveType": "Add leave type",
+    "table": {
+      "name": "Name",
+      "maxDays": "Max days/year",
+      "condition": "Condition",
+      "status": "Status"
+    },
+    "filter": {
+      "search": "Search for leave types",
+      "condition": "Condition",
+      "status": "Status",
+      "allConditions": "All conditions",
+      "allStatus": "All status",
+      "apply": "Apply filters",
+      "reset": "Reset filters"
+    },
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "changeStatus": "Change status",
+      "delete": "Delete"
+    },
+    "deleteConfirmTitle": "Delete Leave Type",
+    "deleteConfirmMessage": "Are you sure you want to delete the leave type \"{{name}}\"? This action cannot be undone.",
+    "cancel": "Cancel",
+    "stats": {
+      "number": "Number of leave types",
+      "active": "Active leaves",
+      "paid": "Paid leaves",
+      "unpaid": "Unpaid leaves"
+    },
+    "addLeaveTypeTitle": "Add a leave type",
+    "leaveInfo": "Leave info",
+    "code": "Code",
+    "codePlaceholder": "e.g. ANN",
+    "namePlaceholder": "Enter name",
+    "maxDaysPlaceholder": "e.g. 21",
+    "carryForwardAllowed": "Carry forward allowed",
+    "description": "Description",
+    "descriptionPlaceholder": "Add description",
+    "save": "Add leave type",
+    "createdSuccessTitle": "Success",
+    "createdSuccessMsg": "Leave type created successfully.",
+    "createError": "Failed to create leave type",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "condition": {
+      "paid": "Paid",
+      "unpaid": "Unpaid"
+    },
+    "types": {
+      "Annual leave": "Annual leave",
+      "Sick leave": "Sick leave",
+      "Paternity leave": "Paternity leave",
+      "Emergency leave": "Emergency leave",
+      "Bereavement leave": "Bereavement leave",
+      "Study leave": "Study leave",
+      "Compensatory leave": "Compensatory leave",
+      "Personal leave": "Personal leave",
+      "Marriage leave": "Marriage leave"
+    }
+  },
+  "leaveRequests": {
+    "title": "Leave requests",
+    "table": {
+      "employee": "Employee",
+      "requestType": "Request type",
+      "leaveFrom": "Leave from",
+      "leaveTo": "Leave to",
+      "duration": "Duration",
+      "status": "Status"
+    },
+    "filter": {
+      "search": "Search for employees",
+      "status": "Status",
+      "allStatus": "All states",
+      "type": "Request type",
+      "allTypes": "All types",
+      "apply": "Apply filters",
+      "reset": "Reset filters"
+    },
+    "actions": {
+      "reviewRequest": "Review request",
+      "view": "View details"
+    },
+    "stats": {
+      "active": "Active leave request",
+      "pending": "Pending requests",
+      "employees": "Leave requested employees",
+      "totalDays": "Total requested days"
+    },
+    "review": {
+      "title": "Review request",
+      "detailsTitle": "Request details",
+      "historyTitle": "Request history",
+      "requestedBy": "Requested by",
+      "requestType": "Request type",
+      "from": "From",
+      "to": "To",
+      "leaveBalance": "Leave balance",
+      "status": "Status",
+      "actions": {
+        "requestChange": "Request for change",
+        "reject": "Reject",
+        "approve": "Approve"
+      }
+    },
+    "requestForChange": {
+      "title": "Request for change",
+      "changeDetails": "Change details",
+      "acceptedFrom": "Accepted from",
+      "acceptedTo": "Accepted to",
+      "comment": "Comment",
+      "commentPlaceholder": "Add comment",
+      "back": "Back",
+      "send": "Send",
+      "cancel": "Cancel"
+    }
+  },
+  "leavePolicies": {
+    "title": "Policies",
+    "addPolicy": "Add leave policy",
+    "table": {
+      "policyName": "Policy name",
+      "leaveType": "Leave type",
+      "maxDays": "Max days/year",
+      "accrualMethod": "Accrual Method",
+      "carryForward": "Carry forward",
+      "approval": "Approval",
+      "status": "Status"
+    },
+    "stats": {
+      "total": "Number of polices",
+      "active": "Active policies",
+      "approvalRequired": "Approval required",
+      "approvalNotRequired": "Approval not-required"
+    },
+    "deleteSuccess": "Policy deleted",
+    "deleteSuccessDesc": "Leave policy was deleted successfully.",
+    "deleteError": "Failed to delete",
+    "deleteErrorDesc": "An unexpected error occurred.",
+    "deleteConfirmTitle": "Delete Leave Policy",
+    "deleteConfirmMessage": "Are you sure you want to delete the leave policy \"{{name}}\"? This action cannot be undone.",
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "changeStatus": "Change status",
+      "delete": "Delete"
+    }
+  },
+  "addLeavePolicy": {
+    "title": "Add a leave policy",
+    "createdSuccessTitle": "Success",
+    "createdSuccessMsg": "Leave policy created successfully.",
+    "createError": "Failed to create leave policy",
+    "sections": {
+      "policyInfo": "Policy info",
+      "entitlementRules": "Entitlement rules",
+      "requestRules": "Request Rules",
+      "approvalFlow": "Approval flow and assignment",
+      "documentation": "Documentation",
+      "payrollImpact": "Payroll Impact"
+    },
+    "fields": {
+      "policyName": "Policy name",
+      "leaveType": "Leave type",
+      "description": "Description",
+      "maxDays": "Maximum days per year",
+      "accrualMethod": "Accrual Method",
+      "accrualRate": "Accrual Rate",
+      "maxCarryForward": "Max Carry Forward Days",
+      "expiryPeriod": "Expiry Period",
+      "carryForward": "Carry forward",
+      "minDayPerRequest": "Min day per request",
+      "maxDaysPerRequest": "Maximum Days per Request",
+      "noticePeriod": "Notice Period",
+      "managerApproval": "Managers approval",
+      "hrApproval": "HR approval",
+      "probationRequired": "Probation required",
+      "applyTo": "Apply to",
+      "requireAttachment": "Require attachment",
+      "condition": "Condition",
+      "paidLeave": "Paid leave",
+      "payType": "Pay Type",
+      "deductFromSalary": "Deduct from salary",
+      "setTierRules": "Set tier rules",
+      "fullPay": "Full pay",
+      "halfPay": "Half pay",
+      "noPay": "No pay"
+    },
+    "placeholders": {
+      "policyName": "Enter policy name",
+      "description": "Add description",
+      "noticePeriod": "Days before",
+      "first15Days": "First 15 days",
+      "thirtyDays": "30 days",
+      "afterThirtyDays": "After 30 days"
+    },
+    "options": {
+      "yearlyAllocation": "Yearly allocation",
+      "monthlyAccrual": "Monthly accrual",
+      "days5": "5 days",
+      "days10": "10 days",
+      "days15": "15 days",
+      "months3": "3 months",
+      "months6": "6 months",
+      "months12": "12 months",
+      "allDepartments": "All departments",
+      "specificDepartments": "Specific departments",
+      "alwaysRequire": "Always require",
+      "whenDurationGt3": "When duration > 3 days",
+      "fullPay": "Full pay",
+      "partialPay": "Partial pay",
+      "deduct": "Deduct",
+      "noDeduction": "No deduction",
+      "noLeaveTypes": "No leave types available"
+    },
+    "save": "Save leave policy"
+  },
+  "leaveBalances": {
+    "title": "Leave balances",
+    "stats": {
+      "employees": "Number of employees",
+      "allocated": "Total allocated days",
+      "remaining": "Total remaining days",
+      "carriedForward": "Total carried forwards"
+    },
+    "table": {
+      "name": "Name",
+      "leaveType": "Leave type",
+      "year": "Year",
+      "allocated": "Allocated",
+      "used": "Used",
+      "remaining": "Remaining",
+      "carriedForward": "Carried forward"
+    },
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "edit": {
+      "title": "Edit leave balance",
+      "balanceInfo": "Balance info",
+      "balanceDetails": "Balance details",
+      "employee": "Employee",
+      "leaveType": "Leave type",
+      "year": "Year",
+      "allocatedDays": "Allocated days",
+      "usedDays": "Used days",
+      "remainingDays": "Remaining days",
+      "carryForwardDays": "Carry forward days",
+      "reason": "Reason for edit",
+      "placeholderReason": "Add reason",
+      "saveButton": "Save changes",
+      "validation": {
+        "employeeRequired": "Employee name is required",
+        "leaveTypeRequired": "Leave type is required",
+        "yearRequired": "Year is required",
+        "positiveNumber": "Must be a positive number",
+        "reasonRequired": "Reason for edit is required"
+      }
+    },
+    "delete": {
+      "title": "Delete Leave Balance",
+      "message": "Are you sure you want to delete the leave balance for {{name}} ({{leaveType}})? This action cannot be undone."
+    }
+  },
+  "tableInfo": {
+    "rowsSelected": "{{count}} of {{total}} row(s) selected.",
+    "rowsPerPage": "Rows per page",
+    "pageOf": "Page {{current}} of {{total}}"
+  },
+  "payrollData": {
+    "runsTitle": "Payroll runs",
+    "stats": {
+      "totalRuns": "Total runs 2026",
+      "completedRuns": "Completed runs 2026",
+      "pendingRun": "Pending run",
+      "totalGrossPay": "Total gross pay 2026",
+      "numberEmployees": "Number of employees",
+      "activeEmployees": "Active employees",
+      "componentsUsed": "Components used",
+      "totalSalary": "Total employee salary",
+      "totalPayslip": "Total payslip 2026",
+      "totalPay": "Total pay 2026",
+      "downloaded": "Downloaded",
+      "generated": "Generated"
+    },
+    "columns": {
+      "title": "Title",
+      "frequency": "Frequency",
+      "payPeriod": "Pay period",
+      "payDate": "Pay date",
+      "noOfEmployees": "No. of employees",
+      "grossPay": "Gross pay",
+      "netPay": "Net pay",
+      "status": "Status",
+      "employee": "Employee",
+      "salary": "Salary",
+      "components": "Components",
+      "createdDate": "Created date",
+      "componentName": "Component name",
+      "description": "Description",
+      "type": "Type",
+      "calculationType": "Calculation type",
+      "value": "Value",
+      "payslipNumber": "Payslip number",
+      "totalPay": "Total pay"
+    },
+    "actions": {
+      "view": "View",
+      "delete": "Delete",
+      "showPayroll": "Show payroll",
+      "edit": "Edit",
+      "changeStatus": "Change status",
+      "generate": "Generate",
+      "download": "Download"
+    },
+    "salariesTitle": "Employee salaries",
+    "componentsTitle": "Payroll components",
+    "payslipsTitle": "Payslips",
+    "searchPlaceholder": "Search for employees",
+    "batchDownload": "Batch download",
+    "addComponent": "Add payroll component",
+    "status": {
+      "pending": "Pending",
+      "completed": "Completed",
+      "active": "Active",
+      "terminated": "Terminated",
+      "generated": "Generated",
+      "downloaded": "Downloaded",
+      "present": "Present",
+      "onLeave": "On leave"
+    },
+    "modals": {
+      "addComponentTitle": "Add a payroll component",
+      "componentInfo": "Component info",
+      "nameLabel": "Component name",
+      "typeLabel": "Type",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Add description",
+      "componentDetails": "Component details",
+      "calcTypeLabel": "Calculation type",
+      "valueLabel": "Value",
+      "saveBtn": "Save component",
+      "cancelBtn": "Cancel"
+    },
+    "detail": {
+      "back": "Back",
+      "previous": "Previous",
+      "next": "Next",
+      "salaryGross": "Salary (gross)",
+      "salaryNet": "Salary (Net)",
+      "workingDays": "Working days",
+      "attendanceRate": "Attendance rate",
+      "calculatorTitle": "payroll calculation",
+      "tabs": {
+        "attendanceSummary": "Attendance summary",
+        "dailyRecord": "Daily attendance record",
+        "earningDeduction": "Earning & deduction",
+        "netSalary": "Net salary"
+      },
+      "working": "Working days",
+      "present": "Present days",
+      "half": "Half days",
+      "absent": "Absent days",
+      "paidLeave": "Paid leave days",
+      "unpaidLeave": "Unpaid leave days",
+      "overtime": "Overtime",
+      "earnings": "Earnings",
+      "deductions": "Deductions",
+      "totalEarning": "Total earning",
+      "totalDeduction": "Total deduction",
+      "basicSalary": "Basic salary",
+      "unpaidDeduction": "Unpaid leave deduction",
+      "absentDeduction": "Absent day deduction",
+      "calcFormula": "Calculation Formula",
+      "formula": "Net Salary = (Basic Salary + Allowances) - (Absent day × Unpaid Leave Days) + Overtime - Deductions",
+      "breakdownLabel": "Unpaid Leave Days Breakdown",
+      "breakdownValue": "Unpaid Leaves, Absent Days, Half Days, Total Unpaid Days"
+    }
+  },
+  "benefits": {
+    "insurance": {
+      "title": "Insurance",
+      "addInsurance": "Add an insurance",
+      "table": {
+        "planName": "Plan name",
+        "provider": "Provider",
+        "coverageType": "Coverage type",
+        "employeesCovered": "Employee covered",
+        "status": "Status"
+      },
+      "stats": {
+        "numPlans": "Number of insurance plans",
+        "activePlans": "Active plans",
+        "numProviders": "Number of providers",
+        "monthlySpending": "Monthly insurance spending"
+      }
+    },
+    "entitlements": {
+      "title": "Entitlements",
+      "addEntitlement": "Add an entitlement",
+      "table": {
+        "entitlementName": "Entitlement name",
+        "type": "Type",
+        "value": "Value",
+        "assignedTo": "Assigned to",
+        "frequency": "Frequency",
+        "status": "Status"
+      },
+      "stats": {
+        "numEntitlements": "Number of entitlements",
+        "activeEntitlements": "Active entitlements",
+        "assignedToAll": "Assigned to all employees",
+        "monthlySpending": "May entitlement spending"
+      }
+    }
+  },
+  "documentData": {
+    "employeeDocuments": {
+      "title": "Employee documents",
+      "uploadDocument": "Upload a document",
+      "table": {
+        "employee": "Employee",
+        "category": "Category",
+        "documentName": "Document name",
+        "expiryDate": "Expiry date",
+        "compliance": "Compliance",
+        "uploadedBy": "Uploaded by"
+      },
+      "stats": {
+        "compliant": "Compliant employees",
+        "missing": "Employee missing documents",
+        "expired": "Expired documents",
+        "nearExpiry": "Expiry date near documents"
+      }
+    },
+    "complianceTracking": {
+      "title": "Compliance tracking",
+      "riskAlerts": "Risk & Alerts",
+      "quickActions": "Quick actions",
+      "table": {
+        "employee": "Employee",
+        "department": "Department",
+        "missingDocument": "Missing document",
+        "expiryDocument": "Expiry document",
+        "complianceStatus": "Compliance status",
+        "lastReminder": "Last reminder"
+      },
+      "stats": {
+        "fullyCompliant": "Fully Compliant",
+        "nonCompliant": "Non-Compliant",
+        "expiringSoon": "Expiring Soon",
+        "totalCompliance": "Total compliance"
+      }
+    },
+    "documentCategories": {
+      "title": "Document categories",
+      "addCategory": "Add document category",
+      "table": {
+        "categoryName": "Category name",
+        "type": "Type",
+        "required": "Required",
+        "expiryDateRequired": "Expiry date required",
+        "appliedTo": "Applied to",
+        "status": "Status"
+      },
+      "stats": {
+        "total": "Total categories",
+        "required": "Required categories",
+        "expiryRequired": "Expiry date required",
+        "active": "Active categories"
+      }
+    }
+  },
+  "reports": {
+    "hr": {
+      "title": "HR reports",
+      "stats": {
+        "totalEmployees": "Total employee",
+        "newHires": "New hires",
+        "attendanceRate": "Attendance rate",
+        "complianceRate": "Compliance rate"
+      },
+      "charts": {
+        "headcountTrend": "Headcount Trend",
+        "attendanceOverview": "Attendance Overview",
+        "present": "Present",
+        "absent": "Absent",
+        "onLeave": "On leave"
+      }
+    },
+    "payroll": {
+      "title": "Payroll reports",
+      "stats": {
+        "totalCost": "Total Payroll Cost",
+        "netPay": "Net pay",
+        "totalDeductions": "Total Deductions",
+        "overtimeCost": "Overtime Cost"
+      },
+      "charts": {
+        "payrollTrend": "Payroll trend",
+        "deductionsBreakdown": "Deductions Breakdown",
+        "tax": "Tax",
+        "insurance": "Insurance",
+        "penalties": "Penalties",
+        "unpaidLeave": "Unpaid leave"
+      }
+    },
+    "custom": {
+      "title": "Custom reports",
+      "createReport": "Create a custom report",
+      "basicInfo": "Basic info",
+      "reportName": "Report name",
+      "dataSource": "Data source",
+      "description": "Description",
+      "filters": "Filters",
+      "reportFields": "Report fields",
+      "visualization": "Visualization"
+    }
+  },
+  "profile": {
+    "personal_info": "Personal info",
+    "employment_details": "Employment details",
+    "document_center": "Document center",
+    "banking_details": "Banking details",
+    "first_name": "First name",
+    "last_name": "Last name",
+    "role": "Role",
+    "country_of_origin": "Country of origin",
+    "country_of_residence": "Country of residence",
+    "contact_info": "Contact info",
+    "personal_email": "Personal email",
+    "company_email": "Company email",
+    "phone_number": "Phone number",
+    "emergency_contact": "Emergency contact",
+    "home_address": "Home address",
+    "reporting_manager": "Reporting manager",
+    "job_classification": "Job classification",
+    "joined_on": "Joined on",
+    "employment_duration": "Employment duration",
+    "status": "Status",
+    "work_authorization": "Work authorization",
+    "documents": "Documents",
+    "add_document": "Add a document",
+    "bank_details": "Bank details",
+    "add_another_bank": "Add another bank",
+    "bank_name": "Bank name",
+    "branch": "Branch",
+    "name_on_account": "Name on account",
+    "account_number": "Account number",
+    "swift_bic_code": "Swift/BIC code",
+    "edit_info": "Edit info",
+    "joined": "Joined",
+    "active": "Active",
+    "updated": "Updated {{time}} ago"
+  }
+}

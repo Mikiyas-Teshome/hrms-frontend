@@ -1,0 +1,34 @@
+{
+  "title": "Your team",
+  "subtitle": "Review and manage the teams your assigned as a manager.",
+  "proTip": {
+    "title": "Pro Tip",
+    "description": "You can bulk import your employees using an Excel or CSV file.",
+    "import": "Import now"
+  },
+  "teamMembers": "Team members ({{count}})",
+  "department": "Department",
+  "dateCreated": "Date created",
+  "addMember": "Add member",
+  "manageTeam": "Manage team",
+  "finishSetup": "Finish Setup",
+  "teams": {
+    "designOperations": "Design operations",
+    "development": "Development"
+  },
+  "departments": {
+    "engineering": "Engineering",
+    "sales": "Sales",
+    "marketing": "Marketing",
+    "design": "Design"
+  },
+  "roles": {
+    "manager": "Manager",
+    "member": "Member",
+    "designer": "Designer",
+    "developer": "Developer",
+    "salesManager": "Sales manager",
+    "sales": "Sales",
+    "you": "(you)"
+  }
+}
