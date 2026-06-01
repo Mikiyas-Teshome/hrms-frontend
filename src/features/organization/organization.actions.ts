@@ -95,10 +95,17 @@ export async function updateOrganizationNomenclature(inputs: NomenclatureInput[]
     });
 }
 
-export async function getOrganizationHierarchy(): Promise<OrganizationUnitType[]> {
+export async function getOrganizationHierarchy(options: {
+    limit?: number;
+    maxDepth?: number;
+    page?: number;
+    rootId?: string;
+    status?: string;
+} = {}): Promise<OrganizationUnitType[]> {
     const data = await gqlRequest<{ getOrganizationHierarchy: OrganizationUnitType[] }>(
         GraphQLService.AUTH,
-        GET_ORGANIZATION_HIERARCHY_QUERY
+        GET_ORGANIZATION_HIERARCHY_QUERY,
+        options
     );
     return data.getOrganizationHierarchy;
 }

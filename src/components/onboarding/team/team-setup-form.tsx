@@ -8,9 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { teamSetupSchema, type TeamSetupValues } from '@/components/onboarding/schemas/team-setup';
 import { useState } from 'react';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DirectoryTab } from '@/components/onboarding/team/tabs/directory-tab';
-import { AssignManagerTab } from '@/components/onboarding/team/tabs/assign-manager';
 import { useOnboarding } from '@/components/onboarding/context/OnboardingContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -23,7 +21,6 @@ export function TeamSetupForm({ onNext, onBack }: TeamSetupFormProps) {
     const { t } = useTranslation('teamSetup');
     const router = useRouter();
     const { setTeamData, teamData } = useOnboarding();
-    const [activeTab, setActiveTab] = useState('directory');
     const { toast } = useToast();
 
     // Directory State
@@ -70,37 +67,12 @@ export function TeamSetupForm({ onNext, onBack }: TeamSetupFormProps) {
 
     return (
         <div className="mx-auto w-full max-w-4xl space-y-6 pb-2">
-            {/* Custom Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="flex">
-                    <TabsList className="h-9 w-full max-w-154.5 bg-secondary p-0.75 rounded-[10px] border-none">
-                        <TabsTrigger
-                            value="directory"
-                            className="flex-1 h-7 rounded-[8px] data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary text-muted-foreground font-medium text-sm transition-all"
-                        >
-                            {t('tabs.directory') || 'Employee directory'}
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="department"
-                            className="flex-1 h-7 rounded-[8px] data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-primary text-muted-foreground font-medium text-sm transition-all"
-                        >
-                            {t('tabs.department') || 'Assign Managers'}
-                        </TabsTrigger>
-                    </TabsList>
-                </div>
-            </Tabs>
-
             <form onSubmit={handleDirectorySubmit(onSubmit, onInvalid)} className="space-y-8">
-                {activeTab === 'directory' ? (
-                    <DirectoryTab
-                        t={t}
-                        directoryFields={directoryFields}
-                        appendEmployee={appendEmployee}
-                        onNextTab={() => setActiveTab('department')}
-                    />
-                ) : activeTab === 'department' ? (
-                    <AssignManagerTab t={t} />
-                ) : null}
+                <DirectoryTab
+                    t={t}
+                    directoryFields={directoryFields}
+                    appendEmployee={appendEmployee}
+                />
 
                 {/* Info Alert */}
                 <div className="flex items-start gap-4 rounded-xl bg-primary/10 border border-primary/20 p-5">

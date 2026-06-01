@@ -1,102 +1,150 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { UserResponse } from "@/features/auth/auth.types";
-import { getProfile } from "@/features/auth/auth.actions";
-import { hasPermission } from "@/features/auth/utils/permissions";
-import type { PermissionsMap } from "@/features/roles/roles.types";
+import { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { UserResponse } from '@/features/auth/auth.types';
+import { getProfile } from '@/features/auth/auth.actions';
+import { AUTH_PROFILE_QUERY_KEY } from '@/features/auth/auth-session.constants';
+import {
+    clearAuthSessionCache,
+    readAuthSessionCache,
+    writeAuthSessionCache,
+} from '@/features/auth/auth-session-cache.util';
+import { hasPermission } from '@/features/auth/utils/permissions';
+import type { PermissionsMap } from '@/features/roles/roles.types';
 
 export type { PermissionsMap };
 
 type AuthContextValue = {
-  user: UserResponse | null;
-  permissionsMap: PermissionsMap;
-  isAuthenticated: boolean;
-  isInitializing: boolean;
-  setUser: (user: UserResponse | null) => void;
-  reloadSession: () => Promise<void>;
-  checkPermission: (module: string, action?: string) => boolean;
+    user: UserResponse | null;
+    permissionsMap: PermissionsMap;
+    isAuthenticated: boolean;
+    isInitializing: boolean;
+    setUser: (user: UserResponse | null) => void;
+    reloadSession: () => Promise<void>;
+    checkPermission: (module: string, action?: string) => boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<UserResponse | null>(null);
-  const [permissionsMap, setPermissionsMap] = useState<PermissionsMap>({});
-  const [isInitializing, setIsInitializing] = useState(true);
+const getPermissionsMapFromUser = (user: UserResponse | null | undefined): PermissionsMap =>
+    (user?.roleProfile?.permissionsMap as PermissionsMap) ?? {};
 
-  const handleSetUser = useCallback((newUser: UserResponse | null) => {
-    setUser(newUser);
-    const activePermissionsMap: PermissionsMap =
-      (newUser?.roleProfile?.permissionsMap as PermissionsMap) ?? {};
-    setPermissionsMap(activePermissionsMap);
-  }, []);
+export function AuthProvider({
+    children,
+    initialUser = null,
+}: {
+    children: React.ReactNode;
+    initialUser?: UserResponse | null;
+}) {
+    const queryClient = useQueryClient();
+    const cachedSession = useMemo(() => readAuthSessionCache(), []);
 
-  const checkPermission = useCallback(
-    (module: string, action: string = "read") => {
-      return hasPermission(permissionsMap, module, action);
-    },
-    [permissionsMap],
-  );
+    const { data: user, isPending } = useQuery({
+        queryKey: AUTH_PROFILE_QUERY_KEY,
+        queryFn: () => getProfile(),
+        initialData: initialUser || cachedSession?.user || undefined,
+        staleTime: 60 * 1000,
+        retry: false,
+    });
 
-  const fetchSessionData = async () => {
-    try {
-      const profile = await getProfile();
-      const activePermissionsMap: PermissionsMap =
-        (profile?.roleProfile?.permissionsMap as PermissionsMap) ?? {};
-      return { profile, activePermissionsMap };
-    } catch (error) {
-      console.error("Failed to retrieve auth session", error);
-      return { profile: null, activePermissionsMap: {} };
-    }
-  };
+    const resolvedUser = user ?? null;
+    const permissionsMap = getPermissionsMapFromUser(resolvedUser);
+    const hasCachedSession = Boolean(initialUser || cachedSession?.user);
+    const isInitializing = isPending && !hasCachedSession;
 
-  useEffect(() => {
-    let isActive = true;
+    useEffect(() => {
+        if (resolvedUser) {
+            writeAuthSessionCache(resolvedUser);
+            return;
+        }
 
-    (async () => {
-      const { profile, activePermissionsMap } = await fetchSessionData();
-      if (isActive) {
-        setUser(profile);
-        setPermissionsMap(activePermissionsMap);
-        setIsInitializing(false);
-      }
-    })();
+        if (!isPending) {
+            clearAuthSessionCache();
+        }
+    }, [resolvedUser, isPending]);
 
-    return () => {
-      isActive = false;
-    };
-  }, []);
+    const handleSetUser = useCallback(
+        (newUser: UserResponse | null) => {
+            queryClient.setQueryData(AUTH_PROFILE_QUERY_KEY, newUser);
+            if (newUser) {
+                writeAuthSessionCache(newUser);
+                return;
+            }
+            clearAuthSessionCache();
+        },
+        [queryClient],
+    );
 
-  const reloadSession = useCallback(async () => {
-    // Clear stale state immediately so components never show the previous user's data
-    setUser(null);
-    setPermissionsMap({});
-    const { profile, activePermissionsMap } = await fetchSessionData();
-    setUser(profile);
-    setPermissionsMap(activePermissionsMap);
-  }, []);
+    const checkPermission = useCallback(
+        (module: string, action: string = 'read') => {
+            return hasPermission(permissionsMap, module, action);
+        },
+        [permissionsMap],
+    );
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      user,
-      permissionsMap,
-      isAuthenticated: Boolean(user),
-      isInitializing,
-      setUser: handleSetUser,
-      reloadSession,
-      checkPermission,
-    }),
-    [user, permissionsMap, isInitializing, handleSetUser, reloadSession, checkPermission],
-  );
+    const reloadSession = useCallback(async () => {
+        const existingUser = queryClient.getQueryData<UserResponse | null>(AUTH_PROFILE_QUERY_KEY);
+        await queryClient.cancelQueries({ queryKey: AUTH_PROFILE_QUERY_KEY });
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+        const profile = await queryClient.fetchQuery({
+            queryKey: AUTH_PROFILE_QUERY_KEY,
+            queryFn: () => getProfile(),
+            staleTime: 0,
+        });
+
+        try {
+            const profile = await queryClient.fetchQuery({
+                queryKey: AUTH_PROFILE_QUERY_KEY,
+                queryFn: () => getProfile(),
+            });
+
+            if (profile) {
+                writeAuthSessionCache(profile);
+                queryClient.setQueryData(AUTH_PROFILE_QUERY_KEY, profile);
+                return;
+            }
+        } catch {
+            if (existingUser) {
+                return;
+            }
+        }
+
+        if (existingUser) {
+            return;
+        }
+
+        clearAuthSessionCache();
+        queryClient.setQueryData(AUTH_PROFILE_QUERY_KEY, null);
+    }, [queryClient]);
+
+    const value = useMemo<AuthContextValue>(
+        () => ({
+            user: resolvedUser,
+            permissionsMap,
+            isAuthenticated: Boolean(resolvedUser),
+            isInitializing,
+            setUser: handleSetUser,
+            reloadSession,
+            checkPermission,
+        }),
+        [
+            resolvedUser,
+            permissionsMap,
+            isInitializing,
+            handleSetUser,
+            reloadSession,
+            checkPermission,
+        ],
+    );
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider.");
-  }
-  return context;
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider.');
+    }
+    return context;
 }

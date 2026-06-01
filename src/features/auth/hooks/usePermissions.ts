@@ -35,7 +35,13 @@ export function usePermissions() {
             if (isSystemAdmin) return true;
             if (!permissionsMap) return false;
             
-            return permissionsMap[resource]?.[action] === scope || permissionsMap[resource]?.['manage'] === scope;
+            const normalizedScope = scope.toUpperCase();
+            const actionScope = permissionsMap[resource]?.[action];
+            const manageScope = permissionsMap[resource]?.['manage'];
+            return (
+                actionScope?.toUpperCase() === normalizedScope ||
+                manageScope?.toUpperCase() === normalizedScope
+            );
         },
         [isSystemAdmin, permissionsMap]
     );

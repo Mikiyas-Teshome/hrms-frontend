@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect } from 'react';
@@ -19,7 +18,6 @@ import { useToast } from '@/hooks/use-toast';
 import { FormField } from '@/components/ui/FormField';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
-
 interface ManagerSignupFormProps {
     onSignupSuccess?: () => void;
     onSuccess?: () => void;
@@ -69,13 +67,10 @@ export function ManagerSignupForm({ onSignupSuccess, token, email }: ManagerSign
         try {
             await registerMutation.mutateAsync({
                 email: data.email || email || '',
-                // firstName: data.firstName,
-                // lastName: data.lastName,
                 password: data.password,
                 invitationToken: token || '',
             });
 
-            // Sync session and profile before proceeding to onboarding
             await reloadSession();
             await queryClient.invalidateQueries({ queryKey: ['employee', 'profile'] });
 
@@ -133,27 +128,7 @@ export function ManagerSignupForm({ onSignupSuccess, token, email }: ManagerSign
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 w-full">
-                {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                        id="firstName"
-                        label={t('onboarding:firstName')}
-                        name="firstName"
-                        register={register}
-                        error={errors.firstName}
-                        placeholder={t('onboarding:firstNamePlaceholder')}
-                        t={(key) => t(`onboarding:${key}`)}
-                    />
-                    <FormField
-                        id="lastName"
-                        label={t('onboarding:lastName')}
-                        name="lastName"
-                        register={register}
-                        error={errors.lastName}
-                        placeholder={t('onboarding:lastNamePlaceholder')}
-                        t={(key) => t(`onboarding:${key}`)}
-                    />
-                </div> */}
-
+ 
                 <FormField
                     id="email"
                     label={t('onboarding:email')}

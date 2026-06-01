@@ -364,7 +364,7 @@ export async function createPayrollComponentsBatch(
   return safeAction(async () => {
     const results: PayrollComponent[] = [];
     
-    for (const [index, input] of inputs.entries()) {
+    for (const input of inputs) {
       const data = await gqlRequest<{ createPayrollComponent: PayrollComponent }>(
         GraphQLService.PAYROLL,
         CREATE_PAYROLL_COMPONENT_MUTATION,

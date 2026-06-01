@@ -16,7 +16,7 @@ export const CALENDAR_TYPES = ['gregorian', 'hijri', 'custom'] as const;
 export const formatTime = (time: string) => {
     try {
         return format(new Date(time), 'hh:mm a');
-    } catch (e) {
+    } catch {
         return time;
     }
 };

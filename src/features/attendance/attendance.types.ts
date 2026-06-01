@@ -1,5 +1,3 @@
-import { UserResponse } from "../auth/auth.types";
-
 export type CalendarType = 'custom' | 'gregorian' | 'hijri';
 
 export type TimesheetStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'processed';
@@ -17,6 +15,14 @@ export enum ShiftType {
     DAY = 'DAY',
     FLEXIBLE = 'FLEXIBLE',
     NIGHT = 'NIGHT'
+}
+
+export enum ShiftPolicyScopeType {
+    COMPANY = 'COMPANY',
+    DEPARTMENT = 'DEPARTMENT',
+    DIVISION = 'DIVISION',
+    EMPLOYEE = 'EMPLOYEE',
+    SUB_DIVISION = 'SUB_DIVISION'
 }
 
 export interface ShiftTemplate {
@@ -58,6 +64,7 @@ export interface AttendanceRecord {
     remarks?: string | null;
     status: AttendanceStatus;
     totalMinutes: number;
+    overtimeStatus?: string;
     updatedAt: string;
     userId: string;
     // New fields from backend update
@@ -72,14 +79,24 @@ export interface AttendanceRecord {
     groupOuId?: string | null;
 }
 
+export interface PaginationInput {
+    page?: number;
+    size?: number;
+}
+
+export interface PaginatedMetaData {
+    page: number;
+    size: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+    timestamp?: string;
+}
+
 export interface PaginatedAttendanceRecords {
     data: AttendanceRecord[];
-    pagination: {
-        limit: number;
-        page: number;
-        total: number;
-        totalPages: number;
-    };
+    metaData: PaginatedMetaData;
 }
 
 export interface Holiday {
@@ -117,6 +134,9 @@ export interface AttendanceOverviewStats {
     activeEmployees: number;
     onLeave: number;
     totalOvertimeHours: number;
+    overtimeEmployees: number;
+    approvedOvertime: number;
+    pendingOvertime: number;
 }
 
 export interface ShiftStats {
@@ -154,6 +174,15 @@ export interface CreateEmployeeShiftInput {
     userId: string;
 }
 
+export interface CreateShiftPolicyAssignmentInput {
+    actorId?: string | null;
+    scopeRefId: string;
+    scopeType: ShiftPolicyScopeType;
+    shiftTemplateId: string;
+    validFrom: string;
+    validTo?: string | null;
+}
+
 export interface ClockInInput {
     clockIn?: string | null;
     date?: string | null;
@@ -173,6 +202,11 @@ export interface AdminUpdateAttendanceInput {
     recordId: string;
     remarks?: string | null;
     status: AttendanceStatus;
+}
+
+export interface UpdateOvertimeStatusInput {
+    recordId: string;
+    status: string;
 }
 
 export interface CreateHolidayInput {
@@ -197,6 +231,20 @@ export interface CreateShiftTemplateInput {
     workingDays: number[];
 }
 
+export interface UpdateShiftTemplateInput {
+    id: string;
+    breakDuration?: number;
+    companyOuId?: string;
+    endTime?: string;
+    flexibleMinutes?: number;
+    isActive?: boolean;
+    name?: string;
+    overtimeAllowed?: boolean;
+    startTime?: string;
+    type?: ShiftType;
+    workingDays?: number[];
+}
+
 export interface CreateTimesheetInput {
     periodEnd: string;
     periodStart: string;
@@ -219,8 +267,8 @@ export interface UpdateTimesheetStatusInput {
 }
 
 export interface PaginatedAttendanceRecordsFilterInput {
-    startDate?: string;
-    endDate?: string;
+    startDate?: string | Date;
+    endDate?: string | Date;
     groupOuId?: string;
     companyOuId?: string;
     divisionOuId?: string;
@@ -228,6 +276,9 @@ export interface PaginatedAttendanceRecordsFilterInput {
     departmentOuId?: string;
     shiftType?: ShiftType;
     status?: AttendanceStatus;
+    overtimeStatus?: string;
     contractType?: string;
     search?: string;
+    hasOvertime?: boolean;
+    forExport?: boolean;
 }

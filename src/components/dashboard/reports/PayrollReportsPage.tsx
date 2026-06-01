@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState } from 'react';
@@ -131,7 +130,7 @@ const PayrollReportsPage = () => {
         { header: 'Status', key: 'status' },
     ];
 
-    const renderRowActions = (item: any) => (
+    const renderRowActions = () => (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 p-0">

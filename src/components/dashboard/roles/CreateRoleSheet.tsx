@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React from 'react';
@@ -21,11 +20,24 @@ import { RoleFormFields } from './RoleFormFields';
 import { Separator } from '@/components/ui/separator';
 import { useTranslation } from 'react-i18next';
 import { Role, PermissionScope } from '@/features/roles/roles.types';
-import { createRole, updateRole, fetchPermissions } from '@/features/roles/roles.actions';
+import {
+    createRole,
+    updateRole,
+    fetchPermissions,
+    fetchProfileWithPermissionSets,
+} from '@/features/roles/roles.actions';
+import {
+    buildCallerScopeByAction,
+    capPermissionScope,
+    normalizePermissionScope,
+    scopeRank,
+} from '@/features/roles/permission-scope.util';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { roleSchema, type RoleFormValues } from '../schemas/role.schema';
+import { usePermissions } from '@/features/auth/hooks/usePermissions';
+import { filterGrantablePermissions } from '@/features/roles/grantable-permissions.util';
 
 interface CreateRoleSheetProps {
     open: boolean;
@@ -42,28 +54,46 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
 }) => {
     const { t } = useTranslation('roles');
     const { toast } = useToast();
-    const { user } = useAuth();
+    const { user, permissionsMap } = useAuth();
+    const { hasPermission, isSystemAdmin } = usePermissions();
+    const canCreateRole = hasPermission('roles:create');
+    const canUpdateRole = hasPermission('roles:update');
+    const isEditing = Boolean(role?.id);
+    const canSaveRole = isEditing ? canUpdateRole : canCreateRole;
     const form = useForm<RoleFormValues>({
         resolver: zodResolver(roleSchema),
         defaultValues: {
             name: '',
-            level: 1,
             description: '',
             permissions: [],
-            scope: PermissionScope.ALL,
+            scope: PermissionScope.COMPANY,
             moduleScopes: {},
         },
     });
 
     const [permissionModules, setPermissionModules] = useState<
-        { id: string; name: string; permissions: { id: string; label: string }[] }[]
+        {
+            id: string;
+            name: string;
+            permissions: { id: string; label: string; action: string }[];
+        }[]
     >([]);
-
+    const [callerScopeByAction, setCallerScopeByAction] = useState<Map<string, PermissionScope>>(
+        new Map(),
+    );
+    const [callerMaxGrantScope, setCallerMaxGrantScope] = useState<PermissionScope>(
+        PermissionScope.COMPANY,
+    );
     useEffect(() => {
         const loadPermissions = async () => {
             try {
                 const perms = await fetchPermissions();
-                const grouped = perms.reduce(
+                const grantablePerms = filterGrantablePermissions(
+                    perms,
+                    permissionsMap,
+                    isSystemAdmin,
+                );
+                const grouped = grantablePerms.reduce(
                     (acc, p) => {
                         const actionStr = p.action || '';
                         let verb = '';
@@ -106,13 +136,17 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                             group = { id: groupId, name: moduleName, permissions: [] };
                             acc.push(group);
                         }
-                        group.permissions.push({ id: p.id, label: labelName });
+                        group.permissions.push({
+                            id: p.id,
+                            label: labelName,
+                            action: actionStr,
+                        });
                         return acc;
                     },
                     [] as {
                         id: string;
                         name: string;
-                        permissions: { id: string; label: string }[];
+                        permissions: { id: string; label: string; action: string }[];
                     }[],
                 );
 
@@ -125,7 +159,36 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
         if (open) {
             loadPermissions();
         }
-    }, [open]);
+    }, [open, permissionsMap, isSystemAdmin]);
+
+    useEffect(() => {
+        const loadCallerScopes = async () => {
+            try {
+                const response = await fetchProfileWithPermissionSets();
+                const grants = response?.profileWithPermissionSets?.user?.roleProfile?.permissionGrants ?? [];
+                const scopeByAction = buildCallerScopeByAction(grants);
+                setCallerScopeByAction(scopeByAction);
+
+                const createScope =
+                    scopeByAction.get('roles:create') ??
+                    scopeByAction.get('roles:update') ??
+                    PermissionScope.COMPANY;
+                setCallerMaxGrantScope(createScope);
+
+                if (!role) {
+                    form.setValue('scope', createScope, { shouldDirty: false });
+                }
+            } catch (error) {
+                console.error('Failed to load caller permission scopes', error);
+                setCallerScopeByAction(new Map());
+                setCallerMaxGrantScope(PermissionScope.COMPANY);
+            }
+        };
+
+        if (open) {
+            loadCallerScopes();
+        }
+    }, [open, role, form]);
 
     useEffect(() => {
         if (open) {
@@ -140,38 +203,72 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                 const moduleScopes: Record<string, PermissionScope> = {};
                 role.permissionGrants?.forEach((pg) => {
                     const moduleId = pg.permission?.module || pg.permission?.action?.split(':')[0];
-                    if (moduleId && pg.scope) {
-                        moduleScopes[moduleId.toLowerCase().replace(/\s/g, '')] =
-                            pg.scope as PermissionScope;
+                    const normalizedScope = normalizePermissionScope(pg.scope);
+                    if (moduleId && normalizedScope) {
+                        moduleScopes[moduleId.toLowerCase().replace(/\s/g, '')] = normalizedScope;
                     }
                 });
 
                 form.reset({
                     name: role.name,
-                    level: role.level || 1,
                     description: role.description || '',
                     permissions: permissionIds,
-                    scope: (role as any).scope || PermissionScope.ALL,
+                    scope:
+                        normalizePermissionScope((role as { scope?: string }).scope) ||
+                        callerMaxGrantScope,
                     moduleScopes: moduleScopes,
                 });
             } else {
                 form.reset({
                     name: '',
-                    level: 1,
                     description: '',
                     permissions: [],
-                    scope: PermissionScope.ALL,
+                    scope: callerMaxGrantScope,
                     moduleScopes: {},
                 });
             }
         }
-    }, [open, role, form]);
+    }, [open, role, form, callerMaxGrantScope]);
+
+    const resolveCallerScopeForPermission = (permissionId: string): PermissionScope | null => {
+        const permission = permissionModules
+            .flatMap((module) => module.permissions)
+            .find((entry) => entry.id === permissionId);
+        if (!permission?.action) return null;
+        return callerScopeByAction.get(permission.action) ?? null;
+    };
+
+    const resolveModuleMaxScope = (moduleId: string): PermissionScope => {
+        const permModule = permissionModules.find((module) => module.id === moduleId);
+        if (!permModule) return callerMaxGrantScope;
+
+        let maxScope: PermissionScope | null = null;
+        for (const permission of permModule.permissions) {
+            const callerScope = resolveCallerScopeForPermission(permission.id);
+            if (!callerScope) continue;
+            if (!maxScope || scopeRank(callerScope) > scopeRank(maxScope)) {
+                maxScope = callerScope;
+            }
+        }
+
+        return maxScope ?? callerMaxGrantScope;
+    };
+
+    const grantablePermissionIds = useMemo(
+        () => new Set(permissionModules.flatMap((module) => module.permissions.map((p) => p.id))),
+        [permissionModules],
+    );
 
     const selectedPermissions = form.watch('permissions');
     const totalPermissions = permissionModules.reduce(
         (acc, mod) => acc + mod.permissions.length,
         0,
     );
+    const hasGrantablePermissions = totalPermissions > 0;
+    const isSubmitDisabled =
+        !canSaveRole ||
+        form.formState.isSubmitting ||
+        (!isEditing && !hasGrantablePermissions);
     const allPermissionsChecked =
         selectedPermissions.length === totalPermissions && totalPermissions > 0;
     const somePermissionsChecked = selectedPermissions.length > 0 && !allPermissionsChecked;
@@ -232,27 +329,48 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                 throw new Error('Role ID is missing');
             }
 
-            const permissionGrants = data.permissions.map((permissionId) => {
-                const mod = permissionModules.find((m) =>
-                    m.permissions.some((p) => p.id === permissionId),
-                );
-                const scope = mod
-                    ? data.moduleScopes?.[mod.id] || data.scope || PermissionScope.ALL
-                    : data.scope || PermissionScope.ALL;
-                return { permissionId, scope };
-            });
+            const visiblePermissionGrants = data.permissions
+                .filter((permissionId) => grantablePermissionIds.has(permissionId))
+                .map((permissionId) => {
+                    const mod = permissionModules.find((m) =>
+                        m.permissions.some((p) => p.id === permissionId),
+                    );
+                    const requestedScope = mod
+                        ? data.moduleScopes?.[mod.id] || data.scope || callerMaxGrantScope
+                        : data.scope || callerMaxGrantScope;
+                    const callerScope = resolveCallerScopeForPermission(permissionId);
+                    const moduleMaxScope = mod ? resolveModuleMaxScope(mod.id) : callerMaxGrantScope;
+                    const scope = capPermissionScope(
+                        capPermissionScope(requestedScope, moduleMaxScope),
+                        callerScope,
+                    );
+                    return { permissionId, scope };
+                });
+
+            const preservedPermissionGrants =
+                role?.permissionGrants
+                    ?.filter((grant) => {
+                        const permissionId = grant.permissionId || grant.permission?.id;
+                        return permissionId && !grantablePermissionIds.has(permissionId);
+                    })
+                    .map((grant) => ({
+                        permissionId: grant.permissionId || grant.permission?.id || '',
+                        scope:
+                            normalizePermissionScope(grant.scope) || PermissionScope.COMPANY,
+                    }))
+                    .filter((grant) => grant.permissionId) || [];
+
+            const permissionGrants = [...preservedPermissionGrants, ...visiblePermissionGrants];
 
             const result = await (role && role.id
                 ? updateRole(role.id, {
                       name: data.name,
                       description: data.description,
-                      level: data.level,
                       permissionGrants,
                   })
                 : createRole({
                       name: data.name,
                       description: data.description || '',
-                      level: data.level,
                       companyId: user?.companyId || '',
                       permissionGrants,
                   }));
@@ -365,18 +483,25 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                                                 handleToggleModule(permModule.id, checked)
                                             }
                                             onTogglePermission={handleTogglePermission}
-                                            scope={
+                                            scope={capPermissionScope(
                                                 form.watch('moduleScopes')?.[permModule.id] ||
-                                                PermissionScope.ALL
-                                            }
+                                                    form.watch('scope') ||
+                                                    callerMaxGrantScope,
+                                                resolveModuleMaxScope(permModule.id),
+                                            )}
+                                            maxScope={resolveModuleMaxScope(permModule.id)}
                                             onScopeChange={(scope) => {
                                                 const currentScopes =
                                                     form.getValues('moduleScopes') || {};
+                                                const cappedScope = capPermissionScope(
+                                                    scope,
+                                                    resolveModuleMaxScope(permModule.id),
+                                                );
                                                 form.setValue(
                                                     'moduleScopes',
                                                     {
                                                         ...currentScopes,
-                                                        [permModule.id]: scope as PermissionScope,
+                                                        [permModule.id]: cappedScope,
                                                     },
                                                     { shouldDirty: true, shouldValidate: true },
                                                 );
@@ -402,7 +527,7 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                         <Button
                             type="submit"
                             form="role-form"
-                            disabled={form.formState.isSubmitting}
+                            disabled={isSubmitDisabled}
                             className="h-9 min-w-25 px-4 font-medium rounded-lg bg-primary hover:bg-primary/80 text-[#FAFAFA]  flex-1 sm:flex-none"
                         >
                             {form.formState.isSubmitting && (

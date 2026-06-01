@@ -1,0 +1,228 @@
+{
+  "common": {
+    "all": "All",
+    "none": "None",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "clearFilters": "Clear filters"
+  },
+  "employeeDocuments": {
+    "table": {
+      "approval": "Approval"
+    },
+    "compliance": {
+      "compliant": "Compliant",
+      "nearExpiry": "Near expiry",
+      "missing": "Missing",
+      "expired": "Expired"
+    },
+    "approval": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "download": "Download",
+      "delete": "Delete",
+      "confirmDelete": "Delete this document?"
+    },
+    "modal": {
+      "viewTitle": "View document",
+      "editTitle": "Edit document",
+      "notFound": "Document not found",
+      "fields": {
+        "name": "Name",
+        "employee": "Employee",
+        "category": "Category",
+        "expiry": "Expiry",
+        "compliance": "Compliance",
+        "approval": "Approval"
+      }
+    },
+    "filters": {
+      "searchPlaceholder": "Search for employees",
+      "employee": "Employee",
+      "category": "Category",
+      "status": "Status",
+      "approval": "Approval",
+      "allEmployees": "All employees",
+      "allCategories": "All categories",
+      "allStatuses": "All statuses",
+      "searchEmployee": "Search employee",
+      "noEmployeeFound": "No employee found."
+    }
+  },
+  "complianceTracking": {
+    "compliance": {
+      "compliant": "Compliant",
+      "nonCompliant": "Non-Compliant"
+    },
+    "actions": {
+      "view": "View",
+      "sendReminder": "Send reminder",
+      "markResolved": "Mark as resolved"
+    },
+    "emptyRiskAlerts": "No active compliance risk alerts.",
+    "quickActionItems": {
+      "viewAffectedEmployees": "View affected employees",
+      "sendReminder": "Send reminder",
+      "generateReport": "Generate report"
+    },
+    "filters": {
+      "searchPlaceholder": "Search for employees",
+      "complianceStatus": "Compliance Status",
+      "allStatuses": "All statuses",
+      "department": "Department",
+      "allDepartments": "All departments"
+    },
+    "report": {
+      "employeeName": "Employee Name",
+      "department": "Department",
+      "missingDocuments": "Missing Documents",
+      "expiringDocuments": "Expiring Documents",
+      "complianceStatus": "Compliance Status",
+      "lastReminderDate": "Last Reminder Date"
+    },
+    "toasts": {
+      "errorTitle": "Error",
+      "fetchError": "Failed to fetch real-time compliance information.",
+      "noMissingTitle": "No Missing Documents",
+      "noMissingDescription": "This employee has uploaded all required compliance documents.",
+      "reminderSentTitle": "Reminder Sent",
+      "reminderSentDescription": "Email reminder sent successfully for: {{docs}}.",
+      "sendReminderError": "Failed to send compliance reminder.",
+      "unexpectedSendReminderError": "An unexpected error occurred while sending the reminder.",
+      "noRemindersTitle": "No Reminders to Send",
+      "noRemindersDescription": "There are no non-compliant employees with missing documents in the current view.",
+      "sendingRemindersTitle": "Sending Reminders",
+      "sendingRemindersDescription": "Sending bulk compliance reminders to {{count}} employee(s)...",
+      "remindersCompleteTitle": "Reminders Complete",
+      "remindersCompleteDescription": "Successfully sent reminders to {{successCount}} of {{totalCount}} employee(s).",
+      "noDataTitle": "No Data",
+      "noDataDescription": "There is no compliance data to generate a report.",
+      "reportGeneratedTitle": "Report Generated",
+      "reportGeneratedDescription": "Compliance report CSV downloaded successfully."
+    }
+  },
+  "documentCategories": {
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "changeStatus": "Change status",
+      "delete": "Delete",
+      "confirmDelete": "Delete this category?"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "appliedTo": {
+      "allEmployees": "All employees",
+      "departmentSpecific": "Department specific",
+      "foreignEmployees": "Foreign employees"
+    },
+    "filters": {
+      "searchPlaceholder": "Search for categories",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "appliedTo": "Applied to",
+      "required": "Required",
+      "expiryRequired": "Expiry required",
+      "yes": "Yes",
+      "no": "No"
+    }
+  },
+  "addCategorySheet": {
+    "titles": {
+      "create": "Add document category",
+      "edit": "Edit document category"
+    },
+    "sections": {
+      "basicInfo": "Basic info",
+      "requirementRules": "Requirement rules",
+      "complianceBehavior": "Compliance behavior",
+      "validationRules": "Validation rules"
+    },
+    "fields": {
+      "categoryName": "Category name",
+      "type": "Type",
+      "description": "Description",
+      "requiredDocument": "Required document",
+      "appliedTo": "Applied to",
+      "expiryDateRequired": "Expiry date required",
+      "expiryReminder": "Expiry reminder",
+      "requireApproval": "Require approval",
+      "affectsComplianceStatus": "Affects compliance status",
+      "criticalDocument": "Critical document",
+      "allowedFileTypes": "Allowed file types",
+      "maxFileSize": "Max file size"
+    },
+    "placeholders": {
+      "categoryName": "Enter category name",
+      "description": "Add description",
+      "maxFileSize": "0"
+    },
+    "typeOptions": {
+      "identification": "Identification",
+      "employment": "Employment",
+      "educational": "Educational"
+    },
+    "appliedToOptions": {
+      "allEmployees": "All employees",
+      "specificDepartment": "Specific department",
+      "foreignEmployees": "Foreign employees"
+    },
+    "expiryReminderOptions": {
+      "days7": "7 days",
+      "days15": "15 days",
+      "days30": "30 days"
+    },
+    "fileTypeOptions": {
+      "pdf": "PDF",
+      "jpeg": "JPEG",
+      "png": "PNG",
+      "doc": "DOC"
+    },
+    "actions": {
+      "saveChanges": "Save Changes",
+      "createCategory": "Create Category"
+    },
+    "errors": {
+      "categoryNameRequired": "Category name is required."
+    },
+    "units": {
+      "mb": "MB"
+    }
+  },
+  "uploadDocumentModal": {
+    "title": "Upload a new document",
+    "sections": {
+      "documentInfo": "Document info"
+    },
+    "fields": {
+      "employee": "Employee",
+      "category": "Category",
+      "expiryDate": "Expiry date",
+      "selectFile": "Select file"
+    },
+    "placeholders": {
+      "selectEmployee": "Select employee",
+      "searchEmployee": "Search employee",
+      "selectCategory": "Select category"
+    },
+    "empty": {
+      "noEmployeeFound": "No employee found."
+    },
+    "file": {
+      "noFileChosen": "No file chosen",
+      "chooseFile": "Choose file"
+    },
+    "actions": {
+      "uploading": "Uploading...",
+      "uploadDocument": "Upload document"
+    }
+  }
+}

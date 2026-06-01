@@ -7,9 +7,10 @@ interface ProTipAlertProps {
     title: string;
     description: string;
     buttonText: string;
+    onClick?: () => void;
 }
 
-export function ProTipAlert({ title, description, buttonText }: ProTipAlertProps) {
+export function ProTipAlert({ title, description, buttonText, onClick }: ProTipAlertProps) {
     return (
         <div className="flex flex-row items-center justify-between px-4 py-3 gap-3 rounded-[12px] bg-[#136DEC0D] border border-[#136DEC1A] w-full min-h-[95.5px]">
             <div className="flex flex-row items-start gap-3 flex-1">
@@ -27,7 +28,9 @@ export function ProTipAlert({ title, description, buttonText }: ProTipAlertProps
 
             <div className="flex flex-col justify-end items-start h-[69.5px] shrink-0">
                 <Button
+                    type="button"
                     variant="outline"
+                    onClick={onClick}
                     className="flex flex-row justify-center items-center px-4 py-2 gap-2 h-9 min-w-25 border-primary rounded-[8px] bg-transparent text-[14px] font-medium text-primary hover:bg-[#136DEC0D]  shadow-[0px_1px_2px_rgba(0,0,0,0.05)] cursor-pointer"
                 >
                     <Import size={16} />

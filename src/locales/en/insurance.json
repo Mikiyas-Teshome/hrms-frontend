@@ -1,0 +1,66 @@
+{
+  "addTitle": "Add an insurance coverage",
+  "editTitle": "Edit insurance coverage",
+  "saveBtn": "Save insurance",
+  "updateBtn": "Save changes",
+  "cancel": "Cancel",
+  "detail": {
+    "title": "Insurance details",
+    "info": "Insurance info",
+    "coverage": "Coverage details",
+    "eligibility": "Eligibility Rules",
+    "labels": {
+      "name": "Insurance name",
+      "provider": "Insurance provider",
+      "coverageType": "Coverage type",
+      "coverageAmount": "Coverage amount",
+      "assignedTo": "Assigned to",
+      "renewalType": "Renewal type",
+      "maxDependents": "Max dependents",
+      "includedServices": "Included services",
+      "employmentType": "Employment type",
+      "minTenure": "Minimum tenure",
+      "employerContribution": "Employer Contribution",
+      "employeeContribution": "Employee Contribution"
+    },
+    "coverageTypes": {
+      "health": "Health",
+      "dental": "Dental",
+      "vision": "Vision",
+      "life": "Life",
+      "other": "Other",
+      "accidents": "Accidents"
+    },
+    "assignments": {
+      "all_employees": "All employees",
+      "individual": "Individual",
+      "department_based": "Department based",
+      "role_based": "Role based"
+    },
+    "renewals": {
+      "yearly": "Yearly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly"
+    },
+    "dependents": {
+      "spouse": "Spouse",
+      "child": "Child",
+      "parent": "Parent",
+      "other": "Other"
+    },
+    "services": {
+      "hospitalization": "Hospitalization",
+      "outpatient": "Outpatient",
+      "dental": "Dental",
+      "vision": "Vision"
+    },
+    "employmentTypes": {
+      "full_time": "Full time",
+      "part_time": "Part time",
+      "contract": "Contract",
+      "intern": "Intern",
+      "consultant": "Consultant"
+    },
+    "months": "months"
+  }
+}

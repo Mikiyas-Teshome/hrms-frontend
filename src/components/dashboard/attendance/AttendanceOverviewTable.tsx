@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UniversalDataTable, ColumnConfig } from '@/components/ui/universal-data-table';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -10,12 +10,22 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Eye, Pencil, RefreshCw, Trash2, ListFilter } from 'lucide-react';
+import { MoreVertical, Eye, Pencil, RefreshCw, ListFilter } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { usePaginatedAttendanceRecords } from '@/features/attendance/hooks/useAttendance';
 import { AttendanceFilterPanel } from './AttendanceFilterPanel';
-import ConfirmationModal from '@/components/dashboard/shared/ConfirmationModal';
+import { AttendanceStatus, type AttendanceRecord, type PaginatedAttendanceRecordsFilterInput } from '@/features/attendance/attendance.types';
+import { formatMinutesToHr, formatDateString, formatClockTime } from '@/lib/date-utils';
+import { usePermissions } from '@/features/auth/hooks/usePermissions';
+import { useToast } from '@/hooks/use-toast';
+
+import EditAttendanceModal from './EditAttendanceModal';
+import ChangeStatusModal from './ChangeStatusModal';
+import ImportAttendanceModal from './ImportAttendanceModal';
+import { exportReport } from '@/lib/export-utils';
+import { fetchAllPaginatedAttendance } from '@/lib/fetch-all-paginated-attendance';
+import { format } from 'date-fns';
 
 const statusVariants: Record<string, string> = {
     [AttendanceStatus.PRESENT]: 'bg-emerald-50 text-emerald-600 border-emerald-100',
@@ -26,74 +36,210 @@ const statusVariants: Record<string, string> = {
     [AttendanceStatus.HALF_DAY]: 'bg-blue-50 text-blue-600 border-blue-100',
 };
 
-import { AttendanceStatus, type AttendanceRecord, type PaginatedAttendanceRecordsFilterInput } from '@/features/attendance/attendance.types';
-import { formatMinutesToHr, formatDateString, formatClockTime } from '@/lib/date-utils';
+const defaultFilters: PaginatedAttendanceRecordsFilterInput = {};
 
-const defaultFilters: PaginatedAttendanceRecordsFilterInput = {
-};
+interface AttendanceOverviewTableProps {
+    startDate?: string;
+    endDate?: string;
+}
 
-const AttendanceOverviewTable = () => {
+const AttendanceOverviewTable = ({ startDate, endDate }: AttendanceOverviewTableProps) => {
     const { t } = useTranslation('dashboard');
+    const { toast } = useToast();
+    const { hasPermission, hasScope } = usePermissions();
+
+    const canUpdate = hasPermission('attendance:update');
+    const canImport = hasPermission('attendance:import');
+    const canExport = hasPermission('attendance:export');
+    const isOwnScopeOnly =
+        hasScope('attendance', 'read', 'own') &&
+        !hasScope('attendance', 'read', 'department') &&
+        !hasScope('attendance', 'read', 'company') &&
+        !hasScope('attendance', 'read', 'all');
+
     const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
     const [showFilters, setShowFilters] = useState(false);
     const [activeFilters, setActiveFilters] = useState<PaginatedAttendanceRecordsFilterInput>(defaultFilters);
     const [pageSize, setPageSize] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [recordToDelete, setRecordToDelete] = useState<AttendanceRecord | null>(null);
-    const { data: recordsData, isLoading, error } = usePaginatedAttendanceRecords(
-        pageSize,
-        currentPage,
-        activeFilters
-    );
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const handleDeleteClick = (record: AttendanceRecord) => {
-        setRecordToDelete(record);
-        setIsDeleteModalOpen(true);
+    const [prevStartDate, setPrevStartDate] = useState(startDate);
+    const [prevEndDate, setPrevEndDate] = useState(endDate);
+
+    if (startDate !== prevStartDate || endDate !== prevEndDate) {
+        setPrevStartDate(startDate);
+        setPrevEndDate(endDate);
+        setCurrentPage(1);
+    }
+
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            setActiveFilters(prev => ({
+                ...prev,
+                search: searchQuery || undefined
+            }));
+            setCurrentPage(1);
+        }, 400);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [startDate, endDate]);
+
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
+
+    // Edit Record States
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [recordToEdit, setRecordToEdit] = useState<AttendanceRecord | null>(null);
+
+    // Change Status States
+    const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+    const [recordToChangeStatus, setRecordToChangeStatus] = useState<AttendanceRecord | null>(null);
+
+    const mergedFilters: PaginatedAttendanceRecordsFilterInput = {
+        ...activeFilters,
+        startDate: startDate || activeFilters.startDate,
+        endDate: endDate || activeFilters.endDate,
     };
 
-    const handleConfirmDelete = () => {
-        if (recordToDelete) {
-            setRecordToDelete(null);
+    const { data: recordsData, isLoading } = usePaginatedAttendanceRecords(
+        currentPage,
+        pageSize,
+        mergedFilters,
+    );
+
+    const handleImportClick = () => {
+        setIsImportModalOpen(true);
+    };
+
+    const handleExportClick = async () => {
+        setIsExporting(true);
+        try {
+            const allRecords = await fetchAllPaginatedAttendance(mergedFilters);
+            const fromLabel = startDate ? format(new Date(startDate), 'yyyy-MM-dd') : 'all';
+            const toLabel = endDate ? format(new Date(endDate), 'yyyy-MM-dd') : 'all';
+
+            await exportReport({
+                filename: `Attendance_Overview_${fromLabel}_${toLabel}`,
+                columns: [
+                    {
+                        header: t('attendance.employee', 'Employee'),
+                        key: 'employeeName',
+                        render: (item: AttendanceRecord) => item.employeeName ?? '',
+                    },
+                    {
+                        header: t('attendance.date', 'Date'),
+                        key: 'date',
+                        render: (item: AttendanceRecord) => formatDateString(item.date),
+                    },
+                    {
+                        header: t('attendance.clockIn', 'Clock in'),
+                        key: 'clockIn',
+                        render: (item: AttendanceRecord) => formatClockTime(item.clockIn),
+                    },
+                    {
+                        header: t('attendance.clockOut', 'Clock out'),
+                        key: 'clockOut',
+                        render: (item: AttendanceRecord) => formatClockTime(item.clockOut),
+                    },
+                    {
+                        header: t('attendance.totalTime', 'Total time'),
+                        key: 'totalMinutes',
+                        render: (item: AttendanceRecord) => formatMinutesToHr(item.totalMinutes),
+                    },
+                    {
+                        header: t('attendance.overtime', 'Overtime'),
+                        key: 'overtimeMinutes',
+                        render: (item: AttendanceRecord) => formatMinutesToHr(item.overtimeMinutes),
+                    },
+                    {
+                        header: t('attendance.status', 'Status'),
+                        key: 'status',
+                    },
+                ],
+                data: allRecords,
+                format: 'csv',
+            });
+
+            toast({
+                title: t('attendance.exportSuccess', 'Export complete'),
+                description: t('attendance.exportSuccessDesc', {
+                    count: allRecords.length,
+                }),
+                variant: 'success',
+            });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Export failed.';
+            toast({
+                title: t('attendance.exportError', 'Export failed'),
+                description: message,
+                variant: 'destructive',
+            });
+        } finally {
+            setIsExporting(false);
         }
     };
 
-    const activeCount = Object.values(activeFilters).filter((v) => v !== undefined && v !== 'all').length;
+    const handleEditClick = (record: AttendanceRecord) => {
+        setRecordToEdit(record);
+        setIsEditModalOpen(true);
+    };
+
+    const handleStatusClick = (record: AttendanceRecord) => {
+        setRecordToChangeStatus(record);
+        setIsStatusModalOpen(true);
+    };
+
+    const activeCount =
+        Object.values(activeFilters).filter((v) => v !== undefined && v !== 'all').length +
+        (searchQuery.trim() ? 1 : 0);
 
     const handleApply = (filters: PaginatedAttendanceRecordsFilterInput) => {
-        setActiveFilters(filters);
+        setActiveFilters({
+            ...filters,
+            search: searchQuery.trim() || undefined,
+        });
+        setCurrentPage(1);
     };
 
     const handleReset = () => {
+        setSearchQuery('');
         setActiveFilters(defaultFilters);
+        setCurrentPage(1);
     };
 
-    const renderRowActions = (item: AttendanceRecord) => (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                    <MoreVertical className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 rounded-xl shadow-lg">
-                <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => console.log('View', item.id)}>
-                    <Eye className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.view', 'View')}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => console.log('Edit', item.id)}>
-                    <Pencil className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.edit', 'Edit')}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => console.log('Change status', item.id)}>
-                    <RefreshCw className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.changeStatus', 'Change status')}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    className="gap-3 cursor-pointer py-2.5 text-destructive focus:text-destructive"
-                    onClick={() => handleDeleteClick(item)}
-                >
-                    <Trash2 className="h-4 w-4" /><span>{t('attendance.delete', 'Delete')}</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
+    const renderRowActions = (item: AttendanceRecord) => {
+        if (!canUpdate) return null;
+
+        return (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                        <MoreVertical className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44 rounded-xl shadow-lg">
+                    <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => console.log('View', item.id)}>
+                        <Eye className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.view', 'View')}</span>
+                    </DropdownMenuItem>
+                    {canUpdate && (
+                        <>
+                            <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => handleEditClick(item)}>
+                                <Pencil className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.edit', 'Edit')}</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => handleStatusClick(item)}>
+                                <RefreshCw className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.changeStatus', 'Change status')}</span>
+                            </DropdownMenuItem>
+                        </>
+                    )}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        );
+    };
 
     const filterPanel = showFilters ? (
         <AttendanceFilterPanel
@@ -186,38 +332,50 @@ const AttendanceOverviewTable = () => {
         <div className="flex flex-col gap-4">
             <UniversalDataTable
                 data={recordsData?.data || []}
-                columns={columns}
+                columns={isOwnScopeOnly ? columns.filter((c) => c.key !== 'userId') : columns}
                 isLoading={isLoading}
                 enableSelection
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
-                showSearch
+                showSearch={!isOwnScopeOnly}
+                searchValue={searchQuery}
+                onSearchChange={setSearchQuery}
                 searchPlaceholder={t('attendance.searchPlaceholder')}
-                renderCustomFilter={filterButton}
-                showImport
-                showExport
+                renderCustomFilter={isOwnScopeOnly ? undefined : filterButton}
+                showImport={canImport}
+                showExport={canExport}
+                onImport={canImport ? handleImportClick : undefined}
+                onExport={canExport ? handleExportClick : undefined}
                 importText={t('attendance.importBtn', 'Import')}
-                exportText={t('attendance.exportBtn', 'Export')}
-                renderFilterPanel={filterPanel}
+                exportText={isExporting ? t('attendance.exporting', 'Exporting...') : t('attendance.exportBtn', 'Export')}
+                renderFilterPanel={isOwnScopeOnly ? undefined : filterPanel}
                 currentPage={currentPage}
-                totalPages={recordsData?.pagination.totalPages || 0}
+                totalPages={recordsData?.metaData.totalPages || 0}
                 pageSize={pageSize}
                 onPageChange={setCurrentPage}
                 onPageSizeChange={setPageSize}
-                renderRowActions={renderRowActions}
+                renderRowActions={isOwnScopeOnly ? undefined : renderRowActions}
             />
 
-            <ConfirmationModal
-                open={isDeleteModalOpen}
-                onOpenChange={setIsDeleteModalOpen}
-                title={t('attendance.deleteConfirmTitle', 'Delete Attendance Record')}
-                message={t('attendance.deleteConfirmMessage', { 
-                    name: recordToDelete?.employeeName || ''
-                })}
-                onConfirm={handleConfirmDelete}
-                confirmLabel={t('attendance.delete', 'Delete')}
-                cancelLabel={t('attendance.cancel', 'Cancel')}
-                variant="danger"
+            <ImportAttendanceModal
+                open={isImportModalOpen}
+                onOpenChange={setIsImportModalOpen}
+                startDate={startDate}
+                endDate={endDate}
+            />
+
+            {/* Edit Record Detailed Dialog */}
+            <EditAttendanceModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                record={recordToEdit}
+            />
+
+            {/* Change Status Standalone Modal */}
+            <ChangeStatusModal
+                isOpen={isStatusModalOpen}
+                onClose={() => setIsStatusModalOpen(false)}
+                record={recordToChangeStatus}
             />
         </div>
     );

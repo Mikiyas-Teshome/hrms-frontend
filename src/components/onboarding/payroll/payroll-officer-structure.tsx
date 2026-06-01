@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -27,8 +26,7 @@ import { PayrollComponentType, PayrollCycle } from '@/features/payroll/payroll.t
 import { useAllowances } from '@/features/allowance/hooks/useAllowance';
 import { useDeductions } from '@/features/deduction/hooks/useDeduction';
 import { useToast } from '@/hooks/use-toast';
-import { getCurrencySymbol } from '@/lib/currency';
-import { useSelectedCompany } from '@/features/organization/hooks/useOrganization';
+import { useDisplayCurrency } from '@/features/settings/hooks/useDisplayCurrency';
 import {
     useCreateOvertimePoliciesBatch,
     useOvertimePolicies,
@@ -47,8 +45,7 @@ export function PayrollOfficerStructure() {
     const { data: allowancesData = [], isLoading: isLoadingAllowances } = useAllowances(companyId);
     const { data: deductionsData = [], isLoading: isLoadingDeductions } = useDeductions(companyId);
     const { data: overtimePolicies, isLoading: isLoadingOvertime } = useOvertimePolicies(companyId);
-    const { company: selectedCompany } = useSelectedCompany(companyId);
-    const currencySymbol = getCurrencySymbol(selectedCompany?.companyProfile?.currency);
+    const { currencySymbol } = useDisplayCurrency(companyId);
 
     const { mutateAsync: updateConfig } = useUpdatePayrollConfig();
     const { mutateAsync: upsertComponents } = useUpsertPayrollComponents();
@@ -389,7 +386,7 @@ export function PayrollOfficerStructure() {
                 onSave={async (data) => {
                     try {
                         await updateConfig({
-                            companyId,
+                            companyId: companyId!,
                             cycleType: data.cycle.toUpperCase() as PayrollCycle,
                             payDay: parseInt(data.processingDay) || 25,
                         });
@@ -416,7 +413,7 @@ export function PayrollOfficerStructure() {
                                 const original = allowancesData.find((c) => c.id === a.id);
                                 return {
                                     id: a.id.length > 20 ? a.id : undefined,
-                                    companyId,
+                                    companyId: companyId!,
                                     componentType: PayrollComponentType.ALLOWANCE,
                                     name: a.name,
                                     isActive: a.enabled ?? true,
@@ -429,7 +426,7 @@ export function PayrollOfficerStructure() {
                                 const original = deductionsData.find((c) => c.id === d.id);
                                 return {
                                     id: d.id.length > 20 ? d.id : undefined,
-                                    companyId,
+                                    companyId: companyId!,
                                     componentType: PayrollComponentType.DEDUCTION,
                                     name: d.name,
                                     isActive: d.enabled ?? true,
@@ -459,19 +456,19 @@ export function PayrollOfficerStructure() {
                     try {
                         const inputs = [
                             {
-                                companyId,
+                                companyId: companyId!,
                                 name: 'Standard Overtime',
                                 rateValue: parseFloat(rules.standard) || 1.5,
                                 type: OvertimeType.MULTIPLIER,
                             },
                             {
-                                companyId,
+                                companyId: companyId!,
                                 name: 'Weekend Overtime',
                                 rateValue: parseFloat(rules.weekend) || 2.0,
                                 type: OvertimeType.FIXED_RATE,
                             },
                             {
-                                companyId,
+                                companyId: companyId!,
                                 name: 'Public Holiday Overtime',
                                 rateValue: parseFloat(rules.holiday) || 2.0,
                                 type: OvertimeType.FIXED_RATE,

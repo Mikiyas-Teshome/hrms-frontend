@@ -8,9 +8,10 @@ import { ManagerSignupBanner } from '@/components/staff-signup/staff-signup-bann
 import { ManagerSignupForm } from '@/components/staff-signup/staff-signup-form';
 import { StaffSignupSuccess } from '@/components/staff-signup/staff-signup-success';
 import { StaffOnboardingForm } from '@/components/staff-signup/staff-onboarding-form';
+import { StaffContractReviewStep } from '@/components/staff-signup/staff-contract-review-step';
 
 function StaffSignupContent() {
-    const [step, setStep] = useState<'signup' | 'onboarding' | 'success'>('signup');
+    const [step, setStep] = useState<'signup' | 'contract-review' | 'onboarding' | 'success'>('signup');
     const searchParams = useSearchParams();
 
     const token = searchParams.get('token') || '';
@@ -22,6 +23,19 @@ function StaffSignupContent() {
                 <PublicHeader showLanguage={true} />
                 <div className="flex-1 flex items-center justify-center p-4 md:p-12">
                     <StaffSignupSuccess />
+                </div>
+            </div>
+        );
+    }
+
+    if (step === 'contract-review') {
+        return (
+            <div className="flex flex-col w-full min-h-screen bg-background">
+                <PublicHeader showLanguage={true} />
+                <div className="flex-1 flex items-center justify-center p-4 md:p-12">
+                    <StaffContractReviewStep 
+                        onAccept={() => setStep('onboarding')}
+                    />
                 </div>
             </div>
         );
@@ -51,7 +65,7 @@ function StaffSignupContent() {
                     {/* Form Section - Right side */}
                     <div className="w-full md:w-1/2 flex items-center justify-center p-8">
                         <ManagerSignupForm
-                            onSignupSuccess={() => setStep('onboarding')}
+                            onSignupSuccess={() => setStep('contract-review')}
                             onSuccess={() => setStep('success')}
                             token={token}
                             email={email}

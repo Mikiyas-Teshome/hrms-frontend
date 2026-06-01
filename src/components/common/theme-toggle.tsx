@@ -11,6 +11,7 @@ export function ThemeToggle() {
 
   // Ensure server and client markup match to avoid hydration mismatches
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

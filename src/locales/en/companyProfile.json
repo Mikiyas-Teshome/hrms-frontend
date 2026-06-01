@@ -47,5 +47,9 @@
     "currencyRequired": "Please select your preferred currency",
     "websiteInvalid": "Please enter a valid URL",
     "emailInvalid": "Please enter a valid email address"
+  },
+  "success": {
+    "saveTitle": "Progress saved",
+    "saveDescription": "You can continue setup from the dashboard anytime."
   }
 }

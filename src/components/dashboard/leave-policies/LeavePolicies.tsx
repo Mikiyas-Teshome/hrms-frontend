@@ -9,9 +9,13 @@ import { leavePoliciesStats } from '@/data/leave-policies';
 import LeavePoliciesTable from './LeavePoliciesTable';
 import AddLeavePolicySheet from './AddLeavePolicySheet';
 
+import { useLeavePolicies } from '@/features/leave-policy/hooks/useLeavePolicy';
+import { SummaryStatListSkeleton } from '@/components/common/SummaryStatSkeleton';
+
 const LeavePolicies = () => {
     const { t } = useTranslation('dashboard');
     const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+    const { isLoading } = useLeavePolicies();
 
     return (
         <div className="flex flex-col gap-8">
@@ -30,7 +34,11 @@ const LeavePolicies = () => {
                 </Button>
             </div>
 
-            <SummaryStatList stats={leavePoliciesStats} />
+            {isLoading ? (
+                <SummaryStatListSkeleton count={3} />
+            ) : (
+                <SummaryStatList stats={leavePoliciesStats} />
+            )}
 
             <div className="flex flex-col gap-4">
                 <LeavePoliciesTable />

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React from 'react';
@@ -30,6 +29,19 @@ interface AddLeavePolicySheetProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
+
+const SectionCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className="bg-card border border-border shadow-[0px_1px_3px_rgba(0,0,0,0.04),0px_1px_2px_-1px_rgba(0,0,0,0.04)] rounded-xl pb-6">
+        <div className="bg-card-header-background h-12.5 rounded-t-xl px-6 flex items-center mb-6">
+            <h3 className="font-semibold text-sm text-foreground leading-3.5">
+                {title}
+            </h3>
+        </div>
+        <div className="px-6 space-y-6">
+            {children}
+        </div>
+    </div>
+);
 
 const AddLeavePolicySheet: React.FC<AddLeavePolicySheetProps> = ({ open, onOpenChange }) => {
     const { t, i18n } = useTranslation('dashboard');
@@ -96,19 +108,6 @@ const AddLeavePolicySheet: React.FC<AddLeavePolicySheetProps> = ({ open, onOpenC
         }
     };
 
-    // Helper for section cards
-    const SectionCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
-        <div className="bg-card border border-border shadow-[0px_1px_3px_rgba(0,0,0,0.04),0px_1px_2px_-1px_rgba(0,0,0,0.04)] rounded-xl pb-6">
-            <div className="bg-card-header-background h-12.5 rounded-t-xl px-6 flex items-center mb-6">
-                <h3 className="font-semibold text-sm text-foreground leading-3.5">
-                    {title}
-                </h3>
-            </div>
-            <div className="px-6 space-y-6">
-                {children}
-            </div>
-        </div>
-    );
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>

@@ -1,4 +1,8 @@
 {
+  "page": {
+    "title": "Organisational hierarchy",
+    "subtitle": "Manage your organization structure, levels, and units."
+  },
   "header": {
     "title": "Define your organization structure",
     "subtitle": "Create the basic structure of your organization by adding departments, locations, and reporting levels."
@@ -80,7 +84,19 @@
     },
     "unitCreated": "Unit successfully created",
     "unitUpdated": "Unit successfully updated",
-    "unitDeleted": "Unit successfully removed"
+    "unitDeleted": "Unit successfully removed",
+    "viewFullScreen": "View full screen",
+    "expandAllTree": "Expand all branches",
+    "expandAllLabel": "Expand all",
+    "collapseAllTree": "Collapse to one branch per level",
+    "memberCount": "{{count}} members",
+    "employeeCount": "{{count}} employees",
+    "fullScreenTitle": "Organizational hierarchy",
+    "fullScreenDescription": "Full view of the organization structure",
+    "addLevel": "Add {{type}}",
+    "deleteTitle": "Delete {{type}} data",
+    "deleteMessage": "Are you sure you want to delete this {{type}}'s data? This action cannot be reversed.",
+    "unitFallback": "Unit"
   },
   "hierarchy": {
     "title": "Organizational hierarchy",
@@ -95,7 +111,17 @@
     },
     "customizeAlert": "You can customize these to match your organization structure!",
     "continueToBuilder": "Continue to builder",
-    "nomenclatureUpdated": "Hierarchy labels successfully updated"
+    "nomenclatureUpdated": "Hierarchy labels successfully updated",
+    "buildingDatabase": "Wait a second, until the database creation is finished...",
+    "levelFallback": "Level {{number}}"
+  },
+  "toasts": {
+    "updateFailed": "Update failed",
+    "updateFailedDescription": "Failed to update labels.",
+    "saveUnitFailed": "Error saving unit",
+    "saveUnitFailedDescription": "Please try again",
+    "deleteFailed": "Delete failed",
+    "deleteFailedDescription": "Failed to remove the unit."
   },
   "info": {
     "assignHeads": "You can assign department heads after adding employees in the team setup step."
@@ -113,5 +139,21 @@
     "addressRequired": "Full address is required",
     "levelNameRequired": "Level name is required"
   },
-  "fetchingHierarchy": "Fetching organization hierarchy, please wait..."
+  "fetchingHierarchy": "Fetching organization hierarchy, please wait...",
+  "assignShift": {
+    "action": "Assign shift",
+    "title": "Assign a shift",
+    "fieldShift": "Shift",
+    "fieldValidFrom": "Valid from",
+    "fieldValidTo": "Valid to (optional)",
+    "helperValidTo": "Leave empty for ongoing shift assignment.",
+    "infoMessage": "This apply for all the employees in this unit. But it will be overwritten if a shift is assigned to a child unit.",
+    "buttonCancel": "Cancel",
+    "buttonAssign": "Assign",
+    "selectShiftPlaceholder": "Search and select a shift...",
+    "loadingShifts": "Loading shifts...",
+    "noShiftsFound": "No shift template found.",
+    "successToast": "Shift policy assigned successfully",
+    "errorToast": "Failed to assign shift policy"
+  }
 }

@@ -17,6 +17,9 @@ import {
     NomenclatureInput,
     UpdateOrganizationUnitInput
 } from '../organization.types';
+import { applyRolledUpEmployeeCounts } from '../organization-employee-count.util';
+import { buildOrganizationUnitOptions } from '../organization-unit-options.util';
+import { OrganizationUnitType } from '../organization.types';
 
 export const useAssignUserToOU = () => {
     return useMutation({
@@ -98,16 +101,34 @@ export const useUpdateOrganizationNomenclature = () => {
 
 // Query Hooks
 
-export const useOrganizationHierarchy = () => {
-    return useQuery({
-        queryKey: ['organization', 'hierarchy'],
+export const useOrganizationHierarchy = (options: {
+    limit?: number;
+    maxDepth?: number;
+    page?: number;
+    rootId?: string;
+    status?: string;
+} = {}) => {
+    const query = useQuery({
+        queryKey: ['organization', 'hierarchy', options],
         queryFn: async () => {
-            const response = await getOrganizationHierarchy();
+            const response = await getOrganizationHierarchy(options);
             return response;
         },
         staleTime: 0,
         refetchOnMount: 'always',
     });
+
+    const data = useMemo(() => {
+        if (!query.data) {
+            return query.data;
+        }
+        return applyRolledUpEmployeeCounts(query.data as OrganizationUnitType[]);
+    }, [query.data]);
+
+    return {
+        ...query,
+        data,
+    };
 };
 
 export const useCompanyOptions = () => {
@@ -165,29 +186,25 @@ export const useOrganizationUnit = (id: string) => {
     });
 };
 
-export const useOrganizationLeafOptions = () => {
+export const useOrganizationUnitOptions = () => {
     const { data: hierarchy, isLoading } = useOrganizationHierarchy();
 
-    const leafOptions = useMemo(() => {
+    const unitOptions = useMemo(() => {
         if (!hierarchy) return [];
-
-        const getLeafUnits = (units: any[]): { id: string; name: string }[] => {
-            let leaves: { id: string; name: string }[] = [];
-            units.forEach((unit) => {
-                if (!unit.children || unit.children.length === 0) {
-                    leaves.push({ id: unit.id, name: unit.name });
-                } else {
-                    leaves = leaves.concat(getLeafUnits(unit.children));
-                }
-            });
-            return leaves;
-        };
-
-        return getLeafUnits(hierarchy);
+        return buildOrganizationUnitOptions(hierarchy);
     }, [hierarchy]);
 
     return {
-        leafOptions,
-        isLoading
+        unitOptions,
+        isLoading,
+    };
+};
+
+export const useOrganizationLeafOptions = () => {
+    const { unitOptions, isLoading } = useOrganizationUnitOptions();
+
+    return {
+        leafOptions: unitOptions,
+        isLoading,
     };
 };

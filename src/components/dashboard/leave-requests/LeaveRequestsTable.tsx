@@ -204,7 +204,7 @@ const LeaveRequestsTable = () => {
         },
     ];
 
-    const handleRowClick = (item: LeaveRequest) => {
+    const handleRowClick = () => {
     };
 
     const renderRowActions = (item: LeaveRequest) => (

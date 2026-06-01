@@ -21,6 +21,22 @@
   "permanentDuration": "مدة دائمة",
   "renewableContract": "عقد قابل للتجديد",
   "contractContent": "محتوى العقد",
+  "documentType": "نوع المستند",
+  "selectDocumentType": "اختر نوع المستند",
+  "loadingDocumentCategories": "جاري تحميل أنواع المستندات...",
+  "noDocumentCategories": "لا توجد فئات مستندات متاحة بعد.",
+  "goToDocumentCategories": "إنشاء فئات المستندات",
   "addDocument": "إضافة مستند",
-  "saveContract": "حفظ العقد"
+  "documentPendingSave": "سيتم رفع المستند عند حفظ العقد",
+  "documentUploadFailed": "فشل رفع المستند",
+  "documentExpiryDate": "تاريخ الانتهاء",
+  "documentExpiryRequired": "تاريخ الانتهاء مطلوب لهذا النوع من المستندات",
+  "viewDocument": "عرض المستند",
+  "removeDocument": "إزالة المستند",
+  "selectedDocument": "المحدد: {{name}}",
+  "saveContract": "حفظ العقد",
+  "fixed_term": "محدد المدة",
+  "internship": "تدريب",
+  "consultant": "مستشار",
+  "part_time": "دوام جزئي"
 }

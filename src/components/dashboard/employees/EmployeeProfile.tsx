@@ -12,7 +12,6 @@ import {
     CalendarDays,
     User,
     Loader2,
-    CircleX,
     Building2,
     CreditCard,
     FileText,
@@ -20,11 +19,16 @@ import {
     MapPin,
     Phone,
     Mail,
+    MoreVertical,
 } from 'lucide-react';
 import { useEmployee, useEmployees } from '@/features/employee/hooks/useEmployee';
 import { useBankAccounts } from '@/features/bank-account/hooks/useBankAccount';
 import { usePermissions } from '@/features/auth/hooks/usePermissions';
+import { useEmployeeContracts } from '@/features/contracts/hooks/useEmployeeContracts';
+import { useDisplayCurrency } from '@/features/settings/hooks/useDisplayCurrency';
 import EditEmployeeSheet from './EditEmployeeSheet';
+import UpdateEmployeeContractSheet from './UpdateEmployeeContractSheet';
+import { ProfilePageLoader, ProfilePageNotFound } from '@/components/dashboard/shared/profile-page-states';
 import { format } from 'date-fns';
 
 // ─── Lifecycle stages ───────────────────────────────────────────────────────
@@ -36,16 +40,16 @@ const LIFECYCLE_STAGES = [
     { key: 'inactive',    color: '#FF0000', statuses: ['inactive', 'terminated'] },
 ];
 
-const TABS = ['basicInfo', 'employmentDetails', 'contactInfo', 'bankingInfo', 'documents'];
+const TABS = ['basicInfo', 'employmentDetails', 'contactInfo', 'bankingInfo', 'contract', 'documents'];
 
 // ─── Shared field cell — theme-aware ───────────────────────────────────────
 function InfoCell({ label, value }: { label: string; value?: string | null }) {
     return (
-        <div className="flex flex-col items-start px-3 py-4 gap-3 h-[76px] border border-border/60 rounded-lg box-border bg-background">
+        <div className="flex flex-col items-start px-3 py-4 gap-3 h-19 border border-border/60 rounded-lg box-border bg-background">
             <span className=" font-normal text-xs leading-4 text-muted-foreground">
                 {label}
             </span>
-            <span className=" font-medium text-sm leading-[14px] text-foreground truncate w-full">
+            <span className=" font-medium text-sm leading-3.5 text-foreground truncate w-full">
                 {value || '—'}
             </span>
         </div>
@@ -70,10 +74,17 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
     const router  = useRouter();
     const [activeTab, setActiveTab] = useState(0);
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+    const [isContractSheetOpen, setIsContractSheetOpen] = useState(false);
 
-    const { data: employee, isLoading }              = useEmployee(employeeId);
+    const { data: employee, isLoading } = useEmployee(employeeId);
     const { data: employeesData } = useEmployees();
     const { data: bankAccounts = [], isLoading: bankLoading } = useBankAccounts(employeeId);
+    const CONTRACT_TAB_INDEX = TABS.indexOf('contract');
+    const { data: employeeContractsResponse, isLoading: contractsLoading } = useEmployeeContracts(
+        { employeeId },
+        { enabled: activeTab === CONTRACT_TAB_INDEX },
+    );
+    const { formatAmount } = useDisplayCurrency(employee?.orgUnit?.orgUnitId);
 
     const employees = employeesData || [];
     const currentIndex = employees.findIndex(e => e.id === employeeId);
@@ -88,28 +99,22 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
         if (nextEmployee) router.push(`/dashboard/employees/${nextEmployee.id}`);
     };
 
-    // ── Loading ─────────────────────────────────────────────────────────────
+    const [now] = useState(() => Date.now());
+
     if (isLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px] w-full">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            </div>
-        );
+        return <ProfilePageLoader />;
     }
 
-    // ── Not found ───────────────────────────────────────────────────────────
     if (!employee) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] w-full gap-4 text-muted-foreground">
-                <CircleX className="w-12 h-12 text-destructive/50" />
-                <p>{t('employeeNotFound')}</p>
+            <ProfilePageNotFound message={t('employeeNotFound')}>
                 <button
                     onClick={() => router.back()}
                     className="px-4 py-2 border border-border rounded-lg text-sm hover:bg-muted transition-colors cursor-pointer text-foreground"
                 >
                     {t('goBack')}
                 </button>
-            </div>
+            </ProfilePageNotFound>
         );
     }
 
@@ -119,10 +124,9 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
     const isActive    = statusLower === 'active';
     const stageIndex  = LIFECYCLE_STAGES.findIndex(s => s.statuses.includes(statusLower));
 
-    // Employment duration
     let durationLabel = '-';
     if (employee.hireDate) {
-        const ms     = Date.now() - new Date(employee.hireDate).getTime();
+        const ms     = now - new Date(employee.hireDate).getTime();
         const years  = Math.floor(ms / (1000 * 60 * 60 * 24 * 365.25));
         const months = Math.floor((ms % (1000 * 60 * 60 * 24 * 365.25)) / (1000 * 60 * 60 * 24 * 30.44));
         if (years > 0)       durationLabel = months > 0 ? `${years}y ${months}m` : `${years} ${years === 1 ? 'year' : 'years'}`;
@@ -150,7 +154,7 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
         { label: t('employmentType'),  value: formatEmploymentType(employee.employmentType) },
         { label: t('hireDate'),        value: employee.hireDate ? format(new Date(employee.hireDate), 'MMMM d, yyyy') : null },
         { label: t('terminationDate'), value: employee.terminationDate ? format(new Date(employee.terminationDate), 'MMMM d, yyyy') : null },
-        { label: t('salary'),           value: employee.salary != null ? `${employee.salary.toLocaleString()} ${employee.currency || ''}`.trim() : null },
+        { label: t('salary'),           value: employee.salary != null ? formatAmount(employee.salary) : null },
         { label: t('currency'),         value: employee.currency },
         { label: t('nationality'),      value: employee.nationality },
         { label: t('nationalId'),      value: employee.nationalId },
@@ -187,6 +191,19 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
         { label: t('workPermitExpiry'), value: employee.workPermitExpiry ? format(new Date(employee.workPermitExpiry), 'dd/MM/yyyy') : null },
     ];
 
+    const employeeContracts = employeeContractsResponse?.data || [];
+    const activeContract = employeeContracts.find(c => c.status === 'active') || employeeContracts[0];
+
+    const displaySalary = activeContract?.salary != null
+        ? formatAmount(activeContract.salary)
+        : employee.salary != null
+            ? formatAmount(employee.salary)
+            : null;
+
+    const displayContractName = activeContract?.contract?.contractName || 'Full-time permanent';
+    const displayEmploymentType = formatEmploymentType(activeContract?.employmentType || employee.employmentType) || 'Full-time';
+    const displayJobTitle = activeContract?.jobTitle || employee.jobTitle || 'Designer';
+
     return (
         <div className="flex flex-col gap-8 w-full animate-in fade-in duration-500">
 
@@ -210,9 +227,9 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
             <div className="flex flex-row items-end gap-6 w-full">
 
                 {/* Identity card */}
-                <div className="shrink-0 flex flex-col w-[242px] h-[232px] bg-card border border-border shadow-sm rounded-xl">
-                    <div className="flex justify-center items-center w-full pt-2 px-2 h-[120px]">
-                        <div className="w-[90px] h-[90px] bg-[#FFBEB8] rounded-xl flex items-center justify-center overflow-hidden">
+                <div className="shrink-0 flex flex-col w-60.5 h-58 bg-card border border-border shadow-sm rounded-xl">
+                    <div className="flex justify-center items-center w-full pt-2 px-2 h-30">
+                        <div className="w-22.5 h-22.5 bg-[#FFBEB8] rounded-xl flex items-center justify-center overflow-hidden">
                             <User className="w-10 h-10 text-white" />
                         </div>
                     </div>
@@ -221,10 +238,10 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                             <span className=" font-semibold text-[20px] leading-5 text-foreground">
                                 {fullName}
                             </span>
-                            <span className=" font-medium text-sm leading-[14px] text-foreground/80">
+                            <span className=" font-medium text-sm leading-3.5 text-foreground/80">
                                 {employee.jobTitle}
                             </span>
-                            <span className=" font-medium text-sm leading-[14px] text-muted-foreground">
+                            <span className=" font-medium text-sm leading-3.5 text-muted-foreground">
                                 {employee.orgUnit?.orgUnitName || employee.departmentId || 'Unassigned'}
                             </span>
                         </div>
@@ -242,9 +259,8 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                 </div>
 
                 {/* Right column */}
-                <div className="flex flex-col justify-end flex-1 min-w-0 gap-6 h-[230px]">
+                <div className="flex flex-col justify-end flex-1 min-w-0 gap-6 h-57.5">
 
-                    {/* Prev / Next */}
                     <div className="flex flex-row justify-between items-center w-full">
                         <button
                             onClick={handlePrev}
@@ -254,7 +270,7 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                             <ArrowLeft className="w-4 h-4 text-foreground" />
                             <span className=" font-medium text-sm leading-5 text-foreground">{t('previous')}</span>
                         </button>
-                        <button 
+                        <button
                             onClick={handleNext}
                             disabled={!nextEmployee}
                             className="flex items-center gap-2 px-4 h-9 bg-muted hover:opacity-80 transition-opacity rounded-lg border-none cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
@@ -265,7 +281,7 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                     </div>
 
                     {/* Lifecycle card */}
-                    <div className="flex flex-col justify-center items-start gap-2 w-full h-[170px] bg-card border border-border shadow-sm rounded-xl px-6 py-4">
+                    <div className="flex flex-col justify-center items-start gap-2 w-full h-42.5 bg-card border border-border shadow-sm rounded-xl px-6 py-4">
                         <span className=" font-semibold text-[20px] leading-5 text-foreground">
                             {t('lifecycleStatus')}
                         </span>
@@ -302,7 +318,7 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                             {/* Row 2: labels — each left-aligned below its dot */}
                             {LIFECYCLE_STAGES.map((stage, i) => (
                                 <div key={`label-${stage.key}`} style={{ opacity: i > stageIndex ? 0.6 : 1 }}>
-                                    <span className="font-medium text-sm leading-[22px] text-foreground whitespace-nowrap">
+                                    <span className="font-medium text-sm leading-5.5 text-foreground whitespace-nowrap">
                                         {t(stage.key)}
                                     </span>
                                 </div>
@@ -319,7 +335,7 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                 <div className="flex flex-col items-start gap-4 flex-1 min-w-0">
 
                     {/* Tabs bar */}
-                    <div className="flex flex-row items-center w-full h-9 p-[3px] bg-secondary rounded-[10px]">
+                    <div className="flex flex-row items-center w-full h-9 p-0.75 bg-secondary rounded-[10px]">
                         {TABS.map((tab, i) => (
                             <button
                                 key={tab}
@@ -328,7 +344,7 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                                     'flex-1 flex justify-center items-center px-2 py-1 rounded-lg border-none cursor-pointer transition-all',
                                     i === activeTab
                                         ? 'bg-card shadow-sm h-7 text-foreground'
-                                        : 'bg-transparent h-[30px] text-foreground/70 hover:text-foreground',
+                                        : 'bg-transparent h-7.5 text-foreground/70 hover:text-foreground',
                                 ].join(' ')}
                             >
                                 <span className=" font-medium text-sm leading-5 whitespace-nowrap text-center">
@@ -339,7 +355,7 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                     </div>
 
                     {/* Content card */}
-                    <div className="flex flex-col w-full p-6 gap-4 bg-card border border-border shadow-sm rounded-[10px] min-h-[352px]">
+                    <div className="flex flex-col w-full p-6 gap-4 bg-card border border-border shadow-sm rounded-[10px] min-h-88">
 
                         {/* Card header */}
                         <div className="flex flex-row items-center w-full gap-1.5 h-9">
@@ -349,13 +365,24 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                                 </span>
                             </div>
                             {hasPermission('employees:update') && (
-                                <button 
-                                    onClick={() => setIsEditSheetOpen(true)}
-                                    className="flex items-center gap-2 px-4 h-9 min-w-[80px] bg-transparent border-none cursor-pointer rounded-lg hover:bg-muted transition-colors"
-                                >
-                                    <PencilLine className="w-4 h-4 text-primary" />
-                                    <span className=" font-medium text-sm leading-5 text-primary">{t('edit')}</span>
-                                </button>
+                                TABS[activeTab] === 'contract' ? (
+                                    <button
+                                        onClick={() => setIsContractSheetOpen(true)}
+                                        className="flex items-center gap-2 px-4 h-9 bg-transparent border-none cursor-pointer rounded-lg hover:bg-muted transition-colors"
+                                    >
+                                        <span className=" font-semibold text-sm leading-5 text-primary">
+                                            {t('updateContract', 'Update contract')}
+                                        </span>
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => setIsEditSheetOpen(true)}
+                                        className="flex items-center gap-2 px-4 h-9 min-w-20 bg-transparent border-none cursor-pointer rounded-lg hover:bg-muted transition-colors"
+                                    >
+                                        <PencilLine className="w-4 h-4 text-primary" />
+                                        <span className=" font-medium text-sm leading-5 text-primary">{t('edit')}</span>
+                                    </button>
+                                )
                             )}
                         </div>
 
@@ -450,8 +477,99 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                             </div>
                         )}
 
-                        {/* ── Tab 4: Documents ────────────────────────────── */}
+                        {/* ── Tab 4: Contract ─────────────────────────────── */}
                         {activeTab === 4 && (
+                            <div className="flex flex-col gap-4 w-full">
+                                {contractsLoading ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                                    </div>
+                                ) : !activeContract ? (
+                                    <div className="flex flex-col items-center justify-center py-12 gap-3 text-muted-foreground">
+                                        <FileText className="w-10 h-10 text-border" />
+                                        <span className=" font-normal text-sm">No contract assigned yet</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* ── Fields grid ───────────────────── */}
+                                        <div className="grid grid-cols-2 w-full gap-3">
+                                            <InfoCell label={t('contract')} value={displayContractName} />
+                                            <InfoCell label={t('salary')} value={displaySalary} />
+                                            <InfoCell label={t('employmentType')} value={displayEmploymentType} />
+                                            <InfoCell label={t('jobTitle')} value={displayJobTitle} />
+                                            {activeContract.effectiveDate && (
+                                                <InfoCell
+                                                    label="Effective date"
+                                                    value={format(new Date(activeContract.effectiveDate), 'MMMM d, yyyy')}
+                                                />
+                                            )}
+                                            {activeContract.endDate && (
+                                                <InfoCell
+                                                    label="End date"
+                                                    value={format(new Date(activeContract.endDate), 'MMMM d, yyyy')}
+                                                />
+                                            )}
+                                            {activeContract.probationEndDate && (
+                                                <InfoCell
+                                                    label="Probation end"
+                                                    value={format(new Date(activeContract.probationEndDate), 'MMMM d, yyyy')}
+                                                />
+                                            )}
+                                            {activeContract.signedDate && (
+                                                <InfoCell
+                                                    label="Signed date"
+                                                    value={format(new Date(activeContract.signedDate), 'MMMM d, yyyy')}
+                                                />
+                                            )}
+                                        </div>
+
+                                        {/* ── Document attachment row ────────── */}
+                                        {activeContract.contract?.documentUrl ? (
+                                            <a
+                                                href={activeContract.contract.documentUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="flex items-center justify-between p-4 border border-border rounded-xl bg-background mt-2 no-underline hover:bg-muted/40 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shrink-0 border border-red-100">
+                                                        <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-semibold text-sm text-foreground">
+                                                            {displayContractName}
+                                                        </span>
+                                                        <span className="font-normal text-xs text-muted-foreground">
+                                                            Contract document
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={(e) => e.preventDefault()}
+                                                    className="p-1.5 hover:bg-muted rounded-lg transition-colors border-none bg-transparent cursor-pointer"
+                                                >
+                                                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                                                </button>
+                                            </a>
+                                        ) : (
+                                            <div className="flex items-center justify-between p-4 border border-border rounded-xl bg-background mt-2 opacity-60">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0 border border-border">
+                                                        <FileText className="w-5 h-5 text-muted-foreground" />
+                                                    </div>
+                                                    <span className="font-normal text-sm text-muted-foreground">No document attached</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ── Tab 5: Documents ────────────────────────────── */}
+                        {activeTab === 5 && (
                             <div className="flex flex-col gap-4 w-full">
                                 <SectionHeader icon={FileText} label="Passport & Visa" />
                                 <div className="grid grid-cols-2 w-full gap-3">
@@ -472,8 +590,8 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                 </div>
 
                 {/* Right: Employment summary */}
-                <div className="shrink-0 flex flex-col w-[270px] h-[280px] bg-card border border-border shadow-sm rounded-[10px] overflow-hidden">
-                    <div className="flex items-center w-full h-[60px] px-6 bg-card-header-background shrink-0">
+                <div className="shrink-0 flex flex-col w-67.5 h-70 bg-card border border-border shadow-sm rounded-[10px] overflow-hidden">
+                    <div className="flex items-center w-full h-15 px-6 bg-card-header-background shrink-0">
                         <span className=" font-semibold text-lg leading-7 tracking-tight text-card-foreground">
                             {t('employmentSummary')}
                         </span>
@@ -515,6 +633,13 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                 open={isEditSheetOpen}
                 onOpenChange={setIsEditSheetOpen}
                 employee={employee}
+            />
+
+            <UpdateEmployeeContractSheet
+                open={isContractSheetOpen}
+                onOpenChange={setIsContractSheetOpen}
+                employeeId={employeeId}
+                currentContract={activeContract || null}
             />
         </div>
     );

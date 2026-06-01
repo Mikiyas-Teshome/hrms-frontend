@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
@@ -33,11 +32,8 @@ import { useCreateOvertimePoliciesBatch } from '@/features/overtime-policy/hooks
 import { useToast } from '@/hooks/use-toast';
 import { AllowanceDeductionList } from '@/components/onboarding/payroll/allowance-deduction-list';
 import { OvertimeRulesSection } from '@/components/onboarding/payroll/overtime-rules-section';
-import {
-    useCompanyOptions,
-    useSelectedCompany,
-} from '@/features/organization/hooks/useOrganization';
-import { getCurrencySymbol } from '@/lib/currency';
+import { useCompanyOptions } from '@/features/organization/hooks/useOrganization';
+import { useDisplayCurrency } from '@/features/settings/hooks/useDisplayCurrency';
 
 const RadioIndicator = ({ checked }: { checked?: boolean }) => (
     <div
@@ -142,9 +138,7 @@ export function PayrollStructureForm({
     const { mutateAsync: upsertPayrollComponents } = useUpsertPayrollComponents();
     const { mutateAsync: createOvertimePoliciesBatch } = useCreateOvertimePoliciesBatch();
 
-    const { company: selectedCompany } = useSelectedCompany(formCompanyId);
-    const companyCurrency = selectedCompany?.companyProfile?.currency;
-    const currencySymbol = getCurrencySymbol(companyCurrency);
+    const { currencySymbol } = useDisplayCurrency(formCompanyId);
 
     const companyOptions = useMemo(() => {
         const options =

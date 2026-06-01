@@ -1,0 +1,66 @@
+{
+  "addTitle": "إضافة تغطية تأمين",
+  "editTitle": "تعديل تغطية التأمين",
+  "saveBtn": "حفظ التأمين",
+  "updateBtn": "حفظ التغييرات",
+  "cancel": "إلغاء",
+  "detail": {
+    "title": "تفاصيل التأمين",
+    "info": "معلومات التأمين",
+    "coverage": "تفاصيل التغطية",
+    "eligibility": "شروط الأهلية",
+    "labels": {
+      "name": "اسم التأمين",
+      "provider": "مزود التأمين",
+      "coverageType": "نوع التغطية",
+      "coverageAmount": "مبلغ التغطية",
+      "assignedTo": "مخصص لـ",
+      "renewalType": "نوع التجديد",
+      "maxDependents": "الحد الأقصى للمعتمدين",
+      "includedServices": "الخدمات المشمولة",
+      "employmentType": "نوع التوظيف",
+      "minTenure": "الحد الأدنى للفترة",
+      "employerContribution": "مساهمة صاحب العمل",
+      "employeeContribution": "مساهمة الموظف"
+    },
+    "coverageTypes": {
+      "health": "صحي",
+      "dental": "أسنان",
+      "vision": "نظر",
+      "life": "حياة",
+      "other": "آخر",
+      "accidents": "الحوادث"
+    },
+    "assignments": {
+      "all_employees": "جميع الموظفين",
+      "individual": "فردي",
+      "department_based": "حسب الإدارة",
+      "role_based": "حسب الدور"
+    },
+    "renewals": {
+      "yearly": "سنوي",
+      "monthly": "شهري",
+      "quarterly": "ربع سنوي"
+    },
+    "dependents": {
+      "spouse": "الزوج/الزوجة",
+      "child": "الطفل",
+      "parent": "الوالد/الوالدة",
+      "other": "أخرى"
+    },
+    "services": {
+      "hospitalization": "الاستشفاء",
+      "outpatient": "العيادات الخارجية",
+      "dental": "الأسنان",
+      "vision": "النظر"
+    },
+    "employmentTypes": {
+      "full_time": "دوام كامل",
+      "part_time": "دوام جزئي",
+      "contract": "عقد",
+      "intern": "تدريب",
+      "consultant": "مستشار"
+    },
+    "months": "أشهر"
+  }
+}

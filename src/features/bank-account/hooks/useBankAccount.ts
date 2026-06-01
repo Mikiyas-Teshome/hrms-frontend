@@ -3,19 +3,21 @@ import {
   fetchBankAccounts,
   fetchBankAccount,
   createBankAccount,
+  createMyBankAccount,
   updateBankAccount,
   removeBankAccount,
 } from '../bank-account.actions';
 import {
   CreateBankAccountInput,
+  CreateMyBankAccountInput,
   UpdateBankAccountInput,
 } from '../bank-account.types';
 
-export const useBankAccounts = (employeeId: string) => {
+export const useBankAccounts = (employeeId: string, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['bank-accounts', employeeId],
     queryFn: () => fetchBankAccounts(employeeId),
-    enabled: !!employeeId,
+    enabled: options?.enabled ?? !!employeeId,
   });
 };
 
@@ -24,6 +26,20 @@ export const useBankAccount = (id: string) => {
     queryKey: ['bank-account', id],
     queryFn: () => fetchBankAccount(id),
     enabled: !!id,
+  });
+};
+
+export const useCreateMyBankAccount = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: CreateMyBankAccountInput) => {
+      const result = await createMyBankAccount(input);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts', data.employeeId] });
+    },
   });
 };
 

@@ -1,13 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Building2, GitBranch, Layers2, LayoutGrid, Users, Loader2 } from 'lucide-react';
+import { Building2, GitBranch, Layers2, Users, Loader2 } from 'lucide-react';
 import { useOrganizationHierarchy } from '@/features/organization/hooks/useOrganization';
 import { OrganizationUnitType } from '@/features/organization/organization.types';
 
-// ─── Stat Card ───────────────────────────────────────────────────────────────
 
 interface StatCardProps {
     icon: React.ReactNode;
@@ -37,7 +35,6 @@ function StatCard({ icon, iconBg, label, value, loading }: StatCardProps) {
     );
 }
 
-// ─── Flatten helper ───────────────────────────────────────────────────────────
 
 function flattenNodes(nodes: OrganizationUnitType[]): OrganizationUnitType[] {
     const result: OrganizationUnitType[] = [];
@@ -49,22 +46,22 @@ function flattenNodes(nodes: OrganizationUnitType[]): OrganizationUnitType[] {
     return result;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
-export function OrgHierarchyStats() {
+export function OrgHierarchyStats({ data: providedData }: { data?: OrganizationUnitType[] }) {
     const { t } = useTranslation('dashboard');
     const { data: hierarchy, isLoading } = useOrganizationHierarchy();
 
     const stats = useMemo(() => {
-        if (!hierarchy) return { companies: 0, divisions: 0, subDivisions: 0, departments: 0 };
-        const all = flattenNodes(hierarchy);
+        const sourceData = providedData || hierarchy;
+        if (!sourceData) return { companies: 0, divisions: 0, subDivisions: 0, departments: 0 };
+        const all = flattenNodes(sourceData);
         return {
             companies: all.filter((n: any) => n.type === 'COMPANY').length,
             divisions: all.filter((n: any) => n.type === 'DIVISION').length,
             subDivisions: all.filter((n: any) => n.type === 'SUB_DIVISION').length,
             departments: all.filter((n: any) => n.type === 'DEPARTMENT').length,
         };
-    }, [hierarchy]);
+    }, [hierarchy, providedData]);
 
     return (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -99,8 +96,6 @@ export function OrgHierarchyStats() {
         </div>
     );
 }
-
-// ─── Loading skeleton ─────────────────────────────────────────────────────────
 
 export function OrgLoadingState() {
     return (

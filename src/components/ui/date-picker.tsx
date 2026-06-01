@@ -15,7 +15,7 @@ import {
 
 interface DatePickerProps {
     value?: string | Date; // ISO string or Date object
-    onChange?: (date: any) => void;
+    onChange?: (date: Date | undefined) => void;
     className?: string;
     placeholder?: string;
 }
@@ -35,7 +35,7 @@ export function DatePicker({ value, onChange, className, placeholder = 'Pick a d
         } else {
             if (date) setDate(undefined);
         }
-    }, [value]);
+    }, [value, date]);
 
     const handleSelect = (selectedDate: Date | undefined) => {
         setDate(selectedDate);

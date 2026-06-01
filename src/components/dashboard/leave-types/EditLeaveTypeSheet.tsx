@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
     Sheet,
@@ -65,7 +64,10 @@ const EditLeaveTypeSheet: React.FC<EditLeaveTypeSheetProps> = ({ open, onOpenCha
         }
     }, [open, initialData, form]);
 
-    const formCompanyOuId = form.watch('companyOuId');
+    const formCompanyOuId = useWatch({
+        control: form.control,
+        name: 'companyOuId',
+    });
 
     useEffect(() => {
         if (companiesData?.length && !formCompanyOuId) {

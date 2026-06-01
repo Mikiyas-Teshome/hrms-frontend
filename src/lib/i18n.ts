@@ -38,6 +38,11 @@ import logoutConfirmEn from '../locales/en/logoutConfirm.json';
 import contractsEn from '../locales/en/contracts.json';
 import setupSuccessEn from '../locales/en/setupSuccess.json';
 import employeeSuccessEn from '../locales/en/employeeSuccess.json';
+import entitlementEn from '../locales/en/entitlement.json';
+import contractsInsurancesEn from '../locales/en/contractsInsurances.json';
+import settingsEn from '../locales/en/settings.json';
+import documentEn from '../locales/en/document.json';
+
 
 // Arabic translations
 import addMembersAr from '../locales/ar/addMembers.json';
@@ -75,6 +80,11 @@ import logoutConfirmAr from '../locales/ar/logoutConfirm.json';
 import contractsAr from '../locales/ar/contracts.json';
 import setupSuccessAr from '../locales/ar/setupSuccess.json';
 import employeeSuccessAr from '../locales/ar/employeeSuccess.json';
+import entitlementAr from '../locales/ar/entitlement.json';
+import contractsInsurancesAr from '../locales/ar/contractsInsurances.json';
+import settingsAr from '../locales/ar/settings.json';
+import documentAr from '../locales/ar/document.json';
+
 
 const resources = {
   en: {
@@ -113,6 +123,10 @@ const resources = {
     contracts: contractsEn,
     setupSuccess: setupSuccessEn,
     employeeSuccess: employeeSuccessEn,
+    entitlement: entitlementEn,
+    contractsInsurances: contractsInsurancesEn,
+    settings: settingsEn,
+    document: documentEn,
   },
   ar: {
     addMembers: addMembersAr,
@@ -150,6 +164,10 @@ const resources = {
     contracts: contractsAr,
     setupSuccess: setupSuccessAr,
     employeeSuccess: employeeSuccessAr,
+    entitlement: entitlementAr,
+    contractsInsurances: contractsInsurancesAr,
+    settings: settingsAr,
+    document: documentAr,
   },
 };
 

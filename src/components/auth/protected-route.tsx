@@ -10,17 +10,22 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   module: string;
   action?: string;
+  actions?: string[];
 }
 
 export function ProtectedRoute({ 
   children, 
   module, 
-  action = "read" 
+  action = "read",
+  actions,
 }: ProtectedRouteProps) {
   const { permissionsMap, isInitializing, isAuthenticated } = useAuth();
   const router = useRouter();
 
-  const allowed = hasPermission(permissionsMap, module, action);
+  const requiredActions = actions?.length ? actions : [action];
+  const allowed = requiredActions.every((requiredAction) =>
+    hasPermission(permissionsMap, module, requiredAction),
+  );
 
   useEffect(() => {
     if (!isInitializing) {

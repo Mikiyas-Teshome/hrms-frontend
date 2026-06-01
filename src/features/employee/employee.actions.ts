@@ -5,23 +5,34 @@ import { ActionResult, safeAction } from '@/lib/safe-action';
 import {
   CREATE_EMPLOYEE_MUTATION,
   UPDATE_EMPLOYEE_MUTATION,
+  UPDATE_MY_EMPLOYEE_PROFILE_MUTATION,
   DELETE_EMPLOYEE_MUTATION,
   GET_EMPLOYEE_QUERY,
   GET_EMPLOYEES_QUERY,
+  GET_PAGINATED_EMPLOYEES_QUERY,
+  GET_EMPLOYEE_DIRECTORY_QUERY,
   GET_MY_EMPLOYEE_PROFILE_QUERY,
   INITIATE_TRANSFER_MUTATION,
   INVITE_EMPLOYEE_MUTATION,
+  INVITE_EMPLOYEES_MUTATION,
   GET_EMPLOYEE_TRANSFER_HISTORY_QUERY,
   RECORD_TRANSFER_MUTATION,
   UPDATE_EMPLOYEE_STATUS_MUTATION,
 } from './employee.queries';
 import {
   EmployeeResponse,
+  EmployeeDirectoryEntry,
   CreateEmployeeInput,
   UpdateEmployeeInput,
+  UpdateMyEmployeeProfileInput,
   EmployeesFilters,
+  EmployeeListFilterInput,
+  PaginationInput,
+  PaginatedEmployeesResponse,
   TransferEmployeeInput,
   CreateInvitationInput,
+  BulkInviteEmployeesInput,
+  BulkInvitationResponse,
   InvitationResponse,
   EmployeeTransferHistory,
   RecordTransferInput,
@@ -39,6 +50,47 @@ export async function fetchEmployees(filters: EmployeesFilters = {}): Promise<Em
     return data.employees;
   } catch (error) {
     console.error('Failed to fetch employees:', error);
+    return [];
+  }
+}
+
+export async function fetchPaginatedEmployees(
+  pagination: PaginationInput = {},
+  filter: EmployeeListFilterInput = {},
+): Promise<PaginatedEmployeesResponse> {
+  try {
+    const data = await gqlRequest<{ paginatedEmployees: PaginatedEmployeesResponse }>(
+      GraphQLService.CORE_HR,
+      GET_PAGINATED_EMPLOYEES_QUERY,
+      { pagination, filter },
+    );
+    return data.paginatedEmployees;
+  } catch (error) {
+    console.error('Failed to fetch paginated employees:', error);
+    return {
+      data: [],
+      metaData: {
+        page: pagination.page ?? 1,
+        size: pagination.size ?? 10,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
+      },
+    };
+  }
+}
+
+export async function fetchEmployeeDirectory(): Promise<EmployeeDirectoryEntry[]> {
+  try {
+    const data = await gqlRequest<{ employeesDirectory: EmployeeDirectoryEntry[] }>(
+      GraphQLService.CORE_HR,
+      GET_EMPLOYEE_DIRECTORY_QUERY,
+      {}
+    );
+    return data.employeesDirectory;
+  } catch (error) {
+    console.error('Failed to fetch employee directory:', error);
     return [];
   }
 }
@@ -66,6 +118,20 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Action
     );
     revalidatePath('/dashboard/employees');
     return data.createEmployee;
+  });
+}
+
+export async function updateMyEmployeeProfile(
+  input: UpdateMyEmployeeProfileInput,
+): Promise<ActionResult<EmployeeResponse>> {
+  return safeAction(async () => {
+    const data = await gqlRequest<{ updateMyEmployeeProfile: EmployeeResponse }>(
+      GraphQLService.CORE_HR,
+      UPDATE_MY_EMPLOYEE_PROFILE_MUTATION,
+      { input },
+    );
+    revalidatePath('/dashboard/employees');
+    return data.updateMyEmployeeProfile;
   });
 }
 
@@ -128,6 +194,20 @@ export async function inviteEmployee(input: CreateInvitationInput): Promise<Acti
     );
     revalidatePath('/dashboard/employees');
     return data.inviteEmployee;
+  });
+}
+
+export async function inviteEmployees(
+  input: BulkInviteEmployeesInput,
+): Promise<ActionResult<BulkInvitationResponse>> {
+  return safeAction(async () => {
+    const data = await gqlRequest<{ inviteEmployees: BulkInvitationResponse }>(
+      GraphQLService.AUTH,
+      INVITE_EMPLOYEES_MUTATION,
+      { input },
+    );
+    revalidatePath('/dashboard/employees');
+    return data.inviteEmployees;
   });
 }
 

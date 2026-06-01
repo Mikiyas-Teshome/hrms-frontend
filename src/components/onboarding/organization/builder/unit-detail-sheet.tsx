@@ -1,8 +1,6 @@
 "use client";
 
-import * as React from "react";
-import { ChevronRight, Plus, Loader2, X } from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { ChevronRight, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -63,7 +61,6 @@ export function UnitDetailSheet({
   onAddChild,
   childLabel,
 }: UnitDetailSheetProps) {
-  const { i18n } = useTranslation();
   const { data: unit, isLoading } = useOrganizationUnit(unitId);
 
 

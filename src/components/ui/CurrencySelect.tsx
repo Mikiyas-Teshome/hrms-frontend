@@ -32,7 +32,7 @@ export function CurrencySelect<T extends FieldValues>({ control, name, label, pl
           label: `${code} - ${displayNames.of(code)}`,
         }))
         .sort((a, b) => a.label.localeCompare(b.label));
-    } catch (e) {
+    } catch {
       // Fallback for environments that might not support Intl.supportedValuesOf
       return [
         { value: "USD", label: "USD - US Dollar" },

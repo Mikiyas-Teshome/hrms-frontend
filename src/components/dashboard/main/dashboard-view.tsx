@@ -22,7 +22,6 @@ import { AttendanceRateChart } from '@/components/dashboard/main/attendance-rate
 import { EmployeesInsightsChart } from '@/components/dashboard/main/employees-insights-chart';
 import { RecentActivityTable } from '@/components/dashboard/main/recent-activity-table';
 import { CompanySetupCard } from '@/components/dashboard/main/company-setup-card';
-import { StaffOnboardingCard } from '@/components/dashboard/main/staff-onboarding-card';
 import { DashboardSkeleton } from '@/components/dashboard/layout/dashboard-skeleton';
 import ConfirmationModal from '@/components/dashboard/shared/ConfirmationModal';
 import { AddKpiCardSheet } from '@/components/dashboard/main/add-kpi-card-sheet';

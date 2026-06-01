@@ -1,12 +1,36 @@
+export const USER_FIELDS_FRAGMENT = `
+  fragment UserFields on UserResponse {
+    id
+    email
+    firstName
+    lastName
+    fullName
+    role
+    status
+    companyId
+    department
+    position
+    phoneNumber
+    isEmailVerified
+    onboardingComplete
+    onboardingStep
+    createdAt
+    updatedAt
+    lastLoginAt
+  }
+`;
+
 export const ORGANIZATION_UNIT_FRAGMENT = `
   fragment OrganizationUnitFields on OrganizationUnitType {
     id
     name
     parentId
+    companyId
     status
     type
     displayLabel
     totalMembers
+    employeeCount
     companyProfile {
       id
       legalName
@@ -73,56 +97,31 @@ export const UPDATE_ORGANIZATION_NOMENCLATURE_MUTATION = `
 `;
 
 export const GET_ORGANIZATION_HIERARCHY_QUERY = `
-  query GetOrganizationHierarchy {
-    getOrganizationHierarchy {
+  query GetOrganizationHierarchy($limit: Int, $maxDepth: Int, $page: Int, $rootId: ID, $status: String) {
+    getOrganizationHierarchy(limit: $limit, maxDepth: $maxDepth, page: $page, rootId: $rootId, status: $status) {
       ...OrganizationUnitFields
       members {
-        id
-        email
-        firstName
-        lastName
-        role
-        status
+        ...UserFields
       }
       children {
         ...OrganizationUnitFields
         members {
-          id
-          email
-          firstName
-          lastName
-          role
-          status
+          ...UserFields
         }
         children {
           ...OrganizationUnitFields
           members {
-            id
-            email
-            firstName
-            lastName
-            role
-            status
+            ...UserFields
           }
           children {
             ...OrganizationUnitFields
             members {
-              id
-              email
-              firstName
-              lastName
-              role
-              status
+              ...UserFields
             }
             children {
               ...OrganizationUnitFields
               members {
-                id
-                email
-                firstName
-                lastName
-                role
-                status
+                ...UserFields
               }
             }
           }
@@ -131,6 +130,7 @@ export const GET_ORGANIZATION_HIERARCHY_QUERY = `
     }
   }
   ${ORGANIZATION_UNIT_FRAGMENT}
+  ${USER_FIELDS_FRAGMENT}
 `;
 
 export const GET_ORGANIZATION_NOMENCLATURE_QUERY = `
@@ -148,19 +148,16 @@ export const GET_ORGANIZATION_UNIT_QUERY = `
     getOrganizationUnit(id: $id) {
       ...OrganizationUnitFields
       members {
-        id
-        email
-        firstName
-        lastName
-        role
-        status
-        department
-        position
+        ...UserFields
       }
       children {
         ...OrganizationUnitFields
+        members {
+          ...UserFields
+        }
       }
     }
   }
   ${ORGANIZATION_UNIT_FRAGMENT}
+  ${USER_FIELDS_FRAGMENT}
 `;

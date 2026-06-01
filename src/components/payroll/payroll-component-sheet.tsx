@@ -2,10 +2,9 @@
 
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as zod from "zod";
-import { Plus } from "lucide-react";
 
 import {
   Sheet,
@@ -14,11 +13,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormField } from "@/components/ui/FormField";
 import { FormSelect } from "@/components/ui/FormSelect";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { PayrollComponentType } from "@/features/payroll/payroll.types";
@@ -59,7 +56,6 @@ export function PayrollComponentSheet({
     handleSubmit,
     control,
     reset,
-    watch,
     formState: { errors },
   } = useForm<PayrollComponentValues>({
     resolver: zodResolver(payrollComponentSchema),
@@ -75,7 +71,11 @@ export function PayrollComponentSheet({
     },
   });
 
-  const selectedCategory = watch("category");
+  const selectedCategory = useWatch({
+    control,
+    name: "category",
+    defaultValue: PayrollComponentType.ALLOWANCE,
+  });
 
   // Reset form when opening or defaultValues change
   useEffect(() => {

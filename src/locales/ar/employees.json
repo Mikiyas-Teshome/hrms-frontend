@@ -109,6 +109,10 @@
   "selectNationality": "اختر الجنسية",
   "selectCountry": "اختر الدولة",
   "nationality": "الجنسية",
+  "full_time": "دوام كامل",
+  "part_time": "دوام جزئي",
+  "intern": "متدرب",
+  "consultant": "مستشار",
   "errors": {
     "numbersOnly": "يجب أن يحتوي على أرقام فقط",
     "futureDateRequired": "يجب أن يكون التاريخ في المستقبل",

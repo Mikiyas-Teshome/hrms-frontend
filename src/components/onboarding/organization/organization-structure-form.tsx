@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -14,11 +13,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+  OnboardingStepTabs,
+  OnboardingStepTabsList,
+  OnboardingStepTabTrigger,
+  OnboardingStepTabsContent,
+} from "@/components/onboarding/shared/onboarding-step-tabs";
 import { useRouter } from "next/navigation";
 import { orgStructureSchema, type OrgStructureValues } from "@/components/onboarding/schemas/org-structure";
 import { OnboardingFormActions } from "@/components/onboarding/shared/onboarding-form-actions";
@@ -32,6 +31,7 @@ import ConfirmationModal from "@/components/dashboard/shared/ConfirmationModal";
 import { HierarchyNode } from "@/components/onboarding/organization/hierarchy-node";
 import { HierarchyTreeBuilder } from "@/components/onboarding/organization/builder/hierarchy-tree-builder";
 import { SimpleUnitModal } from "@/components/onboarding/organization/builder/simple-unit-modal";
+import { OrganizationStructureSkeleton } from "./organization-structure-skeleton";
 
 interface OrganizationStructureFormProps {
   onNext?: () => void;
@@ -83,7 +83,6 @@ export function OrganizationStructureForm({
   const nomenclatureMutation = useUpdateOrganizationNomenclature();
   const { data: nomenclature, refetch: refetchNomenclature } = useOrganizationNomenclature();
   const { data: hierarchy, refetch: refetchHierarchy, isLoading: isHierarchyLoading, isFetching: isHierarchyFetching } = useOrganizationHierarchy();
-
   const {
     register,
     control,
@@ -101,7 +100,7 @@ export function OrganizationStructureForm({
     name: "hierarchyLevels",
   });
 
-  const { fields: unitFields, append: appendUnit, remove: removeUnit } = useFieldArray({
+  const { append: appendUnit, remove: removeUnit } = useFieldArray({
     control,
     name: "units",
   });
@@ -243,8 +242,7 @@ export function OrganizationStructureForm({
   const flattenUnit = (unit: any) => {
     if (!unit) return null;
     const { companyProfile, ...rest } = unit;
-    // Exclude profile ID so it doesn't overwrite the main unit ID
-    const { id: profileId, ...profileData } = companyProfile || {};
+    const { ...profileData } = companyProfile || {};
     return {
       ...rest,
       ...profileData,
@@ -423,41 +421,24 @@ export function OrganizationStructureForm({
   };
 
   if (isHierarchyLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <div className="relative">
-          <Loader2 className="size-12 text-primary animate-spin" />
-          <div className="absolute inset-0 size-12 border-4 border-primary/20 rounded-full" />
-        </div>
-        <div className="text-center space-y-2">
-          <p className="text-lg font-semibold text-foreground animate-pulse">
-            {t("fetchingHierarchy")}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {t("hierarchy.customizeAlert")}
-          </p>
-        </div>
-      </div>
-    );
+    return <OrganizationStructureSkeleton />;
   }
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full gap-4">
-        <div className="flex">
-          <TabsList className="h-9 w-full max-w-154.5 bg-secondary p-0.75 rounded-[10px] border-none">
-            <TabsTrigger value="hierarchy" className="flex-1 h-7 rounded-[8px] data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium text-sm transition-all">
-              {t("tabs.hierarchy")}
-            </TabsTrigger>
-            <TabsTrigger value="builder" className="flex-1 h-7 rounded-[8px] data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground text-muted-foreground font-medium text-sm transition-all">
-              {t("tabs.builder")}
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      <OnboardingStepTabs value={activeTab} onValueChange={setActiveTab}>
+        <OnboardingStepTabsList>
+          <OnboardingStepTabTrigger value="hierarchy">
+            {t("tabs.hierarchy")}
+          </OnboardingStepTabTrigger>
+          <OnboardingStepTabTrigger value="builder">
+            {t("tabs.builder")}
+          </OnboardingStepTabTrigger>
+        </OnboardingStepTabsList>
 
-        <TabsContent value="hierarchy" className="space-y-6 focus-visible:outline-none">
+        <OnboardingStepTabsContent value="hierarchy">
           <Card className="rounded-[12px] border border-border/80 dark:border-[rgba(0,0,0,0.24)] bg-card dark:bg-[#1D1D1D] shadow-none dark:shadow-[0px_1px_3px_rgba(0,0,0,0.04),0px_1px_2px_-1px_rgba(0,0,0,0.04)] overflow-hidden">
-            <CardHeader className="bg-muted/40 dark:bg-[rgba(10,10,10,0.5)] px-6 py-4 dark:py-[18px] border-b border-border/40 dark:border-border/10">
+            <CardHeader className="bg-muted/40 dark:bg-[rgba(10,10,10,0.5)] px-6 py-4 dark:py-4.5 border-b border-border/40 dark:border-border/10">
               <CardTitle className="text-sm font-semibold text-foreground dark:text-white font-albert-sans">{t("hierarchy.title")}</CardTitle>
             </CardHeader>
             <CardContent className="px-6 sm:px-10 pb-4 space-y-4">
@@ -504,7 +485,7 @@ export function OrganizationStructureForm({
                     }
                   }}
                   disabled={isHierarchyFetching}
-                  className="h-9 min-w-[100px] px-4 rounded-[8px] border border-primary dark:border-[#5185F2] text-primary dark:text-[#2865E3] hover:bg-primary/5 dark:hover:bg-[#5185F2]/5 transition-all font-medium text-sm shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed font-albert-sans"
+                  className="h-9 min-w-25 px-4 rounded-[8px] border border-primary dark:border-[#5185F2] text-primary dark:text-primary hover:bg-primary/5 dark:hover:bg-[#5185F2]/5 transition-all font-medium text-sm shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed font-albert-sans"
                 >
                   {isHierarchyFetching ? (
                     <>
@@ -517,17 +498,17 @@ export function OrganizationStructureForm({
                 </Button>
               </div>
 
-              <div className="flex items-center gap-3 rounded-[12px] bg-primary/[0.05] dark:bg-[rgba(19,109,236,0.12)] border border-primary/10 dark:border-[rgba(19,109,236,0.1)] py-3 px-4 rtl:flex-row-reverse">
+              <div className="flex items-center gap-3 rounded-[12px] bg-primary/5 dark:bg-[rgba(19,109,236,0.12)] border border-primary/10 dark:border-[rgba(19,109,236,0.1)] py-3 px-4 rtl:flex-row-reverse">
                 <div className="shrink-0 flex items-center justify-center">
-                  <Info className="size-[18px] text-primary dark:text-[#136DEC]" />
+                  <Info className="size-4.5 text-primary dark:text-[#136DEC]" />
                 </div>
                 <p className="text-sm text-foreground/80 dark:text-white/80 font-normal leading-relaxed font-albert-sans">{t("hierarchy.customizeAlert")}</p>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </OnboardingStepTabsContent>
 
-        <TabsContent value="builder" className="space-y-6 focus-visible:outline-none">
+        <OnboardingStepTabsContent value="builder">
           <HierarchyTreeBuilder
             hierarchy={hierarchy}
             levels={hierarchyLevels}
@@ -575,8 +556,8 @@ export function OrganizationStructureForm({
             }}
             t={t}
           />
-        </TabsContent>
-      </Tabs>
+        </OnboardingStepTabsContent>
+      </OnboardingStepTabs>
 
       <OnboardingFormActions 
         onBack={() => { if (onBack) onBack(); }}

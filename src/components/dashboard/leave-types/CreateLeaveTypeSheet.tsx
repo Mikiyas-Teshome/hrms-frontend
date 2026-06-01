@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
     Sheet,
@@ -50,7 +49,10 @@ const CreateLeaveTypeSheet: React.FC<CreateLeaveTypeSheetProps> = ({ open, onOpe
         },
     });
 
-    const formCompanyOuId = form.watch('companyOuId');
+    const formCompanyOuId = useWatch({
+        control: form.control,
+        name: 'companyOuId',
+    });
 
     useEffect(() => {
         if (open && defaultCompanyId) {

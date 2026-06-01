@@ -5,8 +5,12 @@ import LeaveRequestsTable from './LeaveRequestsTable';
 import { leaveRequestStats } from '@/data/leave-requests';
 import { useTranslation } from 'react-i18next';
 
+import { SummaryStatListSkeleton } from '@/components/common/SummaryStatSkeleton';
+import { useLeaveRequestsByCompany } from '@/features/leave-request/hooks/useLeaveRequest';
+
 export const LeaveRequests = () => {
     const { t } = useTranslation('dashboard');
+    const { isLoading } = useLeaveRequestsByCompany();
 
     // Translate the stat titles
     const translatedStats = leaveRequestStats.map((stat) => {
@@ -29,7 +33,11 @@ export const LeaveRequests = () => {
                     {t('leaveRequests.title', 'Leave requests')}
                 </h2>
             </div>
-            <SummaryStatList stats={translatedStats} />
+            {isLoading ? (
+                <SummaryStatListSkeleton count={4} />
+            ) : (
+                <SummaryStatList stats={translatedStats} />
+            )}
             <LeaveRequestsTable />
         </div>
     );

@@ -51,6 +51,52 @@ const isAuthError = (status: number, message?: string): boolean => {
     return false;
 };
 
+export type GqlRequestOptions = {
+    mutableCookies?: boolean;
+};
+
+const persistAuthCookies = (
+    cookieStore: Awaited<ReturnType<typeof cookies>>,
+    result: AuthResponse,
+    mutableCookies: boolean,
+): void => {
+    if (!mutableCookies) {
+        return;
+    }
+
+    const maxAge = result.expiresIn ?? 60 * 60 * 24 * 7;
+
+    cookieStore.set('hrms.accessToken', result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge,
+    });
+
+    if (result.refreshToken) {
+        cookieStore.set('hrms.refreshToken', result.refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 60 * 60 * 24 * 30,
+        });
+    }
+};
+
+const clearAuthCookies = (
+    cookieStore: Awaited<ReturnType<typeof cookies>>,
+    mutableCookies: boolean,
+): void => {
+    if (!mutableCookies) {
+        return;
+    }
+
+    cookieStore.delete('hrms.accessToken');
+    cookieStore.delete('hrms.refreshToken');
+};
+
 const extractErrorMessage = (error: ClientError): string | undefined => {
     const errors = error.response.errors as
         | Array<{
@@ -75,7 +121,7 @@ const extractErrorMessage = (error: ClientError): string | undefined => {
 /**
  * Attempts to refresh the access token using the stored refresh token cookie.
  */
-async function attemptTokenRefresh(): Promise<string> {
+async function attemptTokenRefresh(mutableCookies = true): Promise<string> {
     const cookieStore = await cookies();
     const refreshToken = cookieStore.get('hrms.refreshToken')?.value;
 
@@ -90,31 +136,11 @@ async function attemptTokenRefresh(): Promise<string> {
         );
 
         const result = data.refreshToken;
-        const maxAge = result.expiresIn ?? 60 * 60 * 24 * 7;
-
-        cookieStore.set('hrms.accessToken', result.accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            path: '/',
-            maxAge,
-        });
-
-        if (result.refreshToken) {
-            cookieStore.set('hrms.refreshToken', result.refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'lax',
-                path: '/',
-                maxAge: 60 * 60 * 24 * 30,
-            });
-        }
+        persistAuthCookies(cookieStore, result, mutableCookies);
 
         return result.accessToken;
     } catch {
-        const cookieStore = await cookies();
-        cookieStore.delete('hrms.accessToken');
-        cookieStore.delete('hrms.refreshToken');
+        clearAuthCookies(await cookies(), mutableCookies);
         throw new AuthError('Session expired. Please log in again.');
     }
 }
@@ -132,8 +158,10 @@ export async function gqlRequest<T, V extends object = object>(
     service: GraphQLService,
     document: string,
     variables?: V,
+    options?: GqlRequestOptions,
 ): Promise<T> {
     const url = SERVICE_URL_MAP[service];
+    const mutableCookies = options?.mutableCookies ?? true;
 
     if (!url) {
         throw new Error(`Service URL for ${service} is not defined in environment variables.`);
@@ -145,7 +173,7 @@ export async function gqlRequest<T, V extends object = object>(
     if (!token) {
         const refreshToken = cookieStore.get('hrms.refreshToken')?.value;
         if (refreshToken) {
-            token = await attemptTokenRefresh();
+            token = await attemptTokenRefresh(mutableCookies);
         } else {
             throw new AuthError('Not authenticated. Please log in.');
         }
@@ -164,7 +192,7 @@ export async function gqlRequest<T, V extends object = object>(
             if (isAuthError(status, errorMessage)) {
                 // Attempt silent token refresh then retry once
                 try {
-                    token = await attemptTokenRefresh();
+                    token = await attemptTokenRefresh(mutableCookies);
                     const data = await buildClient(url, token).request<T>(document, sanitize(variables));
                     return data;
                 } catch (refreshError) {

@@ -8,6 +8,19 @@ export interface CompanyResponse {
     description?: string | null;
     logo?: string | null;
     website?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
+    currency?: string | null;
+    timezone?: string | null;
+    themeColor?: string | null;
+    multiDept?: boolean | null;
+    crossDivision?: boolean | null;
+    requireDept?: boolean | null;
     status: CompanyStatus;
     tier: CompanyTier;
     currentEmployees: number;
@@ -45,6 +58,7 @@ export interface UpdateCompanyInput {
     address?: string | null;
     city?: string | null;
     country?: string | null;
+    currency?: string | null;
     description?: string | null;
     email?: string | null;
     industry?: string | null;
@@ -55,6 +69,11 @@ export interface UpdateCompanyInput {
     size?: string | null;
     slug?: string | null;
     state?: string | null;
+    themeColor?: string | null;
+    timezone?: string | null;
+    multiDept?: boolean | null;
+    crossDivision?: boolean | null;
+    requireDept?: boolean | null;
     website?: string | null;
 }
 
@@ -74,7 +93,7 @@ export interface FirebaseConfigInput {
 
 export interface SmtpConfigInput {
     fromEmail: string;
-    fromName: string;
+    fromName?: string;
     host: string;
     password: string;
     port: number;

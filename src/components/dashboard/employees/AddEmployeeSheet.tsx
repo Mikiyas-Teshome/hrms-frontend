@@ -2,7 +2,6 @@
 
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import {
     Sheet,
     SheetContent,
@@ -16,9 +15,21 @@ import { X, Loader2, Send } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useTranslation } from 'react-i18next';
 import { EmployeeFormFields } from './EmployeeFormFields';
-import { employeeSchema, type EmployeeFormValues } from '../schemas/employee.schema';
 import { useInviteEmployee } from '@/features/employee/hooks/useEmployee';
 import { useToast } from '@/hooks/use-toast';
+
+interface AddEmployeeFormValues {
+    firstName: string;
+    lastName: string;
+    email: string;
+    ouId?: string;
+    role?: string;
+    gccid?: string;
+    employmentType?: string;
+    contractId?: string;
+    jobTitle?: string;
+    salary?: string;
+}
 
 interface AddEmployeeSheetProps {
     open: boolean;
@@ -34,42 +45,63 @@ const AddEmployeeSheet: React.FC<AddEmployeeSheetProps> = ({
     const { t, i18n } = useTranslation('employees');
     const { toast } = useToast();
     const isRtl = i18n.language === 'ar';
-    
-    const inviteMutation = useInviteEmployee();
 
-    const form = useForm<EmployeeFormValues>({
-        resolver: zodResolver(employeeSchema),
+    const inviteMutation = useInviteEmployee();
+    
+    const form = useForm<AddEmployeeFormValues>({
         defaultValues: {
             firstName: '',
             lastName: '',
             email: '',
-            gccid: '',
             ouId: '',
             role: '',
+            gccid: '',
+            employmentType: '',
+            contractId: '',
+            jobTitle: '',
+            salary: '',
         },
     });
-    
+
     useEffect(() => {
         if (open) {
             form.reset({
                 firstName: '',
                 lastName: '',
                 email: '',
-                gccid: '',
                 ouId: '',
                 role: '',
+                gccid: '',
+                employmentType: '',
+                contractId: '',
+                jobTitle: '',
+                salary: '',
             });
         }
     }, [open, form]);
 
-    const onSubmit = async (data: EmployeeFormValues) => {
+    const onSubmit = async (data: AddEmployeeFormValues) => {
+        if (!data.firstName || !data.lastName || !data.email || !data.role) {
+            toast({
+                title: t('validationError', 'Validation Error'),
+                description: t('requiredFieldsDesc', 'First name, last name, email, and role are required.'),
+                variant: 'destructive',
+            });
+            return;
+        }
+
         try {
             await inviteMutation.mutateAsync({
                 firstName: data.firstName,
                 lastName: data.lastName,
-                email: data.email,
+                email: data.email.toLowerCase(),
                 ouId: data.ouId || undefined,
                 roleId: data.role || undefined,
+                gccId: data.gccid || undefined,
+                employmentType: data.employmentType || undefined,
+                contractId: data.contractId || undefined,
+                jobTitle: data.jobTitle || undefined,
+                salary: data.salary ? Number(data.salary) : undefined,
             });
             toast({
                 title: t('inviteSuccess', 'Invitation Sent'),
@@ -93,7 +125,7 @@ const AddEmployeeSheet: React.FC<AddEmployeeSheetProps> = ({
             <SheetContent
                 showCloseButton={false}
                 side={isRtl ? 'left' : 'right'}
-                className="w-full sm:max-w-[800px] p-0 flex flex-col h-full border-0 shadow-2xl overflow-hidden"
+                className="w-full sm:max-w-200 p-0 flex flex-col h-full border-0 shadow-2xl overflow-hidden"
             >
                 <div className="px-10 py-6 space-y-6 flex flex-col h-full">
                     <SheetHeader className="flex flex-row items-center justify-between shrink-0">
@@ -105,7 +137,7 @@ const AddEmployeeSheet: React.FC<AddEmployeeSheetProps> = ({
                             <span className="sr-only">Close</span>
                         </SheetClose>
                     </SheetHeader>
-                    
+
                     <Separator className="shrink-0" />
 
                     <div className="flex-1 overflow-y-auto no-scrollbar pr-2">

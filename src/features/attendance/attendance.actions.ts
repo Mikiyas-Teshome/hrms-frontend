@@ -15,6 +15,8 @@ import {
     UPDATE_HOLIDAY_MUTATION,
     UPDATE_TIMESHEET_STATUS_MUTATION,
     ADMIN_UPDATE_ATTENDANCE_RECORD_MUTATION,
+    IMPORT_ATTENDANCE_RECORD_MUTATION,
+    UPDATE_OVERTIME_STATUS_MUTATION,
     GET_ATTENDANCE_RECORDS_QUERY,
     GET_EMPLOYEE_SHIFTS_QUERY,
     GET_HOLIDAYS_QUERY,
@@ -25,7 +27,10 @@ import {
     GET_PAGINATED_ATTENDANCE_RECORDS_QUERY,
     GET_SHIFT_STATS_QUERY,
     GET_ATTENDANCE_FILTER_OPTIONS_QUERY,
-    HEALTH_CHECK_QUERY
+    HEALTH_CHECK_QUERY,
+    CREATE_SHIFT_POLICY_ASSIGNMENT_MUTATION,
+    UPDATE_SHIFT_TEMPLATE_MUTATION,
+    TOGGLE_SHIFT_TEMPLATE_STATUS_MUTATION
 } from './attendance.queries';
 import {
     AttendanceOverviewStats,
@@ -42,11 +47,14 @@ import {
     Timesheet,
     UpdateHolidayInput,
     UpdateTimesheetStatusInput,
+    UpdateShiftTemplateInput,
     AdminUpdateAttendanceInput,
+    UpdateOvertimeStatusInput,
     PaginatedAttendanceRecords,
     PaginatedAttendanceRecordsFilterInput,
     AttendanceFilterOptions,
-    ShiftStats
+    ShiftStats,
+    CreateShiftPolicyAssignmentInput
 } from './attendance.types';
 
 export async function healthCheck(): Promise<ActionResult<string>> {
@@ -69,6 +77,18 @@ export async function assignEmployeeShift(input: CreateEmployeeShiftInput): Prom
         );
         revalidatePath('/dashboard/attendance');
         return data.assignEmployeeShift;
+    });
+}
+
+export async function createShiftPolicyAssignment(input: CreateShiftPolicyAssignmentInput): Promise<ActionResult<any>> {
+    return safeAction(async () => {
+        const data = await gqlRequest<{ createShiftPolicyAssignment: any }>(
+            GraphQLService.ATTENDANCE,
+            CREATE_SHIFT_POLICY_ASSIGNMENT_MUTATION,
+            { input }
+        );
+        // We do not have a dedicated revalidatePath, but it could re-fetch org units if needed
+        return data.createShiftPolicyAssignment;
     });
 }
 
@@ -120,6 +140,18 @@ export async function createHoliday(input: CreateHolidayInput): Promise<ActionRe
     });
 }
 
+export async function updateOvertimeStatus(input: UpdateOvertimeStatusInput): Promise<ActionResult<AttendanceRecord>> {
+    return safeAction(async () => {
+        const data = await gqlRequest<{ updateOvertimeStatus: AttendanceRecord }>(
+            GraphQLService.ATTENDANCE,
+            UPDATE_OVERTIME_STATUS_MUTATION,
+            { input }
+        );
+        revalidatePath('/dashboard/attendance/overtime');
+        return data.updateOvertimeStatus;
+    });
+}
+
 export async function createShiftTemplate(input: CreateShiftTemplateInput): Promise<ActionResult<ShiftTemplate>> {
     return safeAction(async () => {
         const data = await gqlRequest<{ createShiftTemplate: ShiftTemplate }>(
@@ -129,6 +161,31 @@ export async function createShiftTemplate(input: CreateShiftTemplateInput): Prom
         );
         revalidatePath('/dashboard/attendance/settings');
         return data.createShiftTemplate;
+    });
+}
+export async function updateShiftTemplate(input: UpdateShiftTemplateInput): Promise<ActionResult<ShiftTemplate>> {
+    return safeAction(async () => {
+        const data = await gqlRequest<{ updateShiftTemplate: ShiftTemplate }>(
+            GraphQLService.ATTENDANCE,
+            UPDATE_SHIFT_TEMPLATE_MUTATION,
+            { input }
+        );
+        revalidatePath('/dashboard/attendance/settings');
+        revalidatePath('/dashboard/attendance/shifts');
+        return data.updateShiftTemplate;
+    });
+}
+
+export async function toggleShiftTemplateStatus(id: string): Promise<ActionResult<{ id: string; isActive: boolean }>> {
+    return safeAction(async () => {
+        const data = await gqlRequest<{ toggleShiftTemplateStatus: { id: string; isActive: boolean } }>(
+            GraphQLService.ATTENDANCE,
+            TOGGLE_SHIFT_TEMPLATE_STATUS_MUTATION,
+            { id }
+        );
+        revalidatePath('/dashboard/attendance/settings');
+        revalidatePath('/dashboard/attendance/shifts');
+        return data.toggleShiftTemplateStatus;
     });
 }
 
@@ -189,6 +246,18 @@ export async function adminUpdateAttendanceRecord(input: AdminUpdateAttendanceIn
         );
         revalidatePath('/dashboard/attendance');
         return data.adminUpdateAttendanceRecord;
+    });
+}
+
+export async function importAttendanceRecord(input: AdminUpdateAttendanceInput): Promise<ActionResult<AttendanceRecord>> {
+    return safeAction(async () => {
+        const data = await gqlRequest<{ importAttendanceRecord: AttendanceRecord }>(
+            GraphQLService.ATTENDANCE,
+            IMPORT_ATTENDANCE_RECORD_MUTATION,
+            { input }
+        );
+        revalidatePath('/dashboard/attendance');
+        return data.importAttendanceRecord;
     });
 }
 
@@ -258,23 +327,31 @@ export async function getTimesheets(companyId: string, userId?: string): Promise
     });
 }
 
-export async function getAttendanceOverviewStats(startDate: string, endDate: string): Promise<ActionResult<AttendanceOverviewStats>> {
+export async function getAttendanceOverviewStats(
+    startDate: string,
+    endDate: string,
+    forOvertime = false,
+): Promise<ActionResult<AttendanceOverviewStats>> {
     return safeAction(async () => {
         const data = await gqlRequest<{ attendanceOverviewStats: AttendanceOverviewStats }>(
             GraphQLService.ATTENDANCE,
             GET_ATTENDANCE_OVERVIEW_STATS_QUERY,
-            { startDate, endDate }
+            { startDate, endDate, forOvertime },
         );
         return data.attendanceOverviewStats;
     });
 }
 
-export async function getPaginatedAttendanceRecords(limit: number, offset: number, filter?: PaginatedAttendanceRecordsFilterInput): Promise<ActionResult<PaginatedAttendanceRecords>> {
+export async function getPaginatedAttendanceRecords(
+    page: number,
+    size: number,
+    filter?: PaginatedAttendanceRecordsFilterInput,
+): Promise<ActionResult<PaginatedAttendanceRecords>> {
     return safeAction(async () => {
         const data = await gqlRequest<{ paginatedAttendanceRecords: PaginatedAttendanceRecords }>(
             GraphQLService.ATTENDANCE,
             GET_PAGINATED_ATTENDANCE_RECORDS_QUERY,
-            { limit, offset, filter }
+            { pagination: { page, size }, filter },
         );
         return data.paginatedAttendanceRecords;
     });
@@ -291,12 +368,12 @@ export async function getAttendanceFilterOptions(): Promise<ActionResult<Attenda
     });
 }
 
-export async function getShiftStats(): Promise<ActionResult<ShiftStats>> {
+export async function getShiftStats(companyOuId?: string): Promise<ActionResult<ShiftStats>> {
     return safeAction(async () => {
         const data = await gqlRequest<{ shiftStats: ShiftStats }>(
             GraphQLService.ATTENDANCE,
             GET_SHIFT_STATS_QUERY,
-            {}
+            { companyOuId: companyOuId || null }
         );
         return data.shiftStats;
     });

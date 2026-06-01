@@ -41,7 +41,7 @@ export function CompanyDetailsForm() {
         },
     });
 
-    const onSubmit = (data: CompanyFormValues) => {
+    const onSubmit = () => {
         router.push('/create-company-success');
     };
 

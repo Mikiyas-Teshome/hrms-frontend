@@ -10,14 +10,22 @@ import { useEmployees } from '@/features/employee/hooks/useEmployee';
 import { useAllowances } from '@/features/allowance/hooks/useAllowance';
 import { useDeductions } from '@/features/deduction/hooks/useDeduction';
 
+import { PayrollOfficerViewSkeleton } from './payroll-officer-view-skeleton';
+
 export function PayrollOfficerView() {
     const { t } = useTranslation('dashboard');
     const router = useRouter();
 
-    const { data: profile } = useProfile();
-    const { data: employees = [] } = useEmployees();
-    const { data: allowances = [] } = useAllowances(profile?.companyId);
-    const { data: deductions = [] } = useDeductions(profile?.companyId);
+    const { data: profile, isLoading: profileLoading } = useProfile();
+    const { data: employees = [], isLoading: employeesLoading } = useEmployees();
+    const { data: allowances = [], isLoading: allowancesLoading } = useAllowances(profile?.companyId);
+    const { data: deductions = [], isLoading: deductionsLoading } = useDeductions(profile?.companyId);
+
+    const isLoading = profileLoading || employeesLoading || allowancesLoading || deductionsLoading;
+
+    if (isLoading) {
+        return <PayrollOfficerViewSkeleton />;
+    }
 
     const stats = [
         {

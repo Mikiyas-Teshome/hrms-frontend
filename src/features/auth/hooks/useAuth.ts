@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AUTH_PROFILE_QUERY_KEY } from '@/features/auth/auth-session.constants';
+import { readAuthSessionCache } from '@/features/auth/auth-session-cache.util';
 import { 
     loginUser, 
     loginWith2FA, 
@@ -28,12 +30,13 @@ import {
     markProfileComplete,
     updateTenantProfile,
     updateUserOnboardingComplete,
+    updateUserOnboardingStep,
     resendFreeOnboardingOtp
 } from '../auth.actions';
 import { 
     LoginInput, 
     LoginWith2FAInput, 
-    RegisterInput, 
+    RegisterTenantSuperAdminInput, 
     ChangePasswordInput, 
     RefreshTokenInput,
     BulkInvitationInput,
@@ -42,6 +45,7 @@ import {
     UpdateUserInput,
     UpdateCompanyInput,
     UpdateOnboardingCompleteInput,
+    UpdateOnboardingStepInput,
     ResendFreeOnboardingOtpInput
 } from '../auth.types';
 
@@ -67,8 +71,8 @@ export const useLoginWith2FA = () => {
 
 export const useRegisterTenantSuperAdmin = () => {
     return useMutation({
-        mutationFn: async (input: RegisterInput) => {
-            const result = await registerTenantSuperAdmin(input as any);
+        mutationFn: async (input: RegisterTenantSuperAdminInput) => {
+            const result = await registerTenantSuperAdmin(input);
             if (!result.success) throw new Error(result.error);
             return result.data;
         },
@@ -97,8 +101,11 @@ export const useRefreshToken = () => {
 
 export const useProfile = () => {
     return useQuery({
-        queryKey: ['auth', 'profile'],
+        queryKey: AUTH_PROFILE_QUERY_KEY,
         queryFn: () => getProfile(),
+        initialData: () => readAuthSessionCache()?.user,
+        staleTime: 60 * 1000,
+        retry: false,
     });
 };
 
@@ -114,7 +121,11 @@ export const useLogout = () => {
                 localStorage.clear();
                 sessionStorage.clear();
             }
+            queryClient.cancelQueries({ queryKey: AUTH_PROFILE_QUERY_KEY });
             queryClient.clear();
+            // Re-set auth query to null (not pending) so isInitializing stays false
+            // and reloadSession() starts a fresh, undeduped request after next login
+            queryClient.setQueryData(AUTH_PROFILE_QUERY_KEY, null);
         }
     });
 };
@@ -131,7 +142,11 @@ export const useLogoutAll = () => {
                 localStorage.clear();
                 sessionStorage.clear();
             }
+            // Cancel any in-flight profile fetches to prevent dedup race on re-login
+            queryClient.cancelQueries({ queryKey: AUTH_PROFILE_QUERY_KEY });
             queryClient.clear();
+            // Re-set auth query to null (not pending) so isInitializing stays false
+            queryClient.setQueryData(AUTH_PROFILE_QUERY_KEY, null);
         }
     });
 };
@@ -259,11 +274,15 @@ export const useImpersonateUser = () => {
 };
 
 export const useRevokeSession = () => {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (sessionId: string) => {
             const result = await revokeSession(sessionId);
             if (!result.success) throw new Error(result.error);
             return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['auth', 'sessions'] });
         },
     });
 };
@@ -320,11 +339,15 @@ export const useMarkProfileComplete = () => {
     });
 };
 export const useUpdateTenantProfile = () => {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async ({ id, input }: { id: string; input: UpdateCompanyInput }) => {
             const result = await updateTenantProfile(id, input);
             if (!result.success) throw new Error(result.error);
             return result.data;
+        },
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({ queryKey: ['company', variables.id] });
         },
     });
 };
@@ -334,6 +357,20 @@ export const useUpdateOnboardingComplete = () => {
     return useMutation({
         mutationFn: async (input: UpdateOnboardingCompleteInput) => {
             const result = await updateUserOnboardingComplete(input);
+            if (!result.success) throw new Error(result.error);
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['auth', 'profile'] });
+        },
+    });
+};
+
+export const useUpdateOnboardingStep = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: UpdateOnboardingStepInput) => {
+            const result = await updateUserOnboardingStep(input);
             if (!result.success) throw new Error(result.error);
             return result.data;
         },

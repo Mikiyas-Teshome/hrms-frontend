@@ -29,7 +29,6 @@ export interface Role {
     id?: string;
     name: string;
     description?: string | null;
-    level: number;
     companyId?: string | null;
     createdAt?: string;
     updatedAt?: string;
@@ -46,7 +45,6 @@ export interface RolePermissionGrantInput {
 export interface CreateRoleInput {
     name: string;
     description?: string;
-    level: number;
     companyId?: string;
     permissionGrants: RolePermissionGrantInput[];
 }
@@ -54,7 +52,6 @@ export interface CreateRoleInput {
 export interface UpdateRoleInput {
     name?: string;
     description?: string;
-    level?: number;
     permissionGrants?: RolePermissionGrantInput[];
 }
 
@@ -76,7 +73,7 @@ export interface UserPermissionOverrideInput {
     description?: string | null;
 }
 
-export interface SetUserPermissionInput extends UserPermissionOverrideInput {}
+export type SetUserPermissionInput = UserPermissionOverrideInput;
 
 export interface BulkSetUserPermissionInput {
     overrides: UserPermissionOverrideInput[];

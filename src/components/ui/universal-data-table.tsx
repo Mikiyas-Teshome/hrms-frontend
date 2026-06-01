@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useTranslation } from "react-i18next"
@@ -137,8 +136,6 @@ export function UniversalDataTable<T>({
   showFilter,
   showImport,
   showExport,
-  importText,
-  exportText,
   filterText,
   renderTableActions,
   renderFilterPanel,
@@ -292,7 +289,7 @@ export function UniversalDataTable<T>({
                       )}
                       {columns.map((column) => (
                         <TableCell key={column.key} className={cn("py-0 px-2 h-15 align-middle", column.className)}>
-                          <Skeleton className="h-4 w-[80%] max-w-[150px] rounded" />
+                          <Skeleton className="h-4 w-[80%] max-w-37.5 rounded" />
                         </TableCell>
                       ))}
                       {renderRowActions && (
@@ -372,7 +369,7 @@ export function UniversalDataTable<T>({
               value={pageSize.toString()}
               onValueChange={(value) => onPageSizeChange(Number(value))}
             >
-              <SelectTrigger className="h-9 w-20 rounded-lg border-border bg-card px-4 py-2 font-medium text-foreground shadow-xs">
+              <SelectTrigger className="h-9 w-20 rounded-lg border-border bg-background px-4 py-2 font-medium text-foreground shadow-xs">
                 <SelectValue placeholder={pageSize} />
               </SelectTrigger>
               <SelectContent position="popper" sideOffset={2} className="w-20">
@@ -393,7 +390,7 @@ export function UniversalDataTable<T>({
             <Button
               variant="outline"
               size="icon"
-              className="h-9 w-9  p-0 rounded-lg border-border bg-card shadow-xs opacity-50 disabled:opacity-30"
+              className="h-9 w-9 p-0 rounded-lg border-border bg-background text-foreground shadow-xs hover:bg-muted hover:text-foreground"
               onClick={() => onPageChange(1)}
               disabled={currentPage === 1}
             >
@@ -402,7 +399,7 @@ export function UniversalDataTable<T>({
             <Button
               variant="outline"
               size="icon"
-              className="h-9 w-9  p-0 rounded-lg border-border bg-card shadow-xs opacity-50 disabled:opacity-30"
+              className="h-9 w-9 p-0 rounded-lg border-border bg-background text-foreground shadow-xs hover:bg-muted hover:text-foreground"
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
             >
@@ -411,7 +408,7 @@ export function UniversalDataTable<T>({
             <Button
               variant="outline"
               size="icon"
-              className="h-9 w-9  p-0 rounded-lg border-border bg-card shadow-xs opacity-50 disabled:opacity-30"
+              className="h-9 w-9 p-0 rounded-lg border-border bg-background text-foreground shadow-xs hover:bg-muted hover:text-foreground"
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
             >
@@ -420,7 +417,7 @@ export function UniversalDataTable<T>({
             <Button
               variant="outline"
               size="icon"
-              className="h-9 w-9 p-0 rounded-lg border-border bg-card shadow-xs opacity-50 disabled:opacity-30"
+              className="h-9 w-9 p-0 rounded-lg border-border bg-background text-foreground shadow-xs hover:bg-muted hover:text-foreground"
               onClick={() => onPageChange(totalPages)}
               disabled={currentPage === totalPages}
             >

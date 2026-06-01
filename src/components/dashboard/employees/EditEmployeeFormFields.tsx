@@ -8,8 +8,8 @@ import { FormSelect } from '@/components/ui/FormSelect';
 import { NationalitySelect } from '@/components/ui/NationalitySelect';
 import { CountrySelect } from '@/components/ui/CountrySelect';
 import type { UseFormReturn, FieldError, FieldValues, Path } from 'react-hook-form';
-import { useOrganizationLeafOptions } from '@/features/organization/hooks/useOrganization';
-import { UpdateEmployeeInput } from '@/features/employee/employee.types';
+import { useOrganizationUnitOptions } from '@/features/organization/hooks/useOrganization';
+import { UpdateEmployeeInput, EMPLOYMENT_TYPE_OPTIONS } from '@/features/employee/employee.types';
 
 interface EmployeeFormValues extends UpdateEmployeeInput {
     employeeNumber?: string;
@@ -17,7 +17,7 @@ interface EmployeeFormValues extends UpdateEmployeeInput {
 
 export function EditEmployeeFormFields<T extends FieldValues = EmployeeFormValues>({ form }: { form: UseFormReturn<T> }) {
     const { t } = useTranslation('employees');
-    const { leafOptions, isLoading: hierarchyLoading } = useOrganizationLeafOptions();
+    const { unitOptions, isLoading: hierarchyLoading } = useOrganizationUnitOptions();
 
     return (
         <Tabs defaultValue="general" className="w-full">
@@ -159,7 +159,7 @@ export function EditEmployeeFormFields<T extends FieldValues = EmployeeFormValue
                             name={"departmentId" as Path<T>}
                             control={form.control}
                             error={form.formState.errors.departmentId as FieldError}
-                            options={leafOptions.map(u => ({ label: u.name, value: u.id }))}
+                            options={unitOptions.map(u => ({ label: u.label, value: u.id }))}
                             placeholder={hierarchyLoading ? "Loading..." : "Select unit"}
                             disabled={hierarchyLoading}
                             t={(key) => t(key)}
@@ -178,13 +178,7 @@ export function EditEmployeeFormFields<T extends FieldValues = EmployeeFormValue
                             name={"employmentType" as Path<T>}
                             control={form.control}
                             error={form.formState.errors.employmentType as FieldError}
-                            options={[
-                                { label: 'Full-time', value: 'full_time' },
-                                { label: 'Part-time', value: 'part_time' },
-                                { label: 'Contract', value: 'contract' },
-                                { label: 'Intern', value: 'intern' },
-                                { label: 'Consultant', value: 'consultant' }
-                            ]}
+                            options={EMPLOYMENT_TYPE_OPTIONS.map(opt => ({ label: t(opt.value, opt.label), value: opt.value }))}
                             placeholder="Select type"
                             t={(key) => t(key)}
                         />

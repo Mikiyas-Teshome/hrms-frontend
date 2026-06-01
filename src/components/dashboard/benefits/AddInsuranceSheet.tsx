@@ -1,233 +1,168 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetFooter,
+  SheetClose,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { toast } from '@/hooks/use-toast';
+import { useCreateInsurance, useUpdateInsurance } from '@/features/insurance/hooks/useInsurance';
+import { useCompanyOptions } from '@/features/organization/hooks/useOrganization';
+import { Insurance } from '@/features/insurance/insurance.types';
+import { useTranslation } from 'react-i18next';
+import {
+  insuranceFormSchema,
+  defaultInsuranceFormValues,
+  InsuranceFormValues,
+} from './insurance-form.schema';
+import { InsuranceFormFields } from './InsuranceFormFields';
+import { formatInsuranceFormPayload, mapInsuranceToFormValues } from './insurance-form.utils';
 
 interface AddInsuranceSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  insurance?: Insurance | null;
 }
 
-const AddInsuranceSheet = ({ open, onOpenChange }: AddInsuranceSheetProps) => {
+const AddInsuranceSheet = ({ open, onOpenChange, insurance }: AddInsuranceSheetProps) => {
+  const { t } = useTranslation(['insurance']);
+  const { companies: companiesData, isLoading: isLoadingCompanies } = useCompanyOptions();
+  const createMutation = useCreateInsurance();
+  const updateMutation = useUpdateInsurance();
+
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<InsuranceFormValues>({
+    resolver: zodResolver(insuranceFormSchema) as never,
+    defaultValues: defaultInsuranceFormValues,
+  });
+
+  const formCompanyOuId = watch('companyOuId');
+
+  // Populate form when sheet opens
+  useEffect(() => {
+    if (!open) return;
+    if (insurance) {
+      reset(mapInsuranceToFormValues(insurance));
+    } else {
+      reset({
+        ...defaultInsuranceFormValues,
+        companyOuId: companiesData?.[0]?.id ?? '',
+      });
+    }
+  }, [open, insurance]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Once companies finish loading, re-apply the companyOuId so the Select
+  // renders the correct label (fixes the timing race between reset & data load)
+  useEffect(() => {
+    if (!open || !companiesData?.length) return;
+    if (insurance) {
+      // Edit mode: ensure the saved companyOuId is reflected in the dropdown
+      const savedId = insurance.companyOuId || '';
+      setValue('companyOuId', savedId, { shouldValidate: true });
+    } else if (!formCompanyOuId) {
+      // Create mode: default to first company
+      setValue('companyOuId', companiesData[0].id, { shouldValidate: true });
+    }
+  }, [companiesData, open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onSubmit = async (data: InsuranceFormValues) => {
+    try {
+      const result = insurance
+        ? await updateMutation.mutateAsync({
+            id: insurance.id,
+            input: formatInsuranceFormPayload(data),
+          })
+        : await createMutation.mutateAsync(formatInsuranceFormPayload(data));
+
+      if (result && !result.success) {
+        toast({
+          title: 'Error',
+          description: result.error || (insurance ? 'Failed to update insurance' : 'Failed to create insurance'),
+          variant: 'destructive',
+        });
+        return;
+      }
+      toast({
+        title: 'Success',
+        description: insurance ? 'Insurance updated successfully' : 'Insurance created successfully',
+      });
+      onOpenChange(false);
+    } catch {
+      toast({ title: 'Error', description: 'Something went wrong', variant: 'destructive' });
+    }
+  };
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-[600px] overflow-y-auto p-0">
-        <SheetHeader className="p-6 pb-2">
-          <SheetTitle className="text-2xl font-bold">Add an insurance coverage</SheetTitle>
+      <SheetContent
+        showCloseButton={false}
+        className="sm:max-w-180 px-10 py-6 gap-6 flex flex-col h-full border-0 shadow-2xl bg-background"
+      >
+        <SheetHeader className="flex flex-row items-center justify-between">
+          <SheetTitle className="text-2xl font-bold text-foreground">
+            {insurance
+              ? t('editTitle', { defaultValue: 'Edit insurance coverage' })
+              : t('addTitle', { defaultValue: 'Add an insurance coverage' })}
+          </SheetTitle>
+          <SheetClose className="text-foreground/80 hover:text-foreground transition-colors rounded-lg cursor-pointer">
+            <X className="h-5 w-5" strokeWidth={1.33} />
+            <span className="sr-only">{t('cancel', { defaultValue: 'Cancel' })}</span>
+          </SheetClose>
         </SheetHeader>
+        <Separator />
 
-        <div className="flex flex-col gap-8 p-6 pt-2 pb-6">
-          {/* Insurance info */}
-          <div className="bg-muted/50 p-4 rounded-lg border border-border flex flex-col gap-4">
-            <h3 className="text-sm font-semibold text-foreground">Insurance info</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="insuranceName">Insurance name</Label>
-                <Input id="insuranceName" placeholder="Enter insurance name" />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="provider">Insurance provider</Label>
-                <Input id="provider" placeholder="Enter provider name" />
-              </div>
-            </div>
-          </div>
-
-          {/* Coverage details */}
-          <div className="bg-muted/50 p-4 rounded-lg border border-border flex flex-col gap-4">
-            <h3 className="text-sm font-semibold text-foreground">Coverage details</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="coverageType">Coverage type</Label>
-                <Select>
-                  <SelectTrigger id="coverageType">
-                    <SelectValue placeholder="Health" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="health">Health</SelectItem>
-                    <SelectItem value="life">Life</SelectItem>
-                    <SelectItem value="property">Property</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="coverageAmount">Coverage amount</Label>
-                <Input id="coverageAmount" placeholder="Enter amount" />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="assignment">Assignment</Label>
-                <Select defaultValue="all">
-                  <SelectTrigger id="assignment">
-                    <SelectValue placeholder="All employees" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All employees</SelectItem>
-                    <SelectItem value="department">By department</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="renewalType">Renewal Type</Label>
-                <Select defaultValue="yearly">
-                  <SelectTrigger id="renewalType">
-                    <SelectValue placeholder="Yearly" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yearly">Yearly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-2">
-                <Switch id="dependents" />
-                <Label htmlFor="dependents" className="font-medium">Dependents Coverage</Label>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="maxDependents">Max dependents</Label>
-                <Select defaultValue="4">
-                  <SelectTrigger id="maxDependents">
-                    <SelectValue placeholder="4" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1</SelectItem>
-                    <SelectItem value="2">2</SelectItem>
-                    <SelectItem value="3">3</SelectItem>
-                    <SelectItem value="4">4</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-x-2 gap-y-3 pt-6">
-                <div className="flex items-center gap-2">
-                  <Checkbox id="spouse" />
-                  <Label htmlFor="spouse" className="text-sm font-normal">Spouse</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox id="children" />
-                  <Label htmlFor="children" className="text-sm font-normal">Children</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox id="parents" />
-                  <Label htmlFor="parents" className="text-sm font-normal">Parents</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox id="siblings" />
-                  <Label htmlFor="siblings" className="text-sm font-normal">Siblings</Label>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <Label>Included services</Label>
-              <div className="flex flex-wrap gap-x-6 gap-y-3">
-                <div className="flex items-center gap-2">
-                  <Checkbox id="hospitalization" />
-                  <Label htmlFor="hospitalization" className="text-sm font-normal">Hospitalization</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox id="outpatient" />
-                  <Label htmlFor="outpatient" className="text-sm font-normal">Outpatient</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox id="dental" />
-                  <Label htmlFor="dental" className="text-sm font-normal">Dental</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox id="vision" />
-                  <Label htmlFor="vision" className="text-sm font-normal">Vision</Label>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Eligibility Rules */}
-          <div className="bg-muted/50 p-4 rounded-lg border border-border flex flex-col gap-4">
-            <h3 className="text-sm font-semibold text-foreground">Eligibility Rules</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="employmentType">Employment type</Label>
-                <Select defaultValue="full-time">
-                  <SelectTrigger id="employmentType">
-                    <SelectValue placeholder="Full time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full-time">Full time</SelectItem>
-                    <SelectItem value="part-time">Part time</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="minTenure">Minimum tenure</Label>
-                <Select defaultValue="3-months">
-                  <SelectTrigger id="minTenure">
-                    <SelectValue placeholder="3 months" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1-month">1 month</SelectItem>
-                    <SelectItem value="3-months">3 months</SelectItem>
-                    <SelectItem value="6-months">6 months</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="employerContribution">Employer Contribution</Label>
-                <Select defaultValue="100">
-                  <SelectTrigger id="employerContribution">
-                    <SelectValue placeholder="100%" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="50">50%</SelectItem>
-                    <SelectItem value="75">75%</SelectItem>
-                    <SelectItem value="100">100%</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="employeeContribution">Employee Contribution</Label>
-                <Select defaultValue="0">
-                  <SelectTrigger id="employeeContribution">
-                    <SelectValue placeholder="0%" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">0%</SelectItem>
-                    <SelectItem value="25">25%</SelectItem>
-                    <SelectItem value="50">50%</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
+        <div className="flex-1 overflow-y-auto no-scrollbar -mx-10 px-10 py-6 bg-slate-50/50 dark:bg-zinc-950/30">
+          <form id="add-insurance-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <InsuranceFormFields
+              control={control}
+              register={register}
+              watch={watch}
+              setValue={setValue}
+              errors={errors}
+              companies={companiesData}
+              isLoadingCompanies={isLoadingCompanies}
+            />
+          </form>
         </div>
 
-        <SheetFooter className="mt-4 px-6 pb-8 bg-transparent flex flex-row justify-end gap-3">
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="min-w-[100px] border-primary text-primary hover:bg-primary/5 hover:text-primary">
-            Cancel
-          </Button>
-          <Button className="min-w-[150px] bg-primary text-primary-foreground hover:bg-primary/90">
-            Save insurance
+        <SheetFooter className="border-t border-border pt-4 mt-auto shrink-0 flex flex-row justify-end gap-3 bg-transparent">
+          <SheetClose asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 min-w-25 px-4 font-medium rounded-lg border-muted-foreground/20 text-foreground/80 hover:bg-muted"
+            >
+              {t('cancel', { defaultValue: 'Cancel' })}
+            </Button>
+          </SheetClose>
+          <Button
+            type="submit"
+            form="add-insurance-form"
+            disabled={isPending}
+            className="h-9 min-w-37.5 px-4 font-medium rounded-lg bg-primary hover:bg-primary/80 text-white"
+          >
+            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {insurance
+              ? t('updateBtn', { defaultValue: 'Save changes' })
+              : t('saveBtn', { defaultValue: 'Save insurance' })}
           </Button>
         </SheetFooter>
       </SheetContent>

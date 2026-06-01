@@ -1,4 +1,8 @@
 {
+  "page": {
+    "title": "الهيكل التنظيمي",
+    "subtitle": "إدارة هيكل مؤسستك ومستوياتها ووحداتها."
+  },
   "header": {
     "title": "حدد هيكل منظمتك",
     "subtitle": "أنشئ الهيكل الأساسي لشركتك من خلال إضافة الأقسام والمواقع ومستويات التقارير."
@@ -80,7 +84,19 @@
     },
     "unitCreated": "تم إنشاء الوحدة بنجاح",
     "unitUpdated": "تم تحديث الوحدة بنجاح",
-    "unitDeleted": "تم حذف الوحدة بنجاح"
+    "unitDeleted": "تم حذف الوحدة بنجاح",
+    "viewFullScreen": "عرض ملء الشاشة",
+    "expandAllTree": "توسيع جميع الفروع",
+    "expandAllLabel": "توسيع الكل",
+    "collapseAllTree": "طي إلى فرع واحد لكل مستوى",
+    "memberCount": "{{count}} عضو",
+    "employeeCount": "{{count}} موظف",
+    "fullScreenTitle": "التسلسل الهرمي للمنظمة",
+    "fullScreenDescription": "عرض كامل لهيكل المؤسسة",
+    "addLevel": "إضافة {{type}}",
+    "deleteTitle": "حذف بيانات {{type}}",
+    "deleteMessage": "هل أنت متأكد أنك تريد حذف بيانات {{type}}؟ لا يمكن التراجع عن هذا الإجراء.",
+    "unitFallback": "وحدة"
   },
   "info": {
     "assignHeads": "يمكنك تعيين رؤساء الأقسام بعد إضافة الموظفين في خطوة إعداد الفريق."
@@ -98,7 +114,17 @@
     },
     "customizeAlert": "يمكنك تخصيص هذه لتناسب هيكل منظمتك!",
     "continueToBuilder": "متابعة إلى المنشئ",
-    "nomenclatureUpdated": "تم تحديث تسميات التسلسل الهرمي بنجاح"
+    "nomenclatureUpdated": "تم تحديث تسميات التسلسل الهرمي بنجاح",
+    "buildingDatabase": "انتظر قليلاً حتى ينتهي إنشاء قاعدة البيانات...",
+    "levelFallback": "المستوى {{number}}"
+  },
+  "toasts": {
+    "updateFailed": "فشل التحديث",
+    "updateFailedDescription": "فشل تحديث التسميات.",
+    "saveUnitFailed": "خطأ في حفظ الوحدة",
+    "saveUnitFailedDescription": "يرجى المحاولة مرة أخرى",
+    "deleteFailed": "فشل الحذف",
+    "deleteFailedDescription": "فشل إزالة الوحدة."
   },
   "actions": {
     "back": "عودة",
@@ -113,5 +139,21 @@
     "addressRequired": "العنوان الكامل مطلوب",
     "levelNameRequired": "اسم المستوى مطلوب"
   },
-  "fetchingHierarchy": "جاري جلب هيكل المؤسسة، يرجى الانتظار..."
+  "fetchingHierarchy": "جاري جلب هيكل المؤسسة، يرجى الانتظار...",
+  "assignShift": {
+    "action": "تعيين الوردية",
+    "title": "تعيين وردية",
+    "fieldShift": "الوردية",
+    "fieldValidFrom": "صالح من",
+    "fieldValidTo": "صالح إلى (اختياري)",
+    "helperValidTo": "اتركه فارغاً لتعيين وردية مستمرة.",
+    "infoMessage": "ينطبق هذا على جميع الموظفين في هذه الوحدة. ولكن سيتم استبداله إذا تم تعيين وردية لوحدة فرعية.",
+    "buttonCancel": "إلغاء",
+    "buttonAssign": "تعيين",
+    "selectShiftPlaceholder": "ابحث واختر وردية...",
+    "loadingShifts": "جاري تحميل الورديات...",
+    "noShiftsFound": "لم يتم العثور على قالب وردية.",
+    "successToast": "تم تعيين سياسة الوردية بنجاح",
+    "errorToast": "فشل تعيين سياسة الوردية"
+  }
 }

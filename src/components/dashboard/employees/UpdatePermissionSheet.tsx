@@ -21,6 +21,7 @@ import PermissionGroup from '../roles/PermissionGroup';
 import { Separator } from '@/components/ui/separator';
 import { useTranslation } from 'react-i18next';
 import { Role, PermissionScope } from '@/features/roles/roles.types';
+import { normalizePermissionScope } from '@/features/roles/permission-scope.util';
 import { fetchPermissions, fetchRoles, setUserPermissionOverrides, fetchProfileWithPermissionSets } from '@/features/roles/roles.actions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/hooks/use-toast";
@@ -43,7 +44,6 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
         resolver: zodResolver(roleSchema),
         defaultValues: {
             name: '',
-            level: 1,
             description: '',
             permissions: [],
             scope: PermissionScope.ALL,
@@ -136,11 +136,10 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
                     const restoredModuleScopes: Record<string, PermissionScope> = {};
                     grants.forEach(grant => {
                         const permId = grant.permissionId;
-                        const scope = (grant.scope as string).toLowerCase() as PermissionScope;
+                        const scope = normalizePermissionScope(grant.scope as string);
                         
-                        // Find which module this permission belongs to
                         const mod = permissionModules.find(m => m.permissions.some(p => p.id === permId));
-                        if (mod) {
+                        if (mod && scope) {
                             restoredModuleScopes[mod.id] = scope;
                         }
                     });
@@ -152,10 +151,9 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
                     
                     form.reset({
                         name: finalRoleName,
-                        level: roleProfile?.level || 1,
                         description: roleProfile?.description || '',
                         permissions: permissionIds,
-                        scope: ((roleProfile?.permissionGrants?.[0]?.scope as string)?.toLowerCase() as PermissionScope) || PermissionScope.ALL,
+                        scope: normalizePermissionScope(roleProfile?.permissionGrants?.[0]?.scope as string) || PermissionScope.ALL,
                         moduleScopes: restoredModuleScopes,
                     });
                 } else {
@@ -163,7 +161,6 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
                     setInitialGrants([]);
                     form.reset({
                         name: employee.role,
-                        level: 1,
                         description: '',
                         permissions: [],
                         scope: PermissionScope.ALL,
@@ -185,7 +182,7 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
         if (open && employee) {
             loadEmployeePermissions();
         }
-    }, [open, employee, form, toast, roles]);
+    }, [open, employee, form, toast, roles, permissionModules, t]);
 
     const selectedPermissions = form.watch('permissions');
     const totalPermissions = permissionModules.reduce(
@@ -340,54 +337,28 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
                             </div>
                         )}
                         <FormSection title={t('permissionInfo', "Permission info")}>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField
-                                    control={form.control}
-                                    name="name"
-                                    render={({ field }) => (
-                                        <FormItem className="space-y-3">
-                                            <FormLabel className="text-sm font-medium text-foreground">{t('role', "Role")}</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger className="h-9 border-border w-full bg-background shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                                                        <SelectValue placeholder={t('selectRole', "Select role")} />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {roles.map(role => (
-                                                        <SelectItem key={role.id} value={role.name}>{role.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
- 
-                                <FormField
-                                    control={form.control}
-                                    name="level"
-                                    render={({ field }) => (
-                                        <FormItem className="space-y-3">
-                                            <FormLabel className="text-sm font-medium text-foreground">{t('level', "Level")}</FormLabel>
-                                            <Select onValueChange={(val) => field.onChange(Number(val))} value={field.value?.toString()}>
-                                                <FormControl>
-                                                    <SelectTrigger className="h-9 border-border w-full bg-background shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                                                        <SelectValue placeholder={t('selectLevel', "Select level")} />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {[1, 2, 3, 4, 5].map(lvl => (
-                                                        <SelectItem key={lvl} value={lvl.toString()}>{t('levelNum', "Level {{lvl}}", { lvl })}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <p className="text-sm text-muted-foreground">{t('roleTierLevel', "Role tier level")}</p>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-3">
+                                        <FormLabel className="text-sm font-medium text-foreground">{t('role', "Role")}</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="h-9 border-border w-full bg-background shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                                                    <SelectValue placeholder={t('selectRole', "Select role")} />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {roles.map(role => (
+                                                    <SelectItem key={role.id} value={role.name}>{role.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
                             <FormField
                                 control={form.control}

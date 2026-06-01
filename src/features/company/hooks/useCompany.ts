@@ -58,7 +58,8 @@ export const useUpdateCompanyFirebase = () => {
 
 export const useUpdateCompanySmtp = () => {
     return useMutation({
-        mutationFn: ({ id, input }: { id: string; input: SmtpConfigInput }) => updateCompanySmtp(id, input),
+        mutationFn: ({ id, input }: { id: string; input: SmtpConfigInput }) =>
+            updateCompanySmtp(id, input),
     });
 };
 

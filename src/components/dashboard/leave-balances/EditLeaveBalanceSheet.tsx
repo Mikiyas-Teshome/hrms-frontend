@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useEffect } from 'react';
@@ -39,6 +38,28 @@ interface EditLeaveBalanceSheetProps {
     balance?: LeaveBalance | null;
 }
 
+const SectionCard = ({
+    title,
+    children,
+    className,
+}: {
+    title: string;
+    children: React.ReactNode;
+    className?: string;
+}) => (
+    <div
+        className={cn(
+            'bg-white border border-[rgba(229,229,229,0.8)] shadow-[0px_1px_3px_rgba(0,0,0,0.04),0px_1px_2px_-1px_rgba(0,0,0,0.04)] rounded-xl pb-6 overflow-hidden',
+            className,
+        )}
+    >
+        <div className="bg-[#F8F8F8] h-12.5 px-6 flex items-center mb-6">
+            <h3 className="font-semibold text-sm text-foreground leading-3.5">{title}</h3>
+        </div>
+        <div className="px-6 space-y-6">{children}</div>
+    </div>
+);
+
 const EditLeaveBalanceSheet: React.FC<EditLeaveBalanceSheetProps> = ({
     open,
     onOpenChange,
@@ -76,33 +97,12 @@ const EditLeaveBalanceSheet: React.FC<EditLeaveBalanceSheetProps> = ({
         }
     }, [balance, form]);
 
-    const onSubmit = (data: LeaveBalanceFormValues) => {
+    const onSubmit = () => {
         // Here you would call your API
         onOpenChange(false);
         form.reset();
     };
 
-    const SectionCard = ({
-        title,
-        children,
-        className,
-    }: {
-        title: string;
-        children: React.ReactNode;
-        className?: string;
-    }) => (
-        <div
-            className={cn(
-                'bg-white border border-[rgba(229,229,229,0.8)] shadow-[0px_1px_3px_rgba(0,0,0,0.04),0px_1px_2px_-1px_rgba(0,0,0,0.04)] rounded-xl pb-6 overflow-hidden',
-                className,
-            )}
-        >
-            <div className="bg-[#F8F8F8] h-12.5 px-6 flex items-center mb-6">
-                <h3 className="font-semibold text-sm text-foreground leading-3.5">{title}</h3>
-            </div>
-            <div className="px-6 space-y-6">{children}</div>
-        </div>
-    );
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>

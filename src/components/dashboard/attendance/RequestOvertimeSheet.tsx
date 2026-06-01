@@ -4,14 +4,12 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
-import { X, CalendarDays, Loader2 } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 
 import {
     Sheet,
     SheetContent,
-    SheetHeader,
     SheetTitle,
-    SheetFooter,
     SheetClose,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -27,7 +25,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Separator } from '@/components/ui/separator';
 import { overtimeRequestSchema, OvertimeRequestFormValues } from '../schemas/overtime.schema';
 import { useToast } from '@/hooks/use-toast';
 
@@ -64,7 +61,7 @@ export function RequestOvertimeSheet({ open, onOpenChange }: RequestOvertimeShee
             });
             onOpenChange(false);
             form.reset();
-        } catch (error) {
+        } catch {
             toast({
                 title: 'Error',
                 description: 'Failed to submit overtime request',

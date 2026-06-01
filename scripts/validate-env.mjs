@@ -14,6 +14,7 @@ const envSchema = z.object({
   DOCUMENT_SERVICE_URL: z.string().url().optional(),
   REPORTING_SERVICE_URL: z.string().url().optional(),
   API_GATEWAY_URL: z.string().url().optional(),
+  NEXT_PUBLIC_API_GATEWAY_URL: z.string().url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

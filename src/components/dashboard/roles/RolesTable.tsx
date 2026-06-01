@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Role } from '@/features/roles/roles.types';
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +13,7 @@ import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import ConfirmationModal from '@/components/dashboard/shared/ConfirmationModal';
 import { removeRole } from '@/features/roles/roles.actions';
+import { usePermissions } from '@/features/auth/hooks/usePermissions';
 
 interface RolesTableProps {
     roles: Role[];
@@ -25,17 +25,20 @@ interface RolesTableProps {
 const RolesTable: React.FC<RolesTableProps> = ({ roles, isLoading, onRefresh, onEdit }) => {
     const { t } = useTranslation('roles');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+    const canUpdateRole = hasPermission('roles:update');
+    const canDeleteRole = hasPermission('roles:delete');
     const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
     const [searchValue, setSearchValue] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = React.useState(10);
-    const [showFilters, setShowFilters] = useState(false);
-    const [activeFilters, setActiveFilters] = useState({ role: 'all', status: 'all' });
-    const [pendingFilters, setPendingFilters] = useState({ role: 'all', status: 'all' });
+    // const [showFilters, setShowFilters] = useState(false);
+    const [activeFilters] = useState({ role: 'all', status: 'all' });
+    // const [pendingFilters, setPendingFilters] = useState({ role: 'all', status: 'all' });
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
-    const activeCount = Object.values(activeFilters).filter((v) => v !== 'all').length;
+    // const activeCount = Object.values(activeFilters).filter((v) => v !== 'all').length;
 
     const filteredRoles = React.useMemo(() => {
         return roles.filter((role) => {
@@ -49,8 +52,6 @@ const RolesTable: React.FC<RolesTableProps> = ({ roles, isLoading, onRefresh, on
                 activeFilters.role === 'all' ||
                 role.name.toLowerCase().includes(activeFilters.role.toLowerCase());
 
-            // Level/Status filter (Mapping 'Active'/'Inactive' to level for demonstration if no status exists,
-            // or just filtering by level if we change the filter to Level)
             const matchesStatus = activeFilters.status === 'all' || true;
 
             return matchesSearch && matchesRole && matchesStatus;
@@ -89,16 +90,16 @@ const RolesTable: React.FC<RolesTableProps> = ({ roles, isLoading, onRefresh, on
         }
     };
 
-    const handleApply = () => {
-        setActiveFilters(pendingFilters);
-        setShowFilters(false);
-    };
+    // const handleApply = () => {
+    //     setActiveFilters(pendingFilters);
+    //     setShowFilters(false);
+    // };
 
-    const handleReset = () => {
-        const defaultFilters = { role: 'all', status: 'all' };
-        setPendingFilters(defaultFilters);
-        setActiveFilters(defaultFilters);
-    };
+    // const handleReset = () => {
+    //     const defaultFilters = { role: 'all', status: 'all' };
+    //     setPendingFilters(defaultFilters);
+    //     setActiveFilters(defaultFilters);
+    // };
 
     const columns: ColumnConfig<Role>[] = [
         {
@@ -107,16 +108,16 @@ const RolesTable: React.FC<RolesTableProps> = ({ roles, isLoading, onRefresh, on
             sortable: true,
             className: 'font-medium',
         },
-        {
-            key: 'level',
-            label: t('tableRoleType'),
-            sortable: true,
-            render: (item) => (
-                <span className="capitalize">
-                    {t('level')} {item.level}
-                </span>
-            ),
-        },
+        // {
+        //     key: 'companyId',
+        //     label: t('tableRoleType'),
+        //     sortable: true,
+        //     render: (item) => (
+        //         <span className="capitalize">
+        //             {item.companyId ? t('tenantRole') : t('globalRole')}
+        //         </span>
+        //     ),
+        // },
         {
             key: 'description',
             label: t('tableDescription'),
@@ -140,30 +141,38 @@ const RolesTable: React.FC<RolesTableProps> = ({ roles, isLoading, onRefresh, on
         },
     ];
 
-    const handleRowClick = (item: Role) => {};
+    const handleRowClick = () => {};
 
-    const renderRowActions = (item: Role) => (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreVertical className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit?.(item)} className="cursor-pointer">
-                    <Pencil className="mr-2 h-4 w-4" />
-                    {t('edit')}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    className="text-destructive focus:text-destructive cursor-pointer"
-                    onClick={() => handleDeleteClick(item)}
-                >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {t('delete')}
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
+    const renderRowActions = (item: Role) => {
+        if (!canUpdateRole && !canDeleteRole) return null;
+
+        return (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    {canUpdateRole && (
+                        <DropdownMenuItem onClick={() => onEdit?.(item)} className="cursor-pointer">
+                            <Pencil className="mr-2 h-4 w-4" />
+                            {t('edit')}
+                        </DropdownMenuItem>
+                    )}
+                    {canDeleteRole && (
+                        <DropdownMenuItem
+                            className="text-destructive focus:text-destructive cursor-pointer"
+                            onClick={() => handleDeleteClick(item)}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {t('delete')}
+                        </DropdownMenuItem>
+                    )}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        );
+    };
 
     return (
         <div className="space-y-4">

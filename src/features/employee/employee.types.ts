@@ -13,6 +13,7 @@ export interface EmployeeResponse {
     id: string;
     employeeNumber: string;
     userId?: string | null;
+    activeEmployeeContractId?: string | null;
     firstName: string;
     lastName: string;
     middleName?: string | null;
@@ -64,6 +65,14 @@ export interface EmployeeResponse {
     updatedAt: string;
 }
 
+export interface EmployeeDirectoryEntry {
+    id: string;
+    userId?: string | null;
+    firstName: string;
+    lastName: string;
+    departmentId?: string | null;
+}
+
 export interface CreateEmployeeInput {
     firstName: string;
     lastName: string;
@@ -85,6 +94,39 @@ export interface CreateEmployeeInput {
     state?: string;
     country?: string;
     postalCode?: string;
+}
+
+export interface UpdateMyEmployeeProfileInput {
+    address?: string;
+    city?: string;
+    country?: string;
+    dateOfBirth?: string;
+    emergencyContactName?: string;
+    emergencyContactPhone?: string;
+    emergencyContactRelationship?: string;
+    firstName?: string;
+    gender?: string;
+    homeAddress?: string;
+    homeCity?: string;
+    homeCountry?: string;
+    homePhone?: string;
+    homePostalCode?: string;
+    homeState?: string;
+    jobTitle?: string;
+    lastName?: string;
+    middleName?: string;
+    nationalId?: string;
+    nationality?: string;
+    passportExpiry?: string;
+    passportNumber?: string;
+    personalEmail?: string;
+    phoneNumber?: string;
+    postalCode?: string;
+    state?: string;
+    visaExpiry?: string;
+    visaNumber?: string;
+    workPermitExpiry?: string;
+    workPermitNumber?: string;
 }
 
 export interface UpdateEmployeeInput {
@@ -135,20 +177,75 @@ export interface TransferEmployeeInput {
 
 export interface EmployeesFilters {
     departmentId?: string;
+    ouId?: string;
     limit?: number;
     page?: number;
     status?: EmployeeStatus;
 }
 
-export interface CreateInvitationInput {
+export type EmployeeSortBy =
+    | 'CREATED_AT'
+    | 'FIRST_NAME'
+    | 'LAST_NAME'
+    | 'EMAIL'
+    | 'EMPLOYEE_NUMBER'
+    | 'JOB_TITLE'
+    | 'EMPLOYMENT_TYPE'
+    | 'DEPARTMENT_ID'
+    | 'STATUS'
+    | 'HIRE_DATE';
+
+export type EmployeeSortOrder = 'ASC' | 'DESC';
+
+export interface EmployeeListFilterInput {
+    groupOuId?: string;
+    companyOuId?: string;
+    divisionOuId?: string;
+    subDivisionOuId?: string;
+    departmentOuId?: string;
+    status?: EmployeeStatus;
+    contractType?: string;
+    search?: string;
+    sortBy?: EmployeeSortBy;
+    sortOrder?: EmployeeSortOrder;
+}
+
+export interface PaginationInput {
+    page?: number;
+    size?: number;
+}
+
+export interface PaginatedMetaData {
+    page: number;
+    size: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrevious: boolean;
+    timestamp?: string;
+}
+
+export interface PaginatedEmployeesResponse {
+    data: EmployeeResponse[];
+    metaData: PaginatedMetaData;
+}
+
+export interface BaseInvitationEmployeeInput {
     email: string;
     firstName?: string;
-    gccId?: string;
     lastName?: string;
+    gccId?: string;
     ouId?: string;
-    password?: string;
-    role?: string;
     roleId?: string;
+    role?: string;
+    contractId?: string;
+    employmentType?: string;
+    jobTitle?: string;
+    salary?: number;
+}
+
+export interface CreateInvitationInput extends BaseInvitationEmployeeInput {
+    password?: string;
 }
 
 export interface InvitationResponse {
@@ -160,6 +257,24 @@ export interface InvitationResponse {
     companyId: string;
     status: string;
     role?: string;
+}
+
+export interface BulkInviteEmployeesInput {
+    employees: CreateInvitationInput[];
+}
+
+export interface BulkInvitationError {
+    email: string;
+    reason: string;
+    attempts?: number;
+    rowIndex?: number;
+}
+
+export interface BulkInvitationResponse {
+    successfulInvitations: BaseInvitationEmployeeInput[];
+    failedInvitations: BulkInvitationError[];
+    successfulCount: number;
+    failedCount: number;
 }
 export interface EmployeeTransferHistory {
     id: string;
@@ -189,3 +304,20 @@ export interface RecordTransferInput {
 export interface UpdateEmployeeStatusInput {
     status: EmployeeStatus;
 }
+
+export const EMPLOYMENT_TYPE_OPTIONS = [
+    { label: 'Full-time', value: 'full_time' },
+    { label: 'Part-time', value: 'part_time' },
+    { label: 'Contract', value: 'contract' },
+    { label: 'Intern', value: 'intern' },
+    { label: 'Consultant', value: 'consultant' },
+];
+
+export const CONTRACT_TYPE_OPTIONS = [
+    { label: 'Permanent', value: 'permanent' },
+    { label: 'Fixed term', value: 'fixed_term' },
+    { label: 'Probation', value: 'probation' },
+    { label: 'Internship', value: 'internship' },
+    { label: 'Consultant', value: 'consultant' },
+    { label: 'Part time', value: 'part_time' },
+];

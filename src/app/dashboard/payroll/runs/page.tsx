@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { UniversalDataTable, ColumnConfig } from "@/components/ui/universal-data-table";
 import { TableActionMenu } from "@/components/ui/table-action-menu";
 import SummaryStatCard from "@/components/dashboard/shared/SummaryStatCard";
+import { SummaryStatCardSkeleton } from "@/components/common/SummaryStatSkeleton";
 import { format } from "date-fns";
 import { 
   usePayrollRuns, 
@@ -110,19 +111,19 @@ export default function PayrollRunsPage() {
   };
 
   // Format currency
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  // const formatCurrency = (value: number) => {
+  //   return new Intl.NumberFormat('en-US', {
+  //     style: 'currency',
+  //     currency: 'USD',
+  //     minimumFractionDigits: 0,
+  //     maximumFractionDigits: 0,
+  //   }).format(value);
+  // };
 
   const formatDateRange = (start: string, end: string) => {
     try {
       return `${format(new Date(start), "MMM d")} - ${format(new Date(end), "MMM d, yyyy")}`;
-    } catch (error) {
+    } catch {
       return "Invalid Date";
     }
   };
@@ -276,38 +277,49 @@ export default function PayrollRunsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryStatCard
-          title={t("payrollData.stats.totalRuns", "Total runs")}
-          value={payrollRuns.length.toString()}
-          icon={Wallet}
-          iconColor="#2865E3"
-          iconBgColor="transparent"
-          borderColor="#2865E380"
-        />
-        <SummaryStatCard
-          title={t("payrollData.stats.completedRuns", "Completed runs")}
-          value={completedRunsCount.toString()}
-          icon={CheckCircle2}
-          iconColor="#22C55E"
-          iconBgColor="transparent"
-          borderColor="#22C55E80"
-        />
-        <SummaryStatCard
-          title={t("payrollData.stats.pendingRun", "Pending run")}
-          value={pendingRunsCount.toString()}
-          icon={CircleDashed}
-          iconColor="#D97706"
-          iconBgColor="transparent"
-          borderColor="#D9770680"
-        />
-        <SummaryStatCard
-          title={t("payrollData.stats.totalGrossPay", "Total gross pay")}
-          value="N/A"
-          icon={DollarSign}
-          iconColor="#22C55E"
-          iconBgColor="transparent"
-          borderColor="#22C55E80"
-        />
+        {isLoading ? (
+          <>
+            <SummaryStatCardSkeleton />
+            <SummaryStatCardSkeleton />
+            <SummaryStatCardSkeleton />
+            <SummaryStatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <SummaryStatCard
+              title={t("payrollData.stats.totalRuns", "Total runs")}
+              value={payrollRuns.length.toString()}
+              icon={Wallet}
+              iconColor="#2865E3"
+              iconBgColor="transparent"
+              borderColor="#2865E380"
+            />
+            <SummaryStatCard
+              title={t("payrollData.stats.completedRuns", "Completed runs")}
+              value={completedRunsCount.toString()}
+              icon={CheckCircle2}
+              iconColor="#22C55E"
+              iconBgColor="transparent"
+              borderColor="#22C55E80"
+            />
+            <SummaryStatCard
+              title={t("payrollData.stats.pendingRun", "Pending run")}
+              value={pendingRunsCount.toString()}
+              icon={CircleDashed}
+              iconColor="#D97706"
+              iconBgColor="transparent"
+              borderColor="#D9770680"
+            />
+            <SummaryStatCard
+              title={t("payrollData.stats.totalGrossPay", "Total gross pay")}
+              value="N/A"
+              icon={DollarSign}
+              iconColor="#22C55E"
+              iconBgColor="transparent"
+              borderColor="#22C55E80"
+            />
+          </>
+        )}
       </div>
 
       <UniversalDataTable

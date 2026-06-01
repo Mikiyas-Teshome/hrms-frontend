@@ -4,6 +4,7 @@ import { gqlRequest, GraphQLService } from '@/lib/graphql-client';
 import { ActionResult, safeAction } from '@/lib/safe-action';
 import {
   CREATE_BANK_ACCOUNT_MUTATION,
+  CREATE_MY_BANK_ACCOUNT_MUTATION,
   REMOVE_BANK_ACCOUNT_MUTATION,
   UPDATE_BANK_ACCOUNT_MUTATION,
   GET_BANK_ACCOUNT_QUERY,
@@ -12,9 +13,9 @@ import {
 import {
   BankAccount,
   CreateBankAccountInput,
+  CreateMyBankAccountInput,
   UpdateBankAccountInput,
 } from './bank-account.types';
-import { revalidatePath } from 'next/cache';
 
 export async function fetchBankAccounts(employeeId: string): Promise<BankAccount[]> {
   try {
@@ -42,6 +43,17 @@ export async function fetchBankAccount(id: string): Promise<BankAccount | null> 
     console.error(`Failed to fetch bank account ${id}:`, error);
     return null;
   }
+}
+
+export async function createMyBankAccount(input: CreateMyBankAccountInput): Promise<ActionResult<BankAccount>> {
+  return safeAction(async () => {
+    const data = await gqlRequest<{ createMyBankAccount: BankAccount }>(
+      GraphQLService.CORE_HR,
+      CREATE_MY_BANK_ACCOUNT_MUTATION,
+      { input }
+    );
+    return data.createMyBankAccount;
+  });
 }
 
 export async function createBankAccount(input: CreateBankAccountInput): Promise<ActionResult<BankAccount>> {

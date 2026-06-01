@@ -48,6 +48,15 @@
     "timezoneRequired": "المنطقة الزمنية مطلوبة",
     "currencyRequired": "العملة مطلوبة",
     "invalidWebsite": "يرجى إدخال رابط صحيح",
-    "invalidEmail": "يرجى إدخال بريد إلكتروني صحيح"
+    "invalidEmail": "يرجى إدخال بريد إلكتروني صحيح",
+    "failedToUpdate": "فشل تحديث ملف تعريف المؤسسة",
+    "checkYourConnection": "يرجى التحقق من اتصالك والمحاولة مرة أخرى.",
+    "logoUploadFailed": "فشل تحميل الشعار"
+  },
+  "success": {
+    "title": "نجاح",
+    "profileSaved": "تم حفظ ملف تعريف المؤسسة بنجاح.",
+    "smtpSaved": "تم حفظ إعدادات البريد (SMTP) بنجاح.",
+    "profileAndSmtpSaved": "تم حفظ ملف تعريف المؤسسة وإعدادات البريد بنجاح."
   }
 }

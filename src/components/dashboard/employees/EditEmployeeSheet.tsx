@@ -22,7 +22,6 @@ import { EmployeeResponse } from '@/features/employee/employee.types';
 import { EditEmployeeFormFields } from '@/components/dashboard/employees/EditEmployeeFormFields';
 
 import { 
-    phoneValidation, 
     optionalPhoneValidation, 
     futureDateValidation, 
     pastDateValidation, 
@@ -74,20 +73,20 @@ const EditEmployeeSheet: React.FC<EditEmployeeSheetProps> = ({
             city: z.string().optional(),
             state: z.string().optional(),
             country: z.string().optional(),
-            postalCode: numericValidation(t('errors.numbersOnly')),
+            postalCode: numericValidation(t('errors.numbersOnly')).optional(),
             // Home Address
             homeAddress: z.string().optional(),
             homeCity: z.string().optional(),
             homeState: z.string().optional(),
             homeCountry: z.string().optional(),
-            homePostalCode: numericValidation(t('errors.numbersOnly')),
+            homePostalCode: numericValidation(t('errors.numbersOnly')).optional(),
             // Documents
             passportNumber: z.string().optional(),
-            passportExpiry: futureDateValidation(t('errors.futureDateRequired')),
+            passportExpiry: futureDateValidation(t('errors.futureDateRequired')).optional(),
             visaNumber: z.string().optional(),
-            visaExpiry: futureDateValidation(t('errors.futureDateRequired')),
+            visaExpiry: futureDateValidation(t('errors.futureDateRequired')).optional(),
             workPermitNumber: z.string().optional(),
-            workPermitExpiry: futureDateValidation(t('errors.futureDateRequired')),
+            workPermitExpiry: futureDateValidation(t('errors.futureDateRequired')).optional(),
             // Emergency Contact
             emergencyContactName: z.string().optional(),
             emergencyContactPhone: optionalPhoneValidation(t('errors.phoneInvalid')),
@@ -190,6 +189,7 @@ const EditEmployeeSheet: React.FC<EditEmployeeSheetProps> = ({
         if (!employee) return;
         try {
             // Destructure employeeNumber out as it's not supported in UpdateEmployeeInput
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { employeeNumber, ...updateInput } = data;
             
             // Format date fields to "YYYY-MM-DDT00:00:00+03:00"
@@ -213,7 +213,7 @@ const EditEmployeeSheet: React.FC<EditEmployeeSheetProps> = ({
             // Convert empty strings to undefined and omit them entirely for the API
             const sanitizedInput = Object.fromEntries(
                 Object.entries(finalInput)
-                    .filter(([_, value]) => value !== '' && value !== undefined && value !== null)
+                    .filter(([, value]) => value !== '' && value !== undefined && value !== null)
             );
 
             await updateMutation.mutateAsync({
@@ -241,7 +241,7 @@ const EditEmployeeSheet: React.FC<EditEmployeeSheetProps> = ({
             <SheetContent
                 showCloseButton={false}
                 side={isRtl ? 'left' : 'right'}
-                className="w-full sm:max-w-[900px] p-0 flex flex-col h-full border-0 shadow-2xl overflow-hidden"
+                className="w-full sm:max-w-225 p-0 flex flex-col h-full border-0 shadow-2xl overflow-hidden"
             >
                 <div className="px-10 py-6 space-y-6 flex flex-col h-full">
                     <SheetHeader className="flex flex-row items-center justify-between shrink-0">

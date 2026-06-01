@@ -21,6 +21,22 @@
   "permanentDuration": "Permanent duration",
   "renewableContract": "Renewable contract",
   "contractContent": "Contract content",
+  "documentType": "Document type",
+  "selectDocumentType": "Select document type",
+  "loadingDocumentCategories": "Loading document types...",
+  "noDocumentCategories": "No document categories are available yet.",
+  "goToDocumentCategories": "Create document categories",
   "addDocument": "Add document",
-  "saveContract": "Save contract"
+  "documentPendingSave": "Will be uploaded when you save the contract",
+  "documentUploadFailed": "Failed to upload document",
+  "documentExpiryDate": "Expiry date",
+  "documentExpiryRequired": "Expiry date is required for this document type",
+  "viewDocument": "View document",
+  "removeDocument": "Remove document",
+  "selectedDocument": "Selected: {{name}}",
+  "saveContract": "Save contract",
+  "fixed_term": "Fixed term",
+  "internship": "Internship",
+  "consultant": "Consultant",
+  "part_time": "Part time"
 }

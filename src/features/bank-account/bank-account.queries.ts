@@ -15,6 +15,15 @@ export const BANK_ACCOUNT_FIELDS_FRAGMENT = `
   }
 `;
 
+export const CREATE_MY_BANK_ACCOUNT_MUTATION = `
+  mutation CreateMyBankAccount($input: CreateMyBankAccountInput!) {
+    createMyBankAccount(input: $input) {
+      ...BankAccountFields
+    }
+  }
+  ${BANK_ACCOUNT_FIELDS_FRAGMENT}
+`;
+
 export const CREATE_BANK_ACCOUNT_MUTATION = `
   mutation CreateBankAccount($input: CreateBankAccountInput!) {
     createBankAccount(input: $input) {

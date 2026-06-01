@@ -33,7 +33,7 @@ export function CountrySelect<T extends FieldValues>({ control, name, label, pla
           label: displayNames.of(country.id) || country.name,
         }))
         .sort((a, b) => a.label.localeCompare(b.label));
-    } catch (e) {
+    } catch {
       return Object.values(getAllCountries())
         .map((country) => ({
           value: country.id,

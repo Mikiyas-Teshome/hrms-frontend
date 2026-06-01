@@ -2,32 +2,20 @@
 
 import { useTranslation } from "react-i18next";
 import { useState, useMemo } from "react";
-import { Eye, FileText, Pencil, ToggleRight, Trash2, CheckCircle2, DollarSign, Activity, Plus, RefreshCw } from "lucide-react";
+import { FileText, Pencil, Trash2, CheckCircle2, DollarSign, Activity, Plus, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UniversalDataTable, ColumnConfig } from "@/components/ui/universal-data-table";
 import { TableActionMenu } from "@/components/ui/table-action-menu";
 import SummaryStatCard from "@/components/dashboard/shared/SummaryStatCard";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { SummaryStatCardSkeleton } from "@/components/common/SummaryStatSkeleton";
 import { useAllowances, useDeleteAllowance } from "@/features/allowance/hooks/useAllowance";
 import { useDeductions, useDeleteDeduction } from "@/features/deduction/hooks/useDeduction";
 import { useCreatePayrollComponent, useUpdatePayrollComponent } from "@/features/payroll/hooks/usePayroll";
 import { PayrollComponentType } from "@/features/payroll/payroll.types";
 import { PayrollComponentSheet } from "@/components/payroll/payroll-component-sheet";
 import { useToast } from "@/hooks/use-toast";
-import { Switch } from "@/components/ui/switch";
 import { useProfile } from "@/features/auth/hooks/useAuth";
-// import { mockPayrollComponents } from "@/data/mock-payroll";
 
 type UnifiedComponent = {
   id: string;
@@ -214,7 +202,7 @@ export default function PayrollComponentsPage() {
       key: "status",
       label: t("payrollData.columns.status", "Status"),
       sortable: true,
-      render: (item) => {
+      render: () => {
         return (
           <Badge
             variant="outline"
@@ -302,38 +290,49 @@ export default function PayrollComponentsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryStatCard
-          title={t("payrollData.stats.noOfComponents", "Number of components")}
-          value={stats.total.toString()}
-          icon={FileText}
-          iconColor="#2865E3"
-          iconBgColor="transparent"
-          borderColor="#2865E380"
-        />
-        <SummaryStatCard
-          title={t("payrollData.stats.activeComponents", "Active components")}
-          value={stats.active.toString()}
-          icon={CheckCircle2}
-          iconColor="#22C55E"
-          iconBgColor="transparent"
-          borderColor="#22C55E80"
-        />
-        <SummaryStatCard
-          title={t("payrollData.stats.fixedAmountComponents", "Fixed amount components")}
-          value={stats.fixed.toString()}
-          icon={Activity}
-          iconColor="#D97706"
-          iconBgColor="transparent"
-          borderColor="#D9770680"
-        />
-        <SummaryStatCard
-          title={t("payrollData.stats.monthlyComponentValue", "Monthly component value")}
-          value={`$${stats.totalValue.toLocaleString()}`}
-          icon={DollarSign}
-          iconColor="#22C55E"
-          iconBgColor="transparent"
-          borderColor="#22C55E80"
-        />
+        {isLoadingAllowances || isLoadingDeductions ? (
+          <>
+            <SummaryStatCardSkeleton />
+            <SummaryStatCardSkeleton />
+            <SummaryStatCardSkeleton />
+            <SummaryStatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <SummaryStatCard
+              title={t("payrollData.stats.noOfComponents", "Number of components")}
+              value={stats.total.toString()}
+              icon={FileText}
+              iconColor="#2865E3"
+              iconBgColor="transparent"
+              borderColor="#2865E380"
+            />
+            <SummaryStatCard
+              title={t("payrollData.stats.activeComponents", "Active components")}
+              value={stats.active.toString()}
+              icon={CheckCircle2}
+              iconColor="#22C55E"
+              iconBgColor="transparent"
+              borderColor="#22C55E80"
+            />
+            <SummaryStatCard
+              title={t("payrollData.stats.fixedAmountComponents", "Fixed amount components")}
+              value={stats.fixed.toString()}
+              icon={Activity}
+              iconColor="#D97706"
+              iconBgColor="transparent"
+              borderColor="#D9770680"
+            />
+            <SummaryStatCard
+              title={t("payrollData.stats.monthlyComponentValue", "Monthly component value")}
+              value={`$${stats.totalValue.toLocaleString()}`}
+              icon={DollarSign}
+              iconColor="#22C55E"
+              iconBgColor="transparent"
+              borderColor="#22C55E80"
+            />
+          </>
+        )}
       </div>
 
       <UniversalDataTable

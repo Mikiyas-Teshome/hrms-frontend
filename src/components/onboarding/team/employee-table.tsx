@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { PaginationWrapper } from "@/components/common/pagination-wrapper";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface EmployeeTableProps {
   data: any[];
@@ -13,15 +12,17 @@ interface EmployeeTableProps {
   onPageSizeChange: (size: number) => void;
 }
 
-export function EmployeeTable({ 
-  data, 
+export function EmployeeTable({
+  data,
   t,
   totalItems,
   pageSize,
   currentPage,
   onPageChange,
-  onPageSizeChange
+  onPageSizeChange,
 }: EmployeeTableProps) {
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
   return (
     <div className="overflow-hidden rounded-[12px] border border-border bg-card shadow-sm">
       <div className="overflow-x-auto">
@@ -42,19 +43,22 @@ export function EmployeeTable({
                 <td className="px-6 py-4 text-sm font-medium text-muted-foreground">{row.email}</td>
                 <td className="px-6 py-4 text-sm font-medium text-muted-foreground">{row.department}</td>
                 <td className="px-6 py-4 text-sm font-medium text-muted-foreground">{row.jobTitle}</td>
-                <td className="px-6 py-4 text-sm font-medium text-muted-foreground">{row.jobType || '-'}</td>
+                <td className="px-6 py-4 text-sm font-medium text-muted-foreground">{row.jobType || "-"}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <PaginationWrapper 
-        t={t} 
+
+      <DataTablePagination
         totalItems={totalItems}
         pageSize={pageSize}
         currentPage={currentPage}
+        totalPages={totalPages}
         onPageChange={onPageChange}
         onPageSizeChange={onPageSizeChange}
+        pageSizeOptions={[10, 20, 50]}
+        className="px-6 py-4 border-t border-border bg-background h-auto lg:h-13 pt-4"
       />
     </div>
   );

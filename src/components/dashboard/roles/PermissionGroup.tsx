@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { PermissionScope } from '@/features/roles/roles.types';
+import { SCOPE_PRIORITY } from '@/features/roles/permission-scope.util';
 
 export interface Permission {
     id: string;
@@ -19,6 +20,7 @@ interface PermissionGroupProps {
     onToggleAll: (checked: boolean) => void;
     onTogglePermission: (id: string, checked: boolean) => void;
     scope?: PermissionScope;
+    maxScope?: PermissionScope;
     onScopeChange?: (scope: PermissionScope) => void;
     className?: string;
 }
@@ -29,11 +31,18 @@ const PermissionGroup: React.FC<PermissionGroupProps> = ({
     selectedIds,
     onToggleAll,
     onTogglePermission,
-    scope = PermissionScope.ALL,
+    scope = PermissionScope.COMPANY,
+    maxScope = PermissionScope.ALL,
     onScopeChange,
     className,
 }) => {
     const { t } = useTranslation('roles');
+    const scopeOptions = [
+        { id: PermissionScope.ALL, label: t('scopeAll') },
+        { id: PermissionScope.COMPANY, label: t('scopeCompany') },
+        { id: PermissionScope.DEPARTMENT, label: t('scopeDepartment') },
+        { id: PermissionScope.OWN, label: t('scopeOwn') },
+    ].filter((option) => SCOPE_PRIORITY.indexOf(option.id) <= SCOPE_PRIORITY.indexOf(maxScope));
     const allChecked =
         permissions.length > 0 && permissions.every((p) => selectedIds.includes(p.id));
     const someChecked = permissions.some((p) => selectedIds.includes(p.id)) && !allChecked;
@@ -106,12 +115,7 @@ const PermissionGroup: React.FC<PermissionGroupProps> = ({
                             onValueChange={(val) => onScopeChange?.(val as PermissionScope)}
                             className="flex items-center gap-6 sm:gap-10"
                         >
-                            {[
-                                { id: PermissionScope.ALL, label: t('scopeAll') },
-                                { id: PermissionScope.COMPANY, label: t('scopeCompany') },
-                                { id: PermissionScope.DEPARTMENT, label: t('scopeDepartment') },
-                                { id: PermissionScope.OWN, label: t('scopeOwn') }
-                            ].map((option) => (
+                            {scopeOptions.map((option) => (
                                 <div key={option.id} className="flex items-center gap-3">
                                     <RadioGroupItem 
                                         value={option.id} 

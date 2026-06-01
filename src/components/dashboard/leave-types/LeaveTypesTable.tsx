@@ -235,7 +235,7 @@ const LeaveTypesTable = ({ companyId }: LeaveTypesTableProps) => {
         },
     ];
 
-    const handleRowClick = (item: LeaveType) => {
+    const handleRowClick = () => {
     };
 
     const renderRowActions = (item: LeaveType) => (

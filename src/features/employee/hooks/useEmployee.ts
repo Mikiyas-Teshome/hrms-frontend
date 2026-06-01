@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchEmployees,
+  fetchPaginatedEmployees,
   fetchEmployee,
   createEmployee,
   updateEmployee,
+  updateMyEmployeeProfile,
   deleteEmployee,
   fetchMyEmployeeProfile,
   initiateTransfer,
@@ -15,28 +17,44 @@ import {
 import {
   CreateEmployeeInput,
   UpdateEmployeeInput,
+  UpdateMyEmployeeProfileInput,
   EmployeesFilters,
+  EmployeeListFilterInput,
+  PaginationInput,
   TransferEmployeeInput,
   CreateInvitationInput,
   RecordTransferInput,
   UpdateEmployeeStatusInput,
 } from '../employee.types';
 
-export const useEmployees = (filters: EmployeesFilters = {}) => {
+export const useEmployees = (filters: EmployeesFilters = {}, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['employees', filters],
     queryFn: async () => {
       const data = await fetchEmployees(filters);
       return data;
     },
+    enabled: options?.enabled ?? true,
   });
 };
 
-export const useEmployee = (id: string) => {
+export const usePaginatedEmployees = (
+  pagination: PaginationInput = {},
+  filter: EmployeeListFilterInput = {},
+  options?: { enabled?: boolean },
+) => {
+  return useQuery({
+    queryKey: ['employees', 'paginated', pagination, filter],
+    queryFn: () => fetchPaginatedEmployees(pagination, filter),
+    enabled: options?.enabled ?? true,
+  });
+};
+
+export const useEmployee = (id: string, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['employee', id],
     queryFn: () => fetchEmployee(id),
-    enabled: !!id,
+    enabled: options?.enabled ?? !!id,
   });
 };
 
@@ -54,6 +72,21 @@ export const useCreateEmployee = () => {
   });
 };
 
+export const useUpdateMyEmployeeProfile = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: UpdateMyEmployeeProfileInput) => {
+      const result = await updateMyEmployeeProfile(input);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employee', 'profile'] });
+    },
+  });
+};
+
 export const useUpdateEmployee = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -65,6 +98,7 @@ export const useUpdateEmployee = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['employee', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['employee', 'profile'] });
     },
   });
 };
@@ -83,10 +117,11 @@ export const useDeleteEmployee = () => {
   });
 };
 
-export const useMyEmployeeProfile = () => {
+export const useMyEmployeeProfile = (options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['employee', 'profile'],
     queryFn: () => fetchMyEmployeeProfile(),
+    enabled: options?.enabled ?? true,
   });
 };
 

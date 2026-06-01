@@ -38,7 +38,6 @@ import {
   UpsertPayrollComponentInput,
   PayrollComponentType,
   SalaryStructureResponse,
-  SalaryHistory,
   PayrollComponent,
 } from '../payroll.types';
 

@@ -9,3 +9,18 @@ export function formatCurrency(value: number, currencyCode?: string | null): str
   const symbol = getCurrencySymbol(currencyCode);
   return `${symbol} ${value.toFixed(2)}`;
 }
+
+export function formatIntlCurrency(
+  value: number,
+  currencyCode?: string | null,
+  options?: Intl.NumberFormatOptions,
+): string {
+  const code = currencyCode || 'USD';
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: code,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+    ...options,
+  }).format(value);
+}

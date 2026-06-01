@@ -1,33 +1,37 @@
-import { Shield, CheckCircle2, Building2, CircleDollarSign, Coins, Gem, Wallet, HandHeart } from "lucide-react";
+import { Shield, CheckCircle2, Building2, CircleDollarSign, Coins } from "lucide-react";
 
 export const insuranceStats = [
   {
+    id: 'numPlans',
     title: "Number of insurance plans",
-    value: "6",
+    value: "0",
     icon: Shield,
     color: "#2865E3",
     borderColor: "rgba(40, 101, 227, 0.5)",
     bgColor: "rgba(40, 101, 227, 0.05)",
   },
   {
+    id: 'activePlans',
     title: "Active plans",
-    value: "5",
+    value: "0",
     icon: CheckCircle2,
     color: "#22C55E",
     borderColor: "rgba(34, 197, 94, 0.5)",
     bgColor: "rgba(34, 197, 94, 0.05)",
   },
   {
+    id: 'numProviders',
     title: "Number of providers",
-    value: "4",
+    value: "0",
     icon: Building2,
     color: "#2865E3",
     borderColor: "rgba(40, 101, 227, 0.5)",
     bgColor: "rgba(40, 101, 227, 0.05)",
   },
   {
+    id: 'monthlySpending',
     title: "Monthly insurance spending",
-    value: "$54,700",
+    value: "$0",
     icon: CircleDollarSign,
     color: "#22C55E",
     borderColor: "rgba(34, 197, 94, 0.5)",
@@ -35,85 +39,40 @@ export const insuranceStats = [
   },
 ];
 
-export const mockInsurancePlans = [
-  {
-    id: "1",
-    planName: "General Liability Insurance",
-    provider: "Vanguard Shield",
-    coverageType: "General Casualty",
-    employeesCovered: "23 employees",
-    status: "Active",
-  },
-  {
-    id: "2",
-    planName: "Commercial Property Insurance",
-    provider: "Summit Mutual",
-    coverageType: "Physical Assets",
-    employeesCovered: "12 employees",
-    status: "Active",
-  },
-  {
-    id: "3",
-    planName: "Workers' Compensation Insurance",
-    provider: "Vanguard Shield",
-    coverageType: "Workers' Compensation",
-    employeesCovered: "23 employees",
-    status: "Active",
-  },
-  {
-    id: "4",
-    planName: "Cyber Insurance",
-    provider: "Summit Mutual",
-    coverageType: "Data Breach & Ransom",
-    employeesCovered: "6 employees",
-    status: "Active",
-  },
-  {
-    id: "5",
-    planName: "Business Interruption Insurance",
-    provider: "Nexus Indemnity",
-    coverageType: "Business Interruption",
-    employeesCovered: "7 employees",
-    status: "Active",
-  },
-  {
-    id: "6",
-    planName: "Medical insurance",
-    provider: "Nexus Indemnity",
-    coverageType: "General Casualty",
-    employeesCovered: "23 employees",
-    status: "Active",
-  },
-];
+
 
 export const entitlementStats = [
   {
+    id: 'numEntitlements',
     title: "Number of entitlements",
-    value: "6",
+    value: "0",
     icon: Coins,
     color: "#2865E3",
     borderColor: "rgba(40, 101, 227, 0.5)",
     bgColor: "rgba(40, 101, 227, 0.05)",
   },
   {
+    id: 'activeEntitlements',
     title: "Active entitlements",
-    value: "5",
+    value: "0",
     icon: CheckCircle2,
     color: "#22C55E",
     borderColor: "rgba(34, 197, 94, 0.5)",
     bgColor: "rgba(34, 197, 94, 0.05)",
   },
   {
+    id: 'assignedToAll',
     title: "Assigned to all employees",
-    value: "4",
+    value: "0",
     icon: Building2,
     color: "#2865E3",
     borderColor: "rgba(40, 101, 227, 0.5)",
     bgColor: "rgba(40, 101, 227, 0.05)",
   },
   {
+    id: 'monthlySpending',
     title: "May entitlement spending",
-    value: "$54,700",
+    value: "$0",
     icon: CircleDollarSign,
     color: "#22C55E",
     borderColor: "rgba(34, 197, 94, 0.5)",

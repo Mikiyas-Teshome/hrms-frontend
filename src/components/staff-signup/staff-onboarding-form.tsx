@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -24,9 +23,9 @@ import {
     TabsTrigger,
     TabsContent
 } from "@/components/ui/tabs";
-import { useMyEmployeeProfile, useUpdateEmployee } from '@/features/employee/hooks/useEmployee';
+import { useMyEmployeeProfile, useUpdateMyEmployeeProfile } from '@/features/employee/hooks/useEmployee';
 import { useUpdateOnboardingComplete } from '@/features/auth/hooks/useAuth';
-import { useCreateBankAccount } from '@/features/bank-account/hooks/useBankAccount';
+import { useCreateMyBankAccount } from '@/features/bank-account/hooks/useBankAccount';
 import { useToast } from '@/hooks/use-toast';
 import { 
     phoneValidation, 
@@ -38,61 +37,59 @@ import {
     swiftValidation
 } from '@/lib/validations';
 
-const onboardingSchema = z.object({
+export type OnboardingFormValues = {
     // Personal Info
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required'),
-    middleName: z.string().optional(),
-    gender: z.string().min(1, 'Gender is required'),
-    dateOfBirth: pastDateValidation('Date of birth is required'),
-    jobTitle: z.string().min(1, 'Job title is required'),
-    nationality: z.string().min(1, 'Nationality is required'),
-    nationalId: z.string().optional(),
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    gender: string;
+    dateOfBirth: string | Date;
+    jobTitle: string;
+    nationality: string;
+    nationalId?: string;
     
     // Contact Info
-    personalEmail: z.string().email('Invalid email').min(1, 'Email is required'),
-    phoneNumber: phoneValidation('Phone number is required'),
+    personalEmail: string;
+    phoneNumber: string;
     
     // Emergency Contact
-    emergencyContactName: z.string().min(1, 'Name is required'),
-    emergencyContactRelationship: z.string().min(1, 'Relationship is required'),
-    emergencyContactPhone: phoneValidation('Phone number is required'),
+    emergencyContactName: string;
+    emergencyContactRelationship: string;
+    emergencyContactPhone: string;
     
     // Current Address
-    country: z.string().min(1, 'Country is required'),
-    state: z.string().optional(),
-    city: z.string().min(1, 'City is required'),
-    address: z.string().min(1, 'Address is required'),
-    postalCode: numericValidation('Postal code must be numeric'),
+    country: string;
+    state?: string;
+    city: string;
+    address: string;
+    postalCode: string;
 
     // Home Address
-    homeCountry: z.string().optional(),
-    homeState: z.string().optional(),
-    homeCity: z.string().optional(),
-    homeAddress: z.string().optional(),
-    homePostalCode: numericValidation('Postal code must be numeric'),
-    homePhone: optionalPhoneValidation('Invalid phone number'),
+    homeCountry?: string;
+    homeState?: string;
+    homeCity?: string;
+    homeAddress?: string;
+    homePostalCode?: string;
+    homePhone?: string;
 
     // Documents
-    passportNumber: z.string().optional(),
-    passportExpiry: futureDateValidation('Passport expiry must be in the future'),
-    visaNumber: z.string().optional(),
-    visaExpiry: futureDateValidation('Visa expiry must be in the future'),
-    workPermitNumber: z.string().optional(),
-    workPermitExpiry: futureDateValidation('Work permit expiry must be in the future'),
+    passportNumber?: string;
+    passportExpiry?: string | Date;
+    visaNumber?: string;
+    visaExpiry?: string | Date;
+    workPermitNumber?: string;
+    workPermitExpiry?: string | Date;
     
     // Bank Info
-    bankAccounts: z.array(z.object({
-        bankName: z.string().min(1, 'Bank name is required'),
-        branchName: z.string().optional(),
-        accountName: z.string().min(1, 'Account holder name is required'),
-        accountNumber: z.string().min(1, 'Account number is required'),
-        iban: ibanValidation('Invalid IBAN'),
-        swiftCode: swiftValidation('Invalid SWIFT'),
-    })).min(1),
-});
-
-export type OnboardingFormValues = z.infer<typeof onboardingSchema>;
+    bankAccounts: {
+        bankName: string;
+        branchName?: string;
+        accountName: string;
+        accountNumber: string;
+        iban?: string;
+        swiftCode?: string;
+    }[];
+};
 
 interface StaffOnboardingFormProps {
     onFinish: () => void;
@@ -105,8 +102,8 @@ export function StaffOnboardingForm({}: StaffOnboardingFormProps) {
     const [tab, setTab] = useState<'personal' | 'address' | 'documents' | 'banking'>('personal');
 
     const { data: profile } = useMyEmployeeProfile();
-    const updateEmployee = useUpdateEmployee();
-    const createBank = useCreateBankAccount();
+    const updateEmployee = useUpdateMyEmployeeProfile();
+    const createBank = useCreateMyBankAccount();
     const { mutateAsync: updateOnboarding } = useUpdateOnboardingComplete();
 
     const formatDateForSubmission = (date: string | Date | undefined): string | undefined => {
@@ -158,16 +155,16 @@ export function StaffOnboardingForm({}: StaffOnboardingFormProps) {
             homeState: z.string().optional(),
             homeCity: z.string().optional(),
             homeAddress: z.string().optional(),
-            homePostalCode: numericValidation(t('onboarding.errors.numbersOnly')),
+            homePostalCode: numericValidation(t('onboarding.errors.numbersOnly')).optional(),
             homePhone: optionalPhoneValidation(t('onboarding.errors.phoneInvalid')),
 
             // Documents
             passportNumber: z.string().optional(),
-            passportExpiry: futureDateValidation(t('onboarding.errors.futureDateRequired')),
+            passportExpiry: futureDateValidation(t('onboarding.errors.futureDateRequired')).optional(),
             visaNumber: z.string().optional(),
-            visaExpiry: futureDateValidation(t('onboarding.errors.futureDateRequired')),
+            visaExpiry: futureDateValidation(t('onboarding.errors.futureDateRequired')).optional(),
             workPermitNumber: z.string().optional(),
-            workPermitExpiry: futureDateValidation(t('onboarding.errors.futureDateRequired')),
+            workPermitExpiry: futureDateValidation(t('onboarding.errors.futureDateRequired')).optional(),
 
             // Bank Info
             bankAccounts: z
@@ -179,10 +176,10 @@ export function StaffOnboardingForm({}: StaffOnboardingFormProps) {
                         accountNumber: z
                             .string()
                             .min(1, t('onboarding.errors.accountNumberRequired')),
-                        iban: ibanValidation(t('onboarding.errors.ibanInvalid', 'Invalid IBAN')),
+                        iban: ibanValidation(t('onboarding.errors.ibanInvalid', 'Invalid IBAN')).optional(),
                         swiftCode: swiftValidation(
                             t('onboarding.errors.swiftInvalid', 'Invalid SWIFT'),
-                        ),
+                        ).optional(),
                     }),
                 )
                 .min(1),
@@ -244,8 +241,11 @@ export function StaffOnboardingForm({}: StaffOnboardingFormProps) {
 
 
     useEffect(() => {
-        if (profile) {
-            reset({
+        if (!profile) {
+            return;
+        }
+
+        reset({
                 firstName: profile.firstName || '',
                 lastName: profile.lastName || '',
                 middleName: profile.middleName || '',
@@ -293,47 +293,42 @@ export function StaffOnboardingForm({}: StaffOnboardingFormProps) {
                     },
                 ],
             });
-        }
     }, [profile, reset]);
 
     const onSubmit = async (data: OnboardingFormValues) => {
         if (!profile?.id) return;
         try {
-            // 1. Update Employee Details
             await updateEmployee.mutateAsync({
-                id: profile.id,
-                input: {
-                    firstName: data.firstName,
-                    lastName: data.lastName,
-                    middleName: data.middleName || undefined,
-                    phoneNumber: data.phoneNumber,
-                    personalEmail: data.personalEmail.toLowerCase(),
-                    gender: data.gender,
-                    dateOfBirth: formatDateForSubmission(data.dateOfBirth),
-                    jobTitle: data.jobTitle,
-                    nationality: data.nationality,
-                    nationalId: data.nationalId || undefined,
-                    address: data.address,
-                    city: data.city,
-                    state: data.state || undefined,
-                    country: data.country,
-                    postalCode: data.postalCode || undefined,
-                    homeAddress: data.homeAddress || undefined,
-                    homeCity: data.homeCity || undefined,
-                    homeCountry: data.homeCountry || undefined,
-                    homePostalCode: data.homePostalCode || undefined,
-                    homeState: data.homeState || undefined,
-                    homePhone: data.homePhone || undefined,
-                    emergencyContactName: data.emergencyContactName,
-                    emergencyContactRelationship: data.emergencyContactRelationship,
-                    emergencyContactPhone: data.emergencyContactPhone,
-                    passportNumber: data.passportNumber || undefined,
-                    passportExpiry: formatDateForSubmission(data.passportExpiry),
-                    visaNumber: data.visaNumber || undefined,
-                    visaExpiry: formatDateForSubmission(data.visaExpiry),
-                    workPermitNumber: data.workPermitNumber || undefined,
-                    workPermitExpiry: formatDateForSubmission(data.workPermitExpiry),
-                },
+                firstName: data.firstName,
+                lastName: data.lastName,
+                middleName: data.middleName || undefined,
+                phoneNumber: data.phoneNumber,
+                personalEmail: data.personalEmail.toLowerCase(),
+                gender: data.gender,
+                dateOfBirth: formatDateForSubmission(data.dateOfBirth),
+                jobTitle: data.jobTitle,
+                nationality: data.nationality,
+                nationalId: data.nationalId || undefined,
+                address: data.address,
+                city: data.city,
+                state: data.state || undefined,
+                country: data.country,
+                postalCode: data.postalCode || undefined,
+                homeAddress: data.homeAddress || undefined,
+                homeCity: data.homeCity || undefined,
+                homeCountry: data.homeCountry || undefined,
+                homePostalCode: data.homePostalCode || undefined,
+                homeState: data.homeState || undefined,
+                homePhone: data.homePhone || undefined,
+                emergencyContactName: data.emergencyContactName,
+                emergencyContactRelationship: data.emergencyContactRelationship,
+                emergencyContactPhone: data.emergencyContactPhone,
+                passportNumber: data.passportNumber || undefined,
+                passportExpiry: formatDateForSubmission(data.passportExpiry),
+                visaNumber: data.visaNumber || undefined,
+                visaExpiry: formatDateForSubmission(data.visaExpiry),
+                workPermitNumber: data.workPermitNumber || undefined,
+                workPermitExpiry: formatDateForSubmission(data.workPermitExpiry),
             });
 
             // 2. Create Bank Accounts
@@ -341,7 +336,6 @@ export function StaffOnboardingForm({}: StaffOnboardingFormProps) {
                 for (let i = 0; i < data.bankAccounts.length; i++) {
                     const account = data.bankAccounts[i];
                     await createBank.mutateAsync({
-                        employeeId: profile.id,
                         bankName: account.bankName,
                         branchName: account.branchName || undefined,
                         accountName: account.accountName,

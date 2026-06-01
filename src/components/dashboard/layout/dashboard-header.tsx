@@ -1,21 +1,20 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
-
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { LanguageSwitcher } from '@/components/common/language-switcher';
 import { ThemeToggle } from '@/components/common/theme-toggle';
 import { DashboardHeaderSkeleton } from '@/components/dashboard/layout/dashboard-header-skeleton';
 import { AttendanceClock } from '@/components/dashboard/layout/attendance-clock';
-import { Bell, MessageSquare, Search, Calendar } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { DashboardQuickSearch } from '@/components/dashboard/layout/dashboard-quick-search';
+import { NotificationPanel } from '@/components/dashboard/layout/notification-panel';
+import { Bell } from 'lucide-react';
 
 export function DashboardHeader() {
     const { t, i18n } = useTranslation('dashboard');
@@ -24,6 +23,7 @@ export function DashboardHeader() {
     const { user, isInitializing } = useAuth();
     const isRTL = i18n.language === 'ar';
     const isTenantSuperAdmin = user?.role === 'TENANT_SUPER_ADMIN';
+    const [notifOpen, setNotifOpen] = useState(false);
 
     if (isInitializing) {
         return <DashboardHeaderSkeleton />;
@@ -62,15 +62,8 @@ export function DashboardHeader() {
                         <SidebarTrigger className="lg:hidden" />
                         {!isRTL ? (
                             <div className="flex items-center gap-4">
-                                <div className="hidden lg:flex relative w-87.5">
-                                    <Search
-                                        className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                                        strokeWidth={1.33}
-                                    />
-                                    <Input
-                                        placeholder={t('header.searchPlaceholder')}
-                                        className="h-9 w-full rounded-lg border border-border bg-white pl-9 pr-3 shadow-xs text-sm placeholder:text-[#6B7280] focus-visible:ring-0"
-                                    />
+                                <div className="hidden lg:flex">
+                                    <DashboardQuickSearch isRTL={false} />
                                 </div>
                                 <LanguageSwitcher />
                                 <ThemeToggle />
@@ -97,27 +90,26 @@ export function DashboardHeader() {
                                 </div>
                                 <div className="flex items-center gap-3">
                                     {!isTenantSuperAdmin && <AttendanceClock />}
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-9 w-9 rounded-full relative"
-                                    >
-                                        <Bell
-                                            className="h-5 w-5 text-foreground"
-                                            strokeWidth={1.4}
+                                    {/* Bell — RTL side */}
+                                    <div className="relative">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-9 w-9 rounded-full relative"
+                                            onClick={() => setNotifOpen((v) => !v)}
+                                        >
+                                            <Bell
+                                                className="h-5 w-5 text-foreground"
+                                                strokeWidth={1.4}
+                                            />
+                                            <span className="absolute top-[7.5px] right-[8.92px] h-1 w-1 rounded-full bg-[#EF4444]" />
+                                        </Button>
+                                        <NotificationPanel
+                                            open={notifOpen}
+                                            onClose={() => setNotifOpen(false)}
+                                            align="left"
                                         />
-                                        <span className="absolute top-[7.5px] right-[8.92px] h-1 w-1 rounded-full bg-[#EF4444]" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-9 w-9 rounded-full"
-                                    >
-                                        <MessageSquare
-                                            className="h-5 w-5 text-foreground"
-                                            strokeWidth={1.4}
-                                        />
-                                    </Button>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -131,27 +123,26 @@ export function DashboardHeader() {
                             <div className="flex items-center gap-3">
                                 <div className="flex items-center gap-3">
                                     {!isTenantSuperAdmin && <AttendanceClock />}
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-9 w-9 rounded-full relative"
-                                    >
-                                        <Bell
-                                            className="h-5 w-5 text-foreground"
-                                            strokeWidth={1.4}
+                                    {/* Bell — LTR side */}
+                                    <div className="relative">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-9 w-9 rounded-full relative"
+                                            onClick={() => setNotifOpen((v) => !v)}
+                                        >
+                                            <Bell
+                                                className="h-5 w-5 text-foreground"
+                                                strokeWidth={1.4}
+                                            />
+                                            <span className="absolute top-[7.5px] right-[8.92px] h-1 w-1 rounded-full bg-[#EF4444]" />
+                                        </Button>
+                                        <NotificationPanel
+                                            open={notifOpen}
+                                            onClose={() => setNotifOpen(false)}
+                                            align="right"
                                         />
-                                        <span className="absolute top-[7.5px] right-[8.92px] h-1 w-1 rounded-full bg-[#EF4444]" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-9 w-9 rounded-full"
-                                    >
-                                        <MessageSquare
-                                            className="h-5 w-5 text-foreground"
-                                            strokeWidth={1.4}
-                                        />
-                                    </Button>
+                                    </div>
                                 </div>
                                 <div className="mx-2 h-8 w-px bg-background hidden md:block" />
                                 <Link
@@ -178,15 +169,8 @@ export function DashboardHeader() {
                             </div>
                         ) : (
                             <div className="flex items-center gap-4">
-                                <div className="hidden lg:flex relative w-87.5">
-                                    <Search
-                                        className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                                        strokeWidth={1.33}
-                                    />
-                                    <Input
-                                        placeholder={t('header.searchPlaceholder')}
-                                        className="h-9 w-full rounded-lg border border-border bg-white pr-9 pl-3 shadow-xs text-right text-sm placeholder:text-[#6B7280] focus-visible:ring-0"
-                                    />
+                                <div className="hidden lg:flex">
+                                    <DashboardQuickSearch isRTL />
                                 </div>
                                 <SidebarTrigger className="lg:hidden" />
                             </div>

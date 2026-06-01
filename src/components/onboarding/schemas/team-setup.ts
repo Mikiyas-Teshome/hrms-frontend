@@ -8,6 +8,11 @@ export const teamSetupSchema = zod.object({
       email: zod.string().email("invalidEmail"),
       department: zod.string().min(1, "departmentRequired"),
       role: zod.string().min(1, "roleRequired"),
+      gccId: zod.string().optional(),
+      employmentType: zod.string().optional(),
+      contractId: zod.string().optional(),
+      jobTitle: zod.string().optional(),
+      salary: zod.union([zod.string(), zod.number()]).optional(),
     })
   ),
 });

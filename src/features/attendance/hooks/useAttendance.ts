@@ -11,6 +11,7 @@ import {
     updateHoliday,
     updateTimesheetStatus,
     adminUpdateAttendanceRecord,
+    importAttendanceRecord,
     getAttendanceRecords,
     getEmployeeShifts,
     getHolidays,
@@ -21,7 +22,11 @@ import {
     getPaginatedAttendanceRecords,
     getAttendanceFilterOptions,
     getShiftStats,
-    healthCheck
+    healthCheck,
+    createShiftPolicyAssignment,
+    updateShiftTemplate,
+    toggleShiftTemplateStatus,
+    updateOvertimeStatus
 } from '../attendance.actions';
 import {
     ClockInInput,
@@ -33,7 +38,10 @@ import {
     UpdateHolidayInput,
     UpdateTimesheetStatusInput,
     AdminUpdateAttendanceInput,
-    PaginatedAttendanceRecordsFilterInput
+    PaginatedAttendanceRecordsFilterInput,
+    CreateShiftPolicyAssignmentInput,
+    UpdateShiftTemplateInput,
+    UpdateOvertimeStatusInput
 } from '../attendance.types';
 
 export const useHealthCheck = () => {
@@ -52,6 +60,20 @@ export const useAssignEmployeeShift = () => {
     return useMutation({
         mutationFn: async (input: CreateEmployeeShiftInput) => {
             const result = await assignEmployeeShift(input);
+            if (!result.success) throw new Error(result.error);
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance'] });
+        },
+    });
+};
+
+export const useCreateShiftPolicyAssignment = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: CreateShiftPolicyAssignmentInput) => {
+            const result = await createShiftPolicyAssignment(input);
             if (!result.success) throw new Error(result.error);
             return result.data;
         },
@@ -92,11 +114,15 @@ export const useClockOut = () => {
 };
 
 export const useCreateHoliday = () => {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (input: CreateHolidayInput) => {
             const result = await createHoliday(input);
             if (!result.success) throw new Error(result.error);
             return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance', 'holidays'] });
         },
     });
 };
@@ -106,6 +132,34 @@ export const useCreateShiftTemplate = () => {
     return useMutation({
         mutationFn: async (input: CreateShiftTemplateInput) => {
             const result = await createShiftTemplate(input);
+            if (!result.success) throw new Error(result.error);
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance', 'shift-templates'] });
+        },
+    });
+};
+
+export const useUpdateShiftTemplate = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: UpdateShiftTemplateInput) => {
+            const result = await updateShiftTemplate(input);
+            if (!result.success) throw new Error(result.error);
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance', 'shift-templates'] });
+        },
+    });
+};
+
+export const useToggleShiftTemplateStatus = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (id: string) => {
+            const result = await toggleShiftTemplateStatus(id);
             if (!result.success) throw new Error(result.error);
             return result.data;
         },
@@ -126,11 +180,15 @@ export const useCreateTimesheet = () => {
 };
 
 export const useRemoveHoliday = () => {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (id: string) => {
             const result = await removeHoliday(id);
             if (!result.success) throw new Error(result.error);
             return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance', 'holidays'] });
         },
     });
 };
@@ -161,6 +219,30 @@ export const useAdminUpdateAttendanceRecord = () => {
             const result = await adminUpdateAttendanceRecord(input);
             if (!result.success) throw new Error(result.error);
             return result.data;
+        },
+    });
+};
+
+export const useImportAttendanceRecord = () => {
+    return useMutation({
+        mutationFn: async (input: AdminUpdateAttendanceInput) => {
+            const result = await importAttendanceRecord(input);
+            if (!result.success) throw new Error(result.error);
+            return result.data;
+        },
+    });
+};
+
+export const useUpdateOvertimeStatus = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: UpdateOvertimeStatusInput) => {
+            const result = await updateOvertimeStatus(input);
+            if (!result.success) throw new Error(result.error);
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['attendance'] });
         },
     });
 };
@@ -239,11 +321,15 @@ export const useTimesheets = (companyId: string, userId?: string) => {
     });
 };
 
-export const useAttendanceOverviewStats = (startDate: string, endDate: string) => {
+export const useAttendanceOverviewStats = (
+    startDate: string,
+    endDate: string,
+    forOvertime = false,
+) => {
     return useQuery({
-        queryKey: ['attendance', 'overview-stats', startDate, endDate],
+        queryKey: ['attendance', 'overview-stats', startDate, endDate, forOvertime],
         queryFn: async () => {
-            const result = await getAttendanceOverviewStats(startDate, endDate);
+            const result = await getAttendanceOverviewStats(startDate, endDate, forOvertime);
             if (!result.success) throw new Error(result.error);
             return result.data;
         },
@@ -251,13 +337,18 @@ export const useAttendanceOverviewStats = (startDate: string, endDate: string) =
     });
 };
 
-export const usePaginatedAttendanceRecords = (limit: number, page: number, filter?: PaginatedAttendanceRecordsFilterInput) => {
+export const usePaginatedAttendanceRecords = (
+    page: number,
+    size: number,
+    filter?: PaginatedAttendanceRecordsFilterInput,
+) => {
     return useQuery({
-        queryKey: ['attendance', 'paginated-records', limit, page, filter],
+        queryKey: ['attendance', 'paginated-records', page, size, filter],
         queryFn: async () => {
-            const offset = (page - 1) * limit;
-            const result = await getPaginatedAttendanceRecords(limit, offset, filter);
-            if (!result.success) throw new Error(result.error);
+            const result = await getPaginatedAttendanceRecords(page, size, filter);
+            if (!result.success) {
+                throw new Error(result.error);
+            }
             return result.data;
         },
     });
@@ -274,13 +365,14 @@ export const useAttendanceFilterOptions = () => {
     });
 };
 
-export const useShiftStats = () => {
+export const useShiftStats = (companyOuId?: string) => {
     return useQuery({
-        queryKey: ['attendance', 'shift-stats'],
+        queryKey: ['attendance', 'shift-stats', companyOuId],
         queryFn: async () => {
-            const result = await getShiftStats();
+            const result = await getShiftStats(companyOuId);
             if (!result.success) throw new Error(result.error);
             return result.data;
         },
+        enabled: !!companyOuId,
     });
 };

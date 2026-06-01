@@ -1,33 +1,37 @@
 'use client';
 
 import React from 'react';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { FormField } from '@/components/ui/FormField';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { FormSection } from '@/components/ui/form-section';
 import { useTranslation } from 'react-i18next';
+import { EMPLOYMENT_TYPE_OPTIONS } from '@/features/employee/employee.types';
 import type { UseFormReturn } from 'react-hook-form';
-import * as z from 'zod';
-import { employeeSchema } from '../schemas/employee.schema';
 import { useProfile } from '@/features/auth/hooks/useAuth';
-import { useOrganizationLeafOptions } from '@/features/organization/hooks/useOrganization';
+import { useOrganizationUnitOptions } from '@/features/organization/hooks/useOrganization';
 import { useRoles } from '@/features/roles/hooks/useRoles';
+import { useContracts } from '@/features/contracts/hooks/useContracts';
+import { useDisplayCurrency } from '@/features/settings/hooks/useDisplayCurrency';
 
-
-export type EmployeeFormValues = z.infer<typeof employeeSchema>;
 
 interface EmployeeFormFieldsProps {
-    form: UseFormReturn<EmployeeFormValues>;
+    form: UseFormReturn<any>;
 }
 
 export function EmployeeFormFields({ form }: EmployeeFormFieldsProps) {
     const { t } = useTranslation('employees');
+    const { currencySymbol } = useDisplayCurrency();
     const { data: profile } = useProfile();
-    const { leafOptions, isLoading: hierarchyLoading } = useOrganizationLeafOptions();
+    const { unitOptions, isLoading: hierarchyLoading } = useOrganizationUnitOptions();
     const { data: roles, isLoading: rolesLoading } = useRoles(profile?.companyId);
+    const { data: contractsData } = useContracts();
 
-    const ouOptions = leafOptions.map(u => ({ label: u.name, value: u.id }));
+    const ouOptions = unitOptions.map(u => ({ label: u.label, value: u.id }));
     const roleOptions = roles?.filter(role => !!role.id).map(role => ({ label: role.name, value: role.id! })) || [];
+    const contractOptions = contractsData?.data?.map((c) => ({
+        label: c.contractName || `Contract ${c.contractNumber}`,
+        value: c.id,
+    })) || [];
 
     return (
         <div className="space-y-8 pb-8">
@@ -35,56 +39,40 @@ export function EmployeeFormFields({ form }: EmployeeFormFieldsProps) {
             <FormSection title={t('basicInfo')}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <FormField
-                        control={form.control}
+                        id="firstName"
+                        label={t('firstName')}
+                        placeholder={t('firstName')}
+                        register={form.register}
                         name="firstName"
-                        render={({ field }) => (
-                            <FormItem className="space-y-3">
-                                <FormLabel className="text-sm font-medium">{t('firstName')}</FormLabel>
-                                <FormControl>
-                                    <Input placeholder={t('firstName')} {...field} className="h-9" />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
+                        error={form.formState.errors.firstName as any}
+                        t={t}
                     />
                     <FormField
-                        control={form.control}
+                        id="lastName"
+                        label={t('lastName')}
+                        placeholder={t('lastName')}
+                        register={form.register}
                         name="lastName"
-                        render={({ field }) => (
-                            <FormItem className="space-y-3">
-                                <FormLabel className="text-sm font-medium">{t('lastName')}</FormLabel>
-                                <FormControl>
-                                    <Input placeholder={t('lastName')} {...field} className="h-9" />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
+                        error={form.formState.errors.lastName as any}
+                        t={t}
                     />
                     <FormField
-                        control={form.control}
+                        id="email"
+                        label={t('email')}
+                        placeholder={t('email')}
+                        register={form.register}
                         name="email"
-                        render={({ field }) => (
-                            <FormItem className="space-y-3">
-                                <FormLabel className="text-sm font-medium">{t('email')}</FormLabel>
-                                <FormControl>
-                                    <Input placeholder={t('email')} {...field} className="h-9" />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
+                        error={form.formState.errors.email as any}
+                        t={t}
                     />
                     <FormField
-                        control={form.control}
+                        id="gccid"
+                        label={t('gccid', 'GCC ID')}
+                        placeholder={t('gccidPlaceholder', 'Enter GCC ID')}
+                        register={form.register}
                         name="gccid"
-                        render={({ field }) => (
-                            <FormItem className="space-y-3">
-                                <FormLabel className="text-sm font-medium">{t('gccid', 'GCC ID')}</FormLabel>
-                                <FormControl>
-                                    <Input placeholder={t('gccidPlaceholder', 'Enter GCC ID')} {...field} className="h-9" />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
+                        error={form.formState.errors.gccid as any}
+                        t={t}
                     />
                 </div>
             </FormSection>
@@ -99,7 +87,7 @@ export function EmployeeFormFields({ form }: EmployeeFormFieldsProps) {
                         name="ouId"
                         options={ouOptions}
                         t={t}
-                        error={form.formState.errors.ouId}
+                        error={form.formState.errors.ouId as any}
                         disabled={hierarchyLoading}
                     />
                     <FormSelect
@@ -110,8 +98,47 @@ export function EmployeeFormFields({ form }: EmployeeFormFieldsProps) {
                         name="role"
                         options={roleOptions}
                         t={t}
-                        error={form.formState.errors.role}
+                        error={form.formState.errors.role as any}
                         disabled={rolesLoading}
+                    />
+                    <FormSelect
+                        id="employmentType"
+                        label={t('employmentType', 'Employment Type')}
+                        placeholder={t('selectEmploymentType', 'Select employment type')}
+                        control={form.control}
+                        name="employmentType"
+                        options={EMPLOYMENT_TYPE_OPTIONS.map(opt => ({ label: t(opt.value, opt.label), value: opt.value }))}
+                        t={t}
+                        error={form.formState.errors.employmentType as any}
+                    />
+                    <FormField
+                        id="jobTitle"
+                        label={t('jobTitle', 'Job Title')}
+                        placeholder={t('jobTitlePlaceholder', 'Enter job title')}
+                        register={form.register}
+                        name="jobTitle"
+                        error={form.formState.errors.jobTitle as any}
+                        t={t}
+                    />
+                    <FormSelect
+                        id="contractId"
+                        label={t('contractType', 'Contract Type')}
+                        placeholder={t('selectContractType', 'Select contract type')}
+                        control={form.control}
+                        name="contractId"
+                        options={contractOptions}
+                        t={t}
+                        error={form.formState.errors.contractId as any}
+                    />
+                    <FormField
+                        id="salary"
+                        label={t('salary', { defaultValue: 'Salary ({{symbol}})', symbol: currencySymbol })}
+                        placeholder="0"
+                        type="number"
+                        register={form.register}
+                        name="salary"
+                        error={form.formState.errors.salary as any}
+                        t={t}
                     />
                 </div>
             </FormSection>

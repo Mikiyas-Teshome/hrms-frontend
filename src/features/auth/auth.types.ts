@@ -68,6 +68,7 @@ export interface UserResponse {
     position?: string | null;
     isEmailVerified: boolean;
     onboardingComplete: boolean;
+    onboardingStep: number;
     lastLoginAt?: string | null;
     createdAt: string;
     updatedAt: string;
@@ -155,6 +156,11 @@ export interface UpdateOnboardingCompleteInput {
     userId?: string;
 }
 
+export interface UpdateOnboardingStepInput {
+    step: number;
+    userId?: string;
+}
+
 export interface SignupInput {
     companyName: string;
     email: string;
@@ -187,6 +193,7 @@ export interface UpdateCompanyInput {
     address?: string | null;
     city?: string | null;
     country?: string | null;
+    currency?: string | null;
     description?: string | null;
     email?: string | null;
     industry?: string | null;
@@ -198,6 +205,10 @@ export interface UpdateCompanyInput {
     slug?: string | null;
     state?: string | null;
     themeColor?: string | null;
+    timezone?: string | null;
+    multiDept?: boolean | null;
+    crossDivision?: boolean | null;
+    requireDept?: boolean | null;
     website?: string | null;
 }
 
@@ -213,13 +224,19 @@ export interface CompanyResponse {
     logo?: string | null;
     themeColor?: string | null;
     email?: string | null;
+    phone?: string | null;
     phoneNumber?: string | null;
+    currency?: string | null;
     address?: string | null;
     city?: string | null;
     state?: string | null;
     country?: string | null;
     postalCode?: string | null;
     size?: string | null;
+    timezone?: string | null;
+    multiDept?: boolean | null;
+    crossDivision?: boolean | null;
+    requireDept?: boolean | null;
     currentEmployees: number;
     maxEmployees: number;
     createdAt: string;

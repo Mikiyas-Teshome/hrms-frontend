@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { UniversalDataTable, ColumnConfig } from "@/components/ui/universal-data-table";
 
 import SummaryStatCard from "@/components/dashboard/shared/SummaryStatCard";
+import { SummaryStatCardSkeleton } from "@/components/common/SummaryStatSkeleton";
 import { useEmployee } from "@/features/employee/hooks/useEmployee";
 import { useProfile } from "@/features/auth/hooks/useAuth";
 import { 
@@ -39,6 +40,8 @@ import { mockAttendanceSummary, mockDailyAttendance } from "@/data/mock-payroll"
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
+import { useDisplayCurrency } from "@/features/settings/hooks/useDisplayCurrency";
+import { formatIntlCurrency } from "@/lib/currency";
 // import { mockEmployeeSalaries, mockEarnings, mockDeductions } from "@/data/mock-payroll";
 
 export default function EmployeeSalaryDetailPage({ params }: { params: Promise<{ employeeId: string }> }) {
@@ -48,6 +51,7 @@ export default function EmployeeSalaryDetailPage({ params }: { params: Promise<{
   const { employeeId } = React.use(params);
 
   const { data: employee, isLoading: employeeLoading } = useEmployee(employeeId);
+  const { currencyCode } = useDisplayCurrency(employee?.orgUnit?.orgUnitId);
   /*
   const mockEmp = mockEmployeeSalaries.find(e => e.id === employeeId) || mockEmployeeSalaries[0];
   const employee = {
@@ -83,7 +87,11 @@ export default function EmployeeSalaryDetailPage({ params }: { params: Promise<{
   const removeDeduction = useRemoveDeductionFromSalaryStructure();
 
   const [newBasicSalary, setNewBasicSalary] = useState<number>(0);
-  const [newCurrency, setNewCurrency] = useState<string>("USD");
+  const [newCurrency, setNewCurrency] = useState<string>(currencyCode);
+
+  React.useEffect(() => {
+    setNewCurrency(currencyCode);
+  }, [currencyCode]);
 
   const handleCreateStructure = () => {
     if (newBasicSalary <= 0) {
@@ -148,13 +156,11 @@ export default function EmployeeSalaryDetailPage({ params }: { params: Promise<{
     },
   ];
 
-  const formatCurrency = (value: number, currency: string = "USD") => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD',
+  const formatCurrency = (value: number, currency?: string) =>
+    formatIntlCurrency(value, currency || salaryStructure?.currency || employee?.currency || currencyCode, {
       minimumFractionDigits: 2,
-    }).format(value);
-  };
+      maximumFractionDigits: 2,
+    });
 
   const totalAllowances = salaryStructure?.allowances.reduce((acc, curr) => acc + curr.value, 0) || 0;
   const totalDeductions = salaryStructure?.deductions.reduce((acc, curr) => acc + curr.value, 0) || 0;
@@ -182,7 +188,28 @@ export default function EmployeeSalaryDetailPage({ params }: { params: Promise<{
   };
 
   if (employeeLoading || structureLoading) {
-    return <div className="flex items-center justify-center h-full min-h-[400px]">Loading...</div>;
+    return (
+      <div className="flex flex-col gap-8 w-full max-w-full overflow-hidden pb-10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pt-2">
+          <div className="flex flex-col items-start gap-3">
+            <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <SummaryStatCardSkeleton />
+          <SummaryStatCardSkeleton />
+          <SummaryStatCardSkeleton />
+          <SummaryStatCardSkeleton />
+        </div>
+        <div className="h-9 w-full bg-muted animate-pulse rounded-lg mt-6" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-25 bg-muted animate-pulse rounded-[12px]" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (!salaryStructure) {
@@ -225,7 +252,7 @@ export default function EmployeeSalaryDetailPage({ params }: { params: Promise<{
               <Label htmlFor="currency">{t("payrollData.detail.currency", "Currency")}</Label>
               <Input 
                 id="currency"
-                placeholder="USD" 
+                placeholder={currencyCode} 
                 value={newCurrency} 
                 onChange={(e) => setNewCurrency(e.target.value)}
               />

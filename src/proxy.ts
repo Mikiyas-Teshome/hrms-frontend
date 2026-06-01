@@ -24,8 +24,18 @@ export function proxy(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
   const isPublic = PUBLIC_PATHS.has(pathname);
 
-  // Redirect authenticated users away from public routes (except success pages)
-  if (isPublic && isAuthenticated && !['/verify-success', '/setup-success', '/employee-success'].includes(pathname)) {
+  const authenticatedPublicAllowlist = [
+    '/verify-success',
+    '/setup-success',
+    '/employee-success',
+    '/onboard',
+  ];
+
+  if (
+    isPublic &&
+    isAuthenticated &&
+    !authenticatedPublicAllowlist.includes(pathname)
+  ) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
@@ -47,6 +57,7 @@ export function proxy(request: NextRequest) {
 export const config = {
     matcher: [
         '/dashboard/:path*', 
+        '/onboarding',
         '/onboarding/:path*', 
         '/login', 
         '/forgot-password', 

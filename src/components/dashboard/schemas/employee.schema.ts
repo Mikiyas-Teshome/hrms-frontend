@@ -1,11 +1,5 @@
 import * as z from 'zod';
-import { 
-  phoneValidation, 
-  optionalPhoneValidation, 
-  futureDateValidation, 
-  pastDateValidation, 
-  numericValidation 
-} from '@/lib/validations';
+import { optionalPhoneValidation, pastDateValidation, numericValidation } from '@/lib/validations';
 
 export const employeeSchema = z.object({
   // Basic Info
@@ -34,7 +28,7 @@ export const employeeSchema = z.object({
   country: z.string().optional(),
   city: z.string().optional(),
   address: z.string().optional(),
-  postalCode: numericValidation('numbersOnly'),
+  postalCode: numericValidation('numbersOnly').optional(),
 
   // Emergency Contact
   emergencyName: z.string().optional(),

@@ -1,0 +1,228 @@
+{
+  "common": {
+    "all": "الكل",
+    "none": "لا شيء",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "clearFilters": "مسح الفلاتر"
+  },
+  "employeeDocuments": {
+    "table": {
+      "approval": "الموافقة"
+    },
+    "compliance": {
+      "compliant": "متوافق",
+      "nearExpiry": "قريب الانتهاء",
+      "missing": "مفقود",
+      "expired": "منتهي"
+    },
+    "approval": {
+      "pending": "قيد الانتظار",
+      "approved": "معتمد",
+      "rejected": "مرفوض"
+    },
+    "actions": {
+      "view": "عرض",
+      "edit": "تعديل",
+      "download": "تنزيل",
+      "delete": "حذف",
+      "confirmDelete": "هل تريد حذف هذا المستند؟"
+    },
+    "modal": {
+      "viewTitle": "عرض المستند",
+      "editTitle": "تعديل المستند",
+      "notFound": "المستند غير موجود",
+      "fields": {
+        "name": "الاسم",
+        "employee": "الموظف",
+        "category": "الفئة",
+        "expiry": "تاريخ الانتهاء",
+        "compliance": "الامتثال",
+        "approval": "الموافقة"
+      }
+    },
+    "filters": {
+      "searchPlaceholder": "البحث عن الموظفين",
+      "employee": "الموظف",
+      "category": "الفئة",
+      "status": "الحالة",
+      "approval": "الموافقة",
+      "allEmployees": "كل الموظفين",
+      "allCategories": "كل الفئات",
+      "allStatuses": "كل الحالات",
+      "searchEmployee": "ابحث عن موظف",
+      "noEmployeeFound": "لم يتم العثور على موظف."
+    }
+  },
+  "complianceTracking": {
+    "compliance": {
+      "compliant": "متوافق",
+      "nonCompliant": "غير متوافق"
+    },
+    "actions": {
+      "view": "عرض",
+      "sendReminder": "إرسال تذكير",
+      "markResolved": "تحديد كمحلول"
+    },
+    "emptyRiskAlerts": "لا توجد تنبيهات مخاطر امتثال نشطة.",
+    "quickActionItems": {
+      "viewAffectedEmployees": "عرض الموظفين المتأثرين",
+      "sendReminder": "إرسال تذكير",
+      "generateReport": "إنشاء تقرير"
+    },
+    "filters": {
+      "searchPlaceholder": "البحث عن الموظفين",
+      "complianceStatus": "حالة الامتثال",
+      "allStatuses": "كل الحالات",
+      "department": "القسم",
+      "allDepartments": "كل الأقسام"
+    },
+    "report": {
+      "employeeName": "اسم الموظف",
+      "department": "القسم",
+      "missingDocuments": "المستندات المفقودة",
+      "expiringDocuments": "المستندات القريبة من الانتهاء",
+      "complianceStatus": "حالة الامتثال",
+      "lastReminderDate": "تاريخ آخر تذكير"
+    },
+    "toasts": {
+      "errorTitle": "خطأ",
+      "fetchError": "فشل في جلب معلومات الامتثال اللحظية.",
+      "noMissingTitle": "لا توجد مستندات مفقودة",
+      "noMissingDescription": "قام هذا الموظف برفع جميع مستندات الامتثال المطلوبة.",
+      "reminderSentTitle": "تم إرسال التذكير",
+      "reminderSentDescription": "تم إرسال تذكير البريد الإلكتروني بنجاح لـ: {{docs}}.",
+      "sendReminderError": "فشل في إرسال تذكير الامتثال.",
+      "unexpectedSendReminderError": "حدث خطأ غير متوقع أثناء إرسال التذكير.",
+      "noRemindersTitle": "لا توجد تذكيرات للإرسال",
+      "noRemindersDescription": "لا يوجد موظفون غير متوافقين لديهم مستندات مفقودة في العرض الحالي.",
+      "sendingRemindersTitle": "جاري إرسال التذكيرات",
+      "sendingRemindersDescription": "جاري إرسال تذكيرات امتثال جماعية إلى {{count}} موظف(ين)...",
+      "remindersCompleteTitle": "اكتمل إرسال التذكيرات",
+      "remindersCompleteDescription": "تم إرسال التذكيرات بنجاح إلى {{successCount}} من أصل {{totalCount}} موظف(ين).",
+      "noDataTitle": "لا توجد بيانات",
+      "noDataDescription": "لا توجد بيانات امتثال لإنشاء تقرير.",
+      "reportGeneratedTitle": "تم إنشاء التقرير",
+      "reportGeneratedDescription": "تم تنزيل تقرير الامتثال CSV بنجاح."
+    }
+  },
+  "documentCategories": {
+    "actions": {
+      "view": "عرض",
+      "edit": "تعديل",
+      "changeStatus": "تغيير الحالة",
+      "delete": "حذف",
+      "confirmDelete": "هل تريد حذف هذه الفئة؟"
+    },
+    "status": {
+      "active": "نشط",
+      "inactive": "غير نشط"
+    },
+    "appliedTo": {
+      "allEmployees": "كل الموظفين",
+      "departmentSpecific": "قسم محدد",
+      "foreignEmployees": "الموظفون الأجانب"
+    },
+    "filters": {
+      "searchPlaceholder": "البحث عن الفئات",
+      "status": "الحالة",
+      "allStatuses": "كل الحالات",
+      "appliedTo": "يطبق على",
+      "required": "مطلوب",
+      "expiryRequired": "الانتهاء مطلوب",
+      "yes": "نعم",
+      "no": "لا"
+    }
+  },
+  "addCategorySheet": {
+    "titles": {
+      "create": "إضافة فئة مستند",
+      "edit": "تعديل فئة المستند"
+    },
+    "sections": {
+      "basicInfo": "معلومات أساسية",
+      "requirementRules": "قواعد المتطلبات",
+      "complianceBehavior": "سلوك الامتثال",
+      "validationRules": "قواعد التحقق"
+    },
+    "fields": {
+      "categoryName": "اسم الفئة",
+      "type": "النوع",
+      "description": "الوصف",
+      "requiredDocument": "مستند مطلوب",
+      "appliedTo": "يطبق على",
+      "expiryDateRequired": "تاريخ الانتهاء مطلوب",
+      "expiryReminder": "تذكير الانتهاء",
+      "requireApproval": "يتطلب موافقة",
+      "affectsComplianceStatus": "يؤثر على حالة الامتثال",
+      "criticalDocument": "مستند حرج",
+      "allowedFileTypes": "أنواع الملفات المسموح بها",
+      "maxFileSize": "أقصى حجم ملف"
+    },
+    "placeholders": {
+      "categoryName": "أدخل اسم الفئة",
+      "description": "أضف وصفًا",
+      "maxFileSize": "0"
+    },
+    "typeOptions": {
+      "identification": "هوية",
+      "employment": "توظيف",
+      "educational": "تعليمي"
+    },
+    "appliedToOptions": {
+      "allEmployees": "كل الموظفين",
+      "specificDepartment": "قسم محدد",
+      "foreignEmployees": "الموظفون الأجانب"
+    },
+    "expiryReminderOptions": {
+      "days7": "7 أيام",
+      "days15": "15 يومًا",
+      "days30": "30 يومًا"
+    },
+    "fileTypeOptions": {
+      "pdf": "PDF",
+      "jpeg": "JPEG",
+      "png": "PNG",
+      "doc": "DOC"
+    },
+    "actions": {
+      "saveChanges": "حفظ التغييرات",
+      "createCategory": "إنشاء فئة"
+    },
+    "errors": {
+      "categoryNameRequired": "اسم الفئة مطلوب."
+    },
+    "units": {
+      "mb": "ميغابايت"
+    }
+  },
+  "uploadDocumentModal": {
+    "title": "رفع مستند جديد",
+    "sections": {
+      "documentInfo": "معلومات المستند"
+    },
+    "fields": {
+      "employee": "الموظف",
+      "category": "الفئة",
+      "expiryDate": "تاريخ الانتهاء",
+      "selectFile": "اختر ملفًا"
+    },
+    "placeholders": {
+      "selectEmployee": "اختر موظفًا",
+      "searchEmployee": "ابحث عن موظف",
+      "selectCategory": "اختر فئة"
+    },
+    "empty": {
+      "noEmployeeFound": "لم يتم العثور على موظف."
+    },
+    "file": {
+      "noFileChosen": "لم يتم اختيار ملف",
+      "chooseFile": "اختيار ملف"
+    },
+    "actions": {
+      "uploading": "جاري الرفع...",
+      "uploadDocument": "رفع المستند"
+    }
+  }
+}

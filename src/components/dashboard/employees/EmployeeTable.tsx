@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { UniversalDataTable, ColumnConfig } from '@/components/ui/universal-data-table';
 import {
     DropdownMenu,
@@ -10,19 +9,20 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Eye, Pencil, RefreshCw, Trash2, CircleCheck, CircleX, Shield, Calendar as CalendarIcon } from 'lucide-react';
+import { MoreVertical, Eye, Pencil, RefreshCw, Trash2, CircleCheck, CircleX, Shield, Calendar as CalendarIcon, ListFilter } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
-import { useEmployees } from '@/features/employee/hooks/useEmployee';
+import { usePaginatedEmployees } from '@/features/employee/hooks/useEmployee';
 import { usePermissions } from '@/features/auth/hooks/usePermissions';
-import { EmployeeResponse } from '@/features/employee/employee.types';
+import { EmployeeListFilterInput, EmployeeResponse, EmployeeSortBy, EmployeeSortOrder } from '@/features/employee/employee.types';
 import ConfirmationModal from '@/components/dashboard/shared/ConfirmationModal';
 import UpdatePermissionSheet from './UpdatePermissionSheet';
-import AssignShiftModal from './AssignShiftModal';
+import { AssignShiftModal } from '../organization/assign-shift-modal';
 import { useDeleteEmployee, useUpdateEmployeeStatus } from '@/features/employee/hooks/useEmployee';
 import { useToast } from '@/hooks/use-toast';
 import { Employee, EmployeeStatus as LegacyStatus } from '@/types/employee';
 import { EmployeeStatus } from '@/features/employee/employee.types';
+import EmployeeFilterSection from './EmployeeFilterSection';
 
 interface EmployeeTableProps {
     onImport?: () => void;
@@ -30,6 +30,7 @@ interface EmployeeTableProps {
     onFilterClick?: () => void;
     expandedFilters?: React.ReactNode;
     onEdit?: (employee: EmployeeResponse) => void;
+    ouIdFilter?: string;
 }
 
 const mapEmployeeToLegacy = (emp: EmployeeResponse | null): Employee | null => {
@@ -45,15 +46,20 @@ const mapEmployeeToLegacy = (emp: EmployeeResponse | null): Employee | null => {
     };
 };
 
-const EmployeeTable = ({ onImport, onExport, onFilterClick, expandedFilters, onEdit }: EmployeeTableProps) => {
+const EmployeeTable = ({ onImport, onExport, onEdit, ouIdFilter }: EmployeeTableProps) => {
     const { t, i18n } = useTranslation('employees');
     const { hasPermission } = usePermissions();
     const router = useRouter();
     const isRtl = i18n.language === 'ar' || i18n.language === 'he';
     const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
     const [searchValue, setSearchValue] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [showFilters, setShowFilters] = useState(false);
+    const [activeFilters, setActiveFilters] = useState<EmployeeListFilterInput>({});
+    const [sortColumn, setSortColumn] = useState<string>('createdAt');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [employeeToDelete, setEmployeeToDelete] = useState<EmployeeResponse | null>(null);
     const [isPermissionSheetOpen, setIsPermissionSheetOpen] = useState(false);
@@ -63,20 +69,28 @@ const EmployeeTable = ({ onImport, onExport, onFilterClick, expandedFilters, onE
     const { toast } = useToast();
     const { mutate: deleteEmployee, isPending: isDeleting } = useDeleteEmployee();
     const { mutate: updateStatus } = useUpdateEmployeeStatus();
-    const { data: employeesData, isLoading } = useEmployees({
-        page: currentPage,
-        limit: pageSize,
-    });
+    const effectiveFilter = useMemo(
+        () => ({
+            ...activeFilters,
+            departmentOuId: activeFilters.departmentOuId || ouIdFilter,
+            search: debouncedSearch || undefined,
+            sortBy: mapColumnToSortBy(sortColumn) ?? 'CREATED_AT',
+            sortOrder: (sortDirection === 'asc' ? 'ASC' : 'DESC') as EmployeeSortOrder,
+        }),
+        [activeFilters, ouIdFilter, debouncedSearch, sortColumn, sortDirection],
+    );
+    const { data: employeesData, isLoading } = usePaginatedEmployees(
+        { page: currentPage, size: pageSize },
+        effectiveFilter,
+    );
 
-    const employees = employeesData || [];
-
-    const filteredEmployees = React.useMemo(() => {
-        return employees.filter(emp => 
-            `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(searchValue.toLowerCase()) ||
-            emp.email.toLowerCase().includes(searchValue.toLowerCase()) ||
-            emp.jobTitle.toLowerCase().includes(searchValue.toLowerCase())
-        );
-    }, [employees, searchValue]);
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchValue.trim());
+            setCurrentPage(1);
+        }, 350);
+        return () => clearTimeout(timer);
+    }, [searchValue]);
 
     const handleDeleteClick = (employee: EmployeeResponse) => {
         setEmployeeToDelete(employee);
@@ -248,10 +262,35 @@ const EmployeeTable = ({ onImport, onExport, onFilterClick, expandedFilters, onE
         </DropdownMenu>
     );
 
+    const handleApplyFilters = (filters: EmployeeListFilterInput) => {
+        setActiveFilters(filters);
+        setCurrentPage(1);
+    };
+
+    const handleResetFilters = () => {
+        setActiveFilters({});
+        setCurrentPage(1);
+    };
+
+    const handleSort = (column: string) => {
+        if (!mapColumnToSortBy(column)) {
+            return;
+        }
+        if (sortColumn === column) {
+            setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+        setCurrentPage(1);
+    };
+
+    const activeFilterCount = Object.values(activeFilters).filter(Boolean).length;
+
     return (
         <div className="w-full">
             <UniversalDataTable
-                data={filteredEmployees}
+                data={employeesData?.data || []}
                 columns={columns}
                 enableSelection={true}
                 selectedIds={selectedIds}
@@ -261,14 +300,44 @@ const EmployeeTable = ({ onImport, onExport, onFilterClick, expandedFilters, onE
                 searchPlaceholder={t('searchForEmployees')}
                 onImport={onImport}
                 onExport={onExport}
+                renderCustomFilter={(
+                    <Button
+                        variant="outline"
+                        size="default"
+                        className="h-10 gap-2 border-input"
+                        onClick={() => setShowFilters((prev) => !prev)}
+                    >
+                        <ListFilter className="h-4 w-4" />
+                        <span>{t('filter', 'Filter')}</span>
+                        {activeFilterCount > 0 ? (
+                            <span className="ml-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-white font-semibold">
+                                {activeFilterCount}
+                            </span>
+                        ) : null}
+                    </Button>
+                )}
+                renderFilterPanel={(
+                    <EmployeeFilterSection
+                        isVisible={showFilters}
+                        onApply={handleApplyFilters}
+                        onReset={handleResetFilters}
+                        initialFilters={activeFilters}
+                    />
+                )}
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={handleSort}
                 showImport={hasPermission('employees:import')}
                 showExport={hasPermission('employees:export')}
                 currentPage={currentPage}
-                totalPages={1} // Ideally get from API
+                totalPages={employeesData?.metaData.totalPages || 0}
                 pageSize={pageSize}
                 onPageChange={setCurrentPage}
-                onPageSizeChange={setPageSize}
-                totalItems={filteredEmployees.length}
+                onPageSizeChange={(size) => {
+                    setPageSize(size);
+                    setCurrentPage(1);
+                }}
+                totalItems={employeesData?.metaData.total || 0}
                 renderRowActions={renderRowActions}
                 minWidth="1000px"
                 isLoading={isLoading}
@@ -294,15 +363,17 @@ const EmployeeTable = ({ onImport, onExport, onFilterClick, expandedFilters, onE
             />
 
             <AssignShiftModal
-                open={isAssignShiftOpen}
-                onOpenChange={setIsAssignShiftOpen}
-                employee={employeeForShift}
-            />
-
-            <AssignShiftModal
-                open={isAssignShiftOpen}
-                onOpenChange={setIsAssignShiftOpen}
-                employee={employeeForShift}
+                isOpen={isAssignShiftOpen}
+                onClose={() => {
+                    setIsAssignShiftOpen(false);
+                    setEmployeeForShift(null);
+                }}
+                target={employeeForShift ? {
+                    id: employeeForShift.userId || employeeForShift.id,
+                    name: `${employeeForShift.firstName} ${employeeForShift.lastName}`,
+                    type: 'EMPLOYEE',
+                    companyId: employeeForShift.orgUnit?.orgUnitId || null,
+                } : null}
             />
 
         </div>
@@ -310,3 +381,15 @@ const EmployeeTable = ({ onImport, onExport, onFilterClick, expandedFilters, onE
 };
 
 export default EmployeeTable;
+
+function mapColumnToSortBy(column: string): EmployeeSortBy | null {
+    if (column === 'createdAt') return 'CREATED_AT';
+    if (column === 'employeeNumber') return 'EMPLOYEE_NUMBER';
+    if (column === 'firstName') return 'FIRST_NAME';
+    if (column === 'email') return 'EMAIL';
+    if (column === 'departmentId') return 'DEPARTMENT_ID';
+    if (column === 'jobTitle') return 'JOB_TITLE';
+    if (column === 'employmentType') return 'EMPLOYMENT_TYPE';
+    if (column === 'status') return 'STATUS';
+    return null;
+}

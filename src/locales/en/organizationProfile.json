@@ -48,6 +48,15 @@
     "timezoneRequired": "Please select your timezone",
     "currencyRequired": "Please select your preferred currency",
     "websiteInvalid": "Please enter a valid URL",
-    "emailInvalid": "Please enter a valid email address"
+    "emailInvalid": "Please enter a valid email address",
+    "failedToUpdate": "Failed to update organization profile",
+    "checkYourConnection": "Please check your connection and try again.",
+    "logoUploadFailed": "Logo upload failed"
+  },
+  "success": {
+    "title": "Success",
+    "profileSaved": "Organization profile saved successfully.",
+    "smtpSaved": "Email (SMTP) settings saved successfully.",
+    "profileAndSmtpSaved": "Organization profile and email settings saved successfully."
   }
 }

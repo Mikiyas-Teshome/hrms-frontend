@@ -5,11 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { shiftsStats } from '@/data/attendance';
 import StatCardsList from '@/components/dashboard/attendance/StatCardsList';
 import ShiftsTable from '@/components/dashboard/attendance/ShiftsTable';
-import { Hourglass, Plus } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { Plus } from 'lucide-react';
+import { useForm, useWatch } from 'react-hook-form';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { Button } from '@/components/ui/button';
-import { AddShiftSheet } from '@/components/dashboard/attendance/AddShiftSheet';
+import { ShiftSheet } from '@/components/dashboard/attendance/ShiftSheet';
 import { useShiftTemplates, useShiftStats } from '@/features/attendance/hooks/useAttendance';
 import { useProfile } from '@/features/auth/hooks/useAuth';
 import { useCompanyOptions } from '@/features/organization/hooks/useOrganization';
@@ -20,6 +20,11 @@ import { PermissionScope } from '@/features/roles/roles.types';
 export default function ShiftsPage() {
     const { t } = useTranslation('dashboard');
     const { hasPermission, hasScope, isTenantSuperAdmin, isSystemAdmin } = usePermissions();
+    const isOwnScopeOnly =
+        hasScope('shifts', 'read', 'own') &&
+        !hasScope('shifts', 'read', 'department') &&
+        !hasScope('shifts', 'read', 'company') &&
+        !hasScope('shifts', 'read', 'all');
     const { data: profile } = useProfile();
     const { companies: companiesData, isLoading: isLoadingCompanies } = useCompanyOptions();
     const form = useForm({
@@ -27,9 +32,14 @@ export default function ShiftsPage() {
             companyId: '',
         },
     });
-    const selectedCompanyId = form.watch('companyId');
-    const { data: shiftTemplates } = useShiftTemplates(selectedCompanyId || profile?.companyId || '');
-    const { data: shiftStats } = useShiftStats();
+    const selectedCompanyId = useWatch({
+        control: form.control,
+        name: 'companyId',
+    });
+
+    const companyOuId = isOwnScopeOnly ? '' : (selectedCompanyId || profile?.companyId || '');
+    const { data: shiftTemplates } = useShiftTemplates(companyOuId);
+    const { data: shiftStats, isLoading: isLoadingStats } = useShiftStats(companyOuId || undefined);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
 
     useEffect(() => {
@@ -59,9 +69,6 @@ export default function ShiftsPage() {
             }
         } else if (stat.id === 'shifts') {
             value = shiftTemplates?.length?.toString() || '0';
-        } else {
-            // Fallback to mock value if backend fails but we want to show something (optional)
-            value = stat.value;
         }
         return { ...stat, value };
     });
@@ -74,7 +81,7 @@ export default function ShiftsPage() {
                         {t('attendance.shiftsTitle')}
                     </h2>
                     <div className="flex items-center gap-4">
-                        {(isSystemAdmin || isTenantSuperAdmin || hasScope('shifts', 'read', PermissionScope.ALL)) && (
+                        {!isOwnScopeOnly && (isSystemAdmin || isTenantSuperAdmin || hasScope('shifts', 'read', PermissionScope.ALL)) && (
                             <FormSelect
                                 id="company-selector"
                                 placeholder={isLoadingCompanies ? t("setup.loadingCompanies") : t("setup.selectCompanyPlaceholder")}
@@ -85,7 +92,7 @@ export default function ShiftsPage() {
                                 containerClassName="w-[200px]"
                             />
                         )}
-                        {hasPermission('shifts:create') && (
+                        {!isOwnScopeOnly && hasPermission('shifts:create') && (
                             <Button 
                                 onClick={() => setIsSheetOpen(true)}
                                 className="h-9 gap-2 bg-primary hover:bg-primary/80 text-white rounded-[8px] px-4"
@@ -97,11 +104,11 @@ export default function ShiftsPage() {
                     </div>
                 </div>
 
-                <StatCardsList stats={dynamicStats} />
+                {!isOwnScopeOnly && <StatCardsList stats={dynamicStats} isLoading={isLoadingStats} />}
 
                 <ShiftsTable companyId={selectedCompanyId} />
 
-                <AddShiftSheet 
+                <ShiftSheet 
                     open={isSheetOpen} 
                     onOpenChange={setIsSheetOpen} 
                     defaultCompanyId={selectedCompanyId}

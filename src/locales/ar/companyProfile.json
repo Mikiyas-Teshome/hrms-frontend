@@ -47,5 +47,9 @@
     "currencyRequired": "العملة مطلوبة",
     "invalidWebsite": "يرجى إدخال رابط صحيح",
     "invalidEmail": "يرجى إدخال بريد إلكتروني صحيح"
+  },
+  "success": {
+    "saveTitle": "تم حفظ التقدم",
+    "saveDescription": "يمكنك متابعة الإعداد من لوحة التحكم في أي وقت."
   }
 }

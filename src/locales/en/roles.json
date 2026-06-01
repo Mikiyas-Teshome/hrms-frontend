@@ -25,6 +25,8 @@
   "cancel": "Cancel",
   "tableName": "Name",
   "tableRoleType": "Role type",
+  "tenantRole": "Tenant",
+  "globalRole": "Global",
   "tableDescription": "Description",
   "tablePermissions": "Permissions",
   "searchPlaceholder": "Search for employees",

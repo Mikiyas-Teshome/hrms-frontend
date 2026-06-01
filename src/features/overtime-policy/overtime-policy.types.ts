@@ -15,7 +15,7 @@ export interface OvertimePolicyResponse {
 }
 
 export interface CreateOvertimePolicyInput {
-    companyId?: string;
+    companyId: string;
     name: string;
     description?: string;
     rateValue: number;

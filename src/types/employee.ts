@@ -1,5 +1,3 @@
-import React from 'react';
-
 export enum EmployeeStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',

@@ -39,7 +39,7 @@ const RequestForChangeSheet: React.FC<RequestForChangeSheetProps> = ({ open, onO
         },
     });
 
-    const onSubmit = (data: RequestForChangeFormValues) => {
+    const onSubmit = () => {
         onOpenChange(false);
         form.reset();
     };

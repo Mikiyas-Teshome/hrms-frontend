@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -22,8 +21,6 @@ export function AttendanceClock() {
     const { toast } = useToast();
 
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [elapsedTime, setElapsedTime] = useState('00:00:00');
-
     const todayStr = format(new Date(), 'yyyy-MM-dd');
 
     const { data: attendanceRecords, refetch: refetchAttendance } = useAttendanceRecords(
@@ -47,30 +44,25 @@ export function AttendanceClock() {
         return () => clearInterval(timer);
     }, []);
 
-    // Calculate elapsed time if clocked in
-    useEffect(() => {
-        if (isClockedIn && currentRecord?.clockIn) {
-            const timer = setInterval(() => {
-                if (!currentRecord?.clockIn) return;
-                const start = new Date(currentRecord.clockIn);
-                const now = new Date();
-                const diff = differenceInSeconds(now, start);
+    // Calculate elapsed time as derived state from currentTime
+    const elapsedTime = React.useMemo(() => {
+        const clockIn = currentRecord?.clockIn;
+        const clockOut = currentRecord?.clockOut;
 
-                const hours = Math.floor(diff / 3600);
-                const minutes = Math.floor((diff % 3600) / 60);
-                const seconds = diff % 60;
+        if (clockIn && !clockOut) {
+            const start = new Date(clockIn);
+            const diff = differenceInSeconds(currentTime, start);
 
-                setElapsedTime(
-                    `${hours.toString().padStart(2, '0')}:${minutes
-                        .toString()
-                        .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`,
-                );
-            }, 1000);
-            return () => clearInterval(timer);
-        } else {
-            setElapsedTime('00:00:00');
+            const hours = Math.floor(diff / 3600);
+            const minutes = Math.floor((diff % 3600) / 60);
+            const seconds = diff % 60;
+
+            return `${hours.toString().padStart(2, '0')}:${minutes
+                .toString()
+                .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
-    }, [isClockedIn, currentRecord?.clockIn]);
+        return '00:00:00';
+    }, [currentRecord?.clockIn, currentRecord?.clockOut, currentTime]);
 
     const handleClockAction = () => {
         if (isClockedIn) {

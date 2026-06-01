@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
@@ -10,11 +9,13 @@ interface OnboardingContextType {
     structureData: Partial<OrgStructureValues>;
     policiesData: any;
     payrollData: any;
+    contractsInsurancesData: any;
     teamData: any;
     setProfileData: (data: Partial<OrganizationProfileValues>) => void;
     setStructureData: (data: Partial<OrgStructureValues>) => void;
     setPoliciesData: (data: any) => void;
     setPayrollData: (data: any) => void;
+    setContractsInsurancesData: (data: any) => void;
     setTeamData: (data: any) => void;
 }
 
@@ -25,6 +26,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     const [structureData, setStructureDataState] = useState<Partial<OrgStructureValues>>({});
     const [policiesData, setPoliciesDataState] = useState<any>({});
     const [payrollData, setPayrollDataState] = useState<any>({});
+    const [contractsInsurancesData, setContractsInsurancesDataState] = useState<any>({});
     const [teamData, setTeamDataState] = useState<any>({});
 
     const setProfileData = (data: Partial<OrganizationProfileValues>) => {
@@ -43,6 +45,10 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         setPayrollDataState((prev: any) => ({ ...prev, ...data }));
     };
 
+    const setContractsInsurancesData = (data: any) => {
+        setContractsInsurancesDataState((prev: any) => ({ ...prev, ...data }));
+    };
+
     const setTeamData = (data: any) => {
         setTeamDataState((prev: any) => ({ ...prev, ...data }));
     };
@@ -54,11 +60,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
                 structureData,
                 policiesData,
                 payrollData,
+                contractsInsurancesData,
                 teamData,
                 setProfileData,
                 setStructureData,
                 setPoliciesData,
                 setPayrollData,
+                setContractsInsurancesData,
                 setTeamData,
             }}
         >

@@ -20,21 +20,21 @@ export default function DashboardLayout({ children }: Props) {
 
   return (
       <SidebarProvider>
-          <DashboardSidebar side={isRTL ? 'right' : 'left'} />
-          <SidebarInset className="h-svh overflow-hidden flex flex-col">
-              <div className="flex-1 flex flex-col bg-background text-foreground md:m-2 md:ml-0 md:rounded-xl shadow-sm overflow-hidden border">
-                  <DashboardHeader />
-                  <main
-                      id="dashboard-main"
-                      className={cn(
-                          'flex-1 overflow-auto p-4 md:p-6 custom-scrollbar',
-                          isAssistant && 'no-scrollbar',
-                      )}
-                  >
-                      {children}
-                  </main>
-              </div>
-          </SidebarInset>
-      </SidebarProvider>
+              <DashboardSidebar side={isRTL ? 'right' : 'left'} />
+              <SidebarInset className="h-svh overflow-hidden flex flex-col">
+                  <div className="flex-1 flex flex-col bg-background text-foreground md:m-2 md:ml-0 md:rounded-xl shadow-sm overflow-hidden border">
+                      <DashboardHeader />
+                      <main
+                          id="dashboard-main"
+                          className={cn(
+                              'flex-1 overflow-auto p-4 md:p-6 custom-scrollbar',
+                              isAssistant && 'no-scrollbar',
+                          )}
+                      >
+                          {children}
+                      </main>
+                  </div>
+              </SidebarInset>
+          </SidebarProvider>
   );
 }

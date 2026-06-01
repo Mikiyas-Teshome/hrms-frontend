@@ -95,7 +95,7 @@ export interface GenerateWpsInput {
 }
 
 export interface UpdatePayrollConfigInput {
-    companyId?: string;
+    companyId: string;
     cycleType?: PayrollCycle;
     payDay?: number;
     autoFinalize?: boolean;

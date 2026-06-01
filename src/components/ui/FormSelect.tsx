@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { Label } from '@/components/ui/label';
@@ -34,6 +33,7 @@ export function FormSelect<T extends FieldValues>({
     error,
     options,
     t,
+    disabled,
     containerClassName,
     onChange,
 }: Props<T>) {
@@ -50,6 +50,7 @@ export function FormSelect<T extends FieldValues>({
                 control={control}
                 render={({ field }) => (
                     <Select 
+                        disabled={disabled}
                         onValueChange={(val) => {
                             field.onChange(val);
                             onChange?.(val);

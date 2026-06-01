@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import SummaryStatList from '@/components/dashboard/shared/SummaryStatList';
@@ -13,6 +13,9 @@ import { FormSelect } from '@/components/ui/FormSelect';
 import { useProfile } from '@/features/auth/hooks/useAuth';
 import { useCompanyOptions } from '@/features/organization/hooks/useOrganization';
 
+import { useLeaveTypes } from '@/features/leave-type/hooks/useLeaveType';
+import { SummaryStatListSkeleton } from '@/components/common/SummaryStatSkeleton';
+
 const LeaveTypesPage = () => {
     const { t } = useTranslation('dashboard');
     const { data: profile } = useProfile();
@@ -22,7 +25,11 @@ const LeaveTypesPage = () => {
             companyId: '',
         },
     });
-    const selectedCompanyId = form.watch('companyId');
+    const selectedCompanyId = useWatch({
+        control: form.control,
+        name: 'companyId',
+    });
+    const { isLoading } = useLeaveTypes(selectedCompanyId || profile?.companyId || '');
     const [isSheetOpen, setIsSheetOpen] = useState(false);
 
     useEffect(() => {
@@ -60,14 +67,18 @@ const LeaveTypesPage = () => {
                     </Button>
                 </div>
             </div>
-            <SummaryStatList
-                stats={leaveTypeStats.map((stat) => ({
-                    title: t(`leaveTypes.stats.${stat.title.includes('Number') ? 'number' : stat.title.includes('Active') ? 'active' : stat.title.includes('Unpaid') ? 'unpaid' : 'paid'}`, stat.title),
-                    value: stat.value,
-                    icon: stat.icon,
-                    borderColor: stat.borderColor
-                }))}
-            />
+            {isLoading ? (
+                <SummaryStatListSkeleton count={4} />
+            ) : (
+                <SummaryStatList
+                    stats={leaveTypeStats.map((stat) => ({
+                        title: t(`leaveTypes.stats.${stat.title.includes('Number') ? 'number' : stat.title.includes('Active') ? 'active' : stat.title.includes('Unpaid') ? 'unpaid' : 'paid'}`, stat.title),
+                        value: stat.value,
+                        icon: stat.icon,
+                        borderColor: stat.borderColor
+                    }))}
+                />
+            )}
             <LeaveTypesTable companyId={selectedCompanyId} />
             
             <CreateLeaveTypeSheet 

@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
 import SummaryStatList from '@/components/dashboard/shared/SummaryStatList';
+import { SummaryStatListSkeleton } from '@/components/common/SummaryStatSkeleton';
 import EmployeeTable from './EmployeeTable';
 import AddEmployeeSheet from './AddEmployeeSheet';
 import EditEmployeeSheet from './EditEmployeeSheet';
@@ -18,8 +20,12 @@ import { exportReport } from '@/lib/export-utils';
 
 const EmployeeDirectory = () => {
     const { t } = useTranslation('employees');
+    const searchParams = useSearchParams();
+    const ouIdFilter = searchParams.get('ouId') ?? undefined;
     const { hasPermission } = usePermissions();
-    const { data: employeesData } = useEmployees();
+    const { data: employeesData, isLoading } = useEmployees(
+        ouIdFilter ? { ouId: ouIdFilter } : {},
+    );
     const employees = employeesData || [];
 
     const dynamicStats = [
@@ -32,7 +38,6 @@ const EmployeeDirectory = () => {
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
     const [employeeToEdit, setEmployeeToEdit] = useState<EmployeeResponse | null>(null);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-    const [isFilterVisible, setIsFilterVisible] = useState(false);
 
     const handleAddEmployeeClick = () => {
         setEmployeeToEdit(null);
@@ -67,16 +72,16 @@ const EmployeeDirectory = () => {
         });
     };
 
-    const handleFilterToggle = () => {
-        setIsFilterVisible(!isFilterVisible);
-    };
+    // const handleFilterToggle = () => {
+    //     setIsFilterVisible(!isFilterVisible);
+    // };
 
-    const handleApplyFilters = () => {
-        setIsFilterVisible(false);
-    };
+    // const handleApplyFilters = () => {
+    //     setIsFilterVisible(false);
+    // };
 
-    const handleResetFilters = () => {
-    };
+    // const handleResetFilters = () => {
+    // };
 
     return (
         <div className="flex flex-col gap-8 w-full animate-in fade-in duration-500">
@@ -112,16 +117,20 @@ const EmployeeDirectory = () => {
             </div>
 
             {/* Stats Section */}
-            <SummaryStatList
-                stats={dynamicStats.map((stat) => ({
-                    title: t(stat.title),
-                    value: stat.value,
-                    icon: stat.icon,
-                    iconBgColor: stat.bgColor,
-                    iconColor: stat.color,
-                    borderColor: stat.borderColor,
-                }))}
-            />
+            {isLoading ? (
+                <SummaryStatListSkeleton count={4} />
+            ) : (
+                <SummaryStatList
+                    stats={dynamicStats.map((stat) => ({
+                        title: t(stat.title),
+                        value: stat.value,
+                        icon: stat.icon,
+                        iconBgColor: stat.bgColor,
+                        iconColor: stat.color,
+                        borderColor: stat.borderColor,
+                    }))}
+                />
+            )}
             
             {/* Table Section */}
             <div className="w-full">
@@ -129,6 +138,7 @@ const EmployeeDirectory = () => {
                     onImport={handleImportClick}
                     onExport={handleExportClick}
                     onEdit={handleEditEmployee}
+                    ouIdFilter={ouIdFilter}
                 />
             </div>
         </div>

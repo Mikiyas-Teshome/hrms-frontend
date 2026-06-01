@@ -13,8 +13,8 @@ export async function fetchAuditLogs(filters: { companyId?: string; entityId?: s
       { ...filters }
     );
     return data.auditLogs;
-  } catch (error: any) {
-    if (error?.message?.includes('Cannot query field "auditLogs"')) {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('Cannot query field "auditLogs"')) {
       // Gracefully handle missing audit log endpoints
       return [];
     }

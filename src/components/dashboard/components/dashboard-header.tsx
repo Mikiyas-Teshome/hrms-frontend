@@ -59,7 +59,7 @@ export function DashboardHeader() {
         clockOut: new Date().toISOString()
       };
       doClockOut(clockOutInput, {
-        onSuccess: (response) => {
+        onSuccess: () => {
           toast({ title: t('attendance.clockOutSuccess', 'Clocked Out'), description: t('attendance.clockOutDesc', 'You have successfully clocked out.'), variant: "success" });
           refetchAttendance();
         },
@@ -69,12 +69,12 @@ export function DashboardHeader() {
       });
     } else {
       const clockInInput = {
-        userId: user?.id!,
+        userId: user?.id || '',
         date: new Date().toISOString(),
         clockIn: new Date().toISOString()
       };
       doClockIn(clockInInput, {
-        onSuccess: (response) => {
+        onSuccess: () => {
           toast({ title: t('attendance.clockInSuccess', 'Clocked In'), description: t('attendance.clockInDesc', 'You have successfully clocked in.'), variant: "success" });
           refetchAttendance();
         },
@@ -91,16 +91,16 @@ export function DashboardHeader() {
     year: "numeric",
   }).format(new Date())
 
-  if (isInitializing) {
-    return <DashboardHeaderSkeleton />;
-  }
-
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  if (isInitializing) {
+    return <DashboardHeaderSkeleton />;
+  }
 
   const formattedTime = currentTime.toLocaleTimeString(locale, {
     hour: "numeric",

@@ -23,6 +23,7 @@ export const EMPLOYEE_FIELDS_FRAGMENT = `
     homeState
     id
     userId
+    activeEmployeeContractId
     jobTitle
     lastName
     managerId
@@ -62,6 +63,15 @@ export const CREATE_EMPLOYEE_MUTATION = `
   ${EMPLOYEE_FIELDS_FRAGMENT}
 `;
 
+export const UPDATE_MY_EMPLOYEE_PROFILE_MUTATION = `
+  mutation UpdateMyEmployeeProfile($input: UpdateMyEmployeeProfileInput!) {
+    updateMyEmployeeProfile(input: $input) {
+      ...EmployeeFields
+    }
+  }
+  ${EMPLOYEE_FIELDS_FRAGMENT}
+`;
+
 export const UPDATE_EMPLOYEE_MUTATION = `
   mutation UpdateEmployee($id: String!, $input: UpdateEmployeeInput!) {
     updateEmployee(id: $id, input: $input) {
@@ -87,12 +97,44 @@ export const GET_EMPLOYEE_QUERY = `
 `;
 
 export const GET_EMPLOYEES_QUERY = `
-  query GetEmployees($departmentId: String, $limit: Float, $page: Float, $status: String) {
-    employees(departmentId: $departmentId, limit: $limit, page: $page, status: $status) {
+  query GetEmployees($departmentId: String, $ouId: String, $limit: Float, $page: Float, $status: String) {
+    employees(departmentId: $departmentId, ouId: $ouId, limit: $limit, page: $page, status: $status) {
       ...EmployeeFields
     }
   }
   ${EMPLOYEE_FIELDS_FRAGMENT}
+`;
+
+export const GET_PAGINATED_EMPLOYEES_QUERY = `
+  query GetPaginatedEmployees($pagination: PaginationInput, $filter: PaginatedEmployeesFilterInput) {
+    paginatedEmployees(pagination: $pagination, filter: $filter) {
+      data {
+        ...EmployeeFields
+      }
+      metaData {
+        page
+        size
+        total
+        totalPages
+        hasNext
+        hasPrevious
+        timestamp
+      }
+    }
+  }
+  ${EMPLOYEE_FIELDS_FRAGMENT}
+`;
+
+export const GET_EMPLOYEE_DIRECTORY_QUERY = `
+  query GetEmployeeDirectory {
+    employeesDirectory {
+      id
+      userId
+      firstName
+      lastName
+      departmentId
+    }
+  }
 `;
 
 export const GET_MY_EMPLOYEE_PROFILE_QUERY = `
@@ -124,6 +166,31 @@ export const INVITE_EMPLOYEE_MUTATION = `
       companyId
       status
       role
+    }
+  }
+`;
+
+export const INVITE_EMPLOYEES_MUTATION = `
+  mutation InviteEmployees($input: BulkInviteEmployeesInput!) {
+    inviteEmployees(input: $input) {
+      successfulCount
+      failedCount
+      successfulInvitations {
+        id
+        email
+        token
+        expiresAt
+        createdAt
+        companyId
+        status
+        role
+      }
+      failedInvitations {
+        email
+        reason
+        attempts
+        rowIndex
+      }
     }
   }
 `;

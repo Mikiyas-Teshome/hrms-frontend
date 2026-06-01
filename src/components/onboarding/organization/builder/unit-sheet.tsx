@@ -17,7 +17,7 @@ import { TimezoneSelect } from "@/components/ui/TimezoneSelect";
 import { CurrencySelect } from "@/components/ui/CurrencySelect";
 import { IndustrySelect } from "@/components/ui/IndustrySelect";
 import { cn } from "@/lib/utils";
-import { ORGANIZATION_THEME_COLORS, type ThemeColorId } from "@/constants/colors";
+import { ORGANIZATION_THEME_COLORS } from "@/constants/colors";
 import { OUType } from "@/types/domain";
 
 interface UnitSheetProps {

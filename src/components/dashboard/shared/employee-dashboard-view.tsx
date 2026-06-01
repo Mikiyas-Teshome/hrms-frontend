@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import {
   FileClock,
@@ -10,7 +9,6 @@ import {
   MoreVertical,
   CircleCheck,
   Loader,
-  Plus,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -104,7 +102,7 @@ function StatusBadge({ status }: { status: "Approved" | "Pending" }) {
   )
 }
 
-function MyLeaveRequestsTable({ isRTL }: { isRTL: boolean }) {
+function MyLeaveRequestsTable() {
   const { t } = useTranslation("dashboard")
 
   return (
@@ -178,7 +176,7 @@ function MyLeaveRequestsTable({ isRTL }: { isRTL: boolean }) {
   )
 }
 
-function OvertimeCard({ isRTL }: { isRTL: boolean }) {
+function OvertimeCard() {
   const { t } = useTranslation("dashboard")
 
   return (
@@ -334,10 +332,10 @@ export function EmployeeDashboardView() {
       {/* ── Middle section: leave table + overtime ── */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8 w-full">
         <div className="lg:col-span-3">
-          <MyLeaveRequestsTable isRTL={isRTL} />
+          <MyLeaveRequestsTable />
         </div>
         <div className="lg:col-span-1">
-          <OvertimeCard isRTL={isRTL} />
+          <OvertimeCard />
         </div>
       </div>
 

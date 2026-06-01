@@ -4,8 +4,8 @@ export interface AuditLog {
   companyId: string;
   entityId: string;
   entityType: string;
-  newValues?: any;
-  oldValues?: any;
+  newValues?: Record<string, unknown>;
+  oldValues?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
   userId: string;
@@ -18,8 +18,8 @@ export interface CreateAuditLogInput {
   entityId: string;
   entityType: string;
   ipAddress?: string;
-  newValues?: any;
-  oldValues?: any;
+  newValues?: Record<string, unknown>;
+  oldValues?: Record<string, unknown>;
   userAgent?: string;
   userId: string;
 }

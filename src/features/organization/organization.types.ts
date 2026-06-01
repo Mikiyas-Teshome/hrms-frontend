@@ -21,11 +21,13 @@ export interface OrganizationUnitType {
     companyProfile?: CompanyProfileType | null;
     displayLabel?: string | null;
     id: string;
+    companyId?: string | null;
     members: UserResponse[];
     name: string;
     parentId?: string | null;
     status: string;
     totalMembers: number;
+    employeeCount?: number;
     type: OUType;
 }
 

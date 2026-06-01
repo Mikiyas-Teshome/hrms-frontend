@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { ORGANIZATION_THEME_COLORS, DEFAULT_THEME_COLOR_ID, ThemeColorId } from '@/constants/colors';
 
 interface BrandColorContextType {
@@ -13,31 +13,33 @@ const BrandColorContext = createContext<BrandColorContextType | undefined>(undef
 const STORAGE_KEY = 'organization-theme-color';
 
 export function BrandColorProvider({ children }: { children: React.ReactNode }) {
-  const [themeColorId, setThemeColorId] = useState<ThemeColorId>(DEFAULT_THEME_COLOR_ID);
-
-  // Initialize from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY) as ThemeColorId;
-    if (saved && ORGANIZATION_THEME_COLORS.some(c => c.id === saved)) {
-      setThemeColorId(saved);
-      applyColor(saved);
-    } else {
-      applyColor(DEFAULT_THEME_COLOR_ID);
+  const [themeColorId, setThemeColorId] = useState<ThemeColorId>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY) as ThemeColorId;
+      if (saved && ORGANIZATION_THEME_COLORS.some(c => c.id === saved)) {
+        return saved;
+      }
     }
-  }, []);
+    return DEFAULT_THEME_COLOR_ID;
+  });
 
-  const applyColor = (id: ThemeColorId) => {
+  const applyColor = useCallback((id: ThemeColorId) => {
     const colorEntry = ORGANIZATION_THEME_COLORS.find(c => c.id === id);
     if (colorEntry) {
       document.documentElement.style.setProperty('--primary', colorEntry.value);
     }
-  };
+  }, []);
 
-  const updateBrandColor = (id: ThemeColorId) => {
+  // Sync color on mount
+  useEffect(() => {
+    applyColor(themeColorId);
+  }, [applyColor, themeColorId]);
+
+  const updateBrandColor = useCallback((id: ThemeColorId) => {
     setThemeColorId(id);
     localStorage.setItem(STORAGE_KEY, id);
     applyColor(id);
-  };
+  }, [applyColor]);
 
   return (
     <BrandColorContext.Provider value={{ themeColorId, updateBrandColor }}>

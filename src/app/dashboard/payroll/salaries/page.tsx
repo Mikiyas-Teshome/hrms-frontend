@@ -8,11 +8,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UniversalDataTable, ColumnConfig } from "@/components/ui/universal-data-table";
 import { TableActionMenu } from "@/components/ui/table-action-menu";
 import SummaryStatCard from "@/components/dashboard/shared/SummaryStatCard";
+import { SummaryStatCardSkeleton } from "@/components/common/SummaryStatSkeleton";
 import { useRouter } from "next/navigation";
 import { useEmployees } from "@/features/employee/hooks/useEmployee";
 import { EmployeeResponse } from "@/features/employee/employee.types";
 import { format } from "date-fns";
 import { ProtectedRoute } from "@/components/auth/protected-route";
+import { useDisplayCurrency } from "@/features/settings/hooks/useDisplayCurrency";
+import { formatIntlCurrency } from "@/lib/currency";
 
 export default function EmployeeSalariesPage() {
   const { t } = useTranslation("dashboard");
@@ -22,16 +25,7 @@ export default function EmployeeSalariesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
-
-  // Format currency
-  const formatCurrency = (value: number, currency: string = "USD") => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency || 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  const { currencyCode, formatAmount } = useDisplayCurrency();
 
   const columns: ColumnConfig<EmployeeResponse>[] = [
     {
@@ -52,7 +46,11 @@ export default function EmployeeSalariesPage() {
       key: "salary",
       label: t("payrollData.columns.salary", "Salary"),
       sortable: true,
-      render: (item) => <span className="text-muted-foreground">{formatCurrency(item.salary || 0, item.currency || "USD")}</span>,
+      render: (item) => (
+        <span className="text-muted-foreground">
+          {formatIntlCurrency(item.salary || 0, item.currency || currencyCode)}
+        </span>
+      ),
     },
     {
       key: "jobTitle",
@@ -143,30 +141,40 @@ export default function EmployeeSalariesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryStatCard
-          title={t("payrollData.stats.numberEmployees", "Number of employees")}
-          value={employees.length.toString()}
-          icon={Users}
-          iconColor="#2865E3"
-          iconBgColor="transparent"
-          borderColor="#2865E380"
-        />
-        <SummaryStatCard
-          title={t("payrollData.stats.activeEmployees", "Active employees")}
-          value={activeEmployeesCount.toString()}
-          icon={CheckCircle2}
-          iconColor="#22C55E"
-          iconBgColor="transparent"
-          borderColor="#22C55E80"
-        />
-        <SummaryStatCard
-          title={t("payrollData.stats.totalSalary", "Total employee salary")}
-          value={formatCurrency(totalSalary)}
-          icon={DollarSign}
-          iconColor="#22C55E"
-          iconBgColor="transparent"
-          borderColor="#22C55E80"
-        />
+        {isLoading ? (
+          <>
+            <SummaryStatCardSkeleton />
+            <SummaryStatCardSkeleton />
+            <SummaryStatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <SummaryStatCard
+              title={t("payrollData.stats.numberEmployees", "Number of employees")}
+              value={employees.length.toString()}
+              icon={Users}
+              iconColor="#2865E3"
+              iconBgColor="transparent"
+              borderColor="#2865E380"
+            />
+            <SummaryStatCard
+              title={t("payrollData.stats.activeEmployees", "Active employees")}
+              value={activeEmployeesCount.toString()}
+              icon={CheckCircle2}
+              iconColor="#22C55E"
+              iconBgColor="transparent"
+              borderColor="#22C55E80"
+            />
+            <SummaryStatCard
+              title={t("payrollData.stats.totalSalary", "Total employee salary")}
+              value={formatAmount(totalSalary)}
+              icon={DollarSign}
+              iconColor="#22C55E"
+              iconBgColor="transparent"
+              borderColor="#22C55E80"
+            />
+          </>
+        )}
       </div>
 
       <UniversalDataTable

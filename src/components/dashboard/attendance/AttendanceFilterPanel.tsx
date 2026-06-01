@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useForm, Control } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { FormSelect } from '@/components/ui/FormSelect';
@@ -14,41 +14,99 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/features/auth/hooks/usePermissions';
 
+type AttendanceFilterVariant = 'overview' | 'overtime';
+
+const OVERTIME_STATUS_OPTIONS = ['PENDING', 'APPROVED', 'REJECTED', 'PAID'] as const;
+
 interface AttendanceFilterPanelProps {
     onApply: (filters: PaginatedAttendanceRecordsFilterInput) => void;
     onReset: () => void;
     initialFilters?: PaginatedAttendanceRecordsFilterInput;
     className?: string;
+    variant?: AttendanceFilterVariant;
 }
+
+const findUnit = (id: string, units: OrganizationUnitType[]): OrganizationUnitType | null => {
+    for (const unit of units) {
+        if (unit.id === id) return unit;
+        if (unit.children) {
+            const found = findUnit(id, unit.children);
+            if (found) return found;
+        }
+    }
+    return null;
+};
+
+const getAllUnitsOfType = (type: string, units: OrganizationUnitType[]): OrganizationUnitType[] => {
+    let result: OrganizationUnitType[] = [];
+    for (const unit of units) {
+        if (unit.type === type) {
+            result.push(unit);
+        }
+        if (unit.children) {
+            result = result.concat(getAllUnitsOfType(type, unit.children));
+        }
+    }
+    return result;
+};
 
 export function AttendanceFilterPanel({
     onApply,
     onReset,
     initialFilters,
     className,
+    variant = 'overview',
 }: AttendanceFilterPanelProps) {
     const { t, i18n } = useTranslation('dashboard');
     const isRtl = i18n.language === 'ar';
     const { user } = useAuth();
     const { isSystemAdmin, isTenantSuperAdmin, hasScope } = usePermissions();
-    const { data: options, isLoading: isLoadingOptions } = useAttendanceFilterOptions();
-    const { data: hierarchy, isLoading: isLoadingHierarchy } = useOrganizationHierarchy();
+    const isOwnScopeOnly = hasScope('attendance', 'read', 'own') && !hasScope('attendance', 'read', 'company') && !hasScope('attendance', 'read', 'all');
+    const { data: options } = useAttendanceFilterOptions();
+    const { data: hierarchy } = useOrganizationHierarchy();
 
-    const { control, handleSubmit, reset, watch, setValue } = useForm<PaginatedAttendanceRecordsFilterInput>({
-        defaultValues: initialFilters || {
+    const defaultFormValues: PaginatedAttendanceRecordsFilterInput = {
+        companyOuId: 'all',
+        divisionOuId: 'all',
+        subDivisionOuId: 'all',
+        departmentOuId: 'all',
+        shiftType: undefined,
+        status: undefined,
+        overtimeStatus: undefined,
+        contractType: 'all',
+        ...initialFilters,
+    };
+
+    const { control, handleSubmit, reset } = useForm<PaginatedAttendanceRecordsFilterInput>({
+        defaultValues: defaultFormValues,
+    });
+
+    React.useEffect(() => {
+        reset({
             companyOuId: 'all',
             divisionOuId: 'all',
             subDivisionOuId: 'all',
             departmentOuId: 'all',
             shiftType: undefined,
             status: undefined,
+            overtimeStatus: undefined,
             contractType: 'all',
-        },
-    });
+            ...initialFilters,
+        });
+    }, [initialFilters, reset]);
 
-    const selectedCompanyId = watch('companyOuId');
-    const selectedDivisionId = watch('divisionOuId');
-    const selectedSubDivisionId = watch('subDivisionOuId');
+    const selectedCompanyId = useWatch({
+        control,
+        name: 'companyOuId',
+    });
+    const selectedDivisionId = useWatch({
+        control,
+        name: 'divisionOuId',
+    });
+    const selectedSubDivisionId = useWatch({
+        control,
+        name: 'subDivisionOuId',
+    });
 
     // Reset logic: we don't auto-reset children anymore to allow independent filtering
     // across the hierarchy, as per the hybrid model requirement.
@@ -60,45 +118,29 @@ export function AttendanceFilterPanel({
             departmentOuId: 'all',
             shiftType: undefined,
             status: undefined,
+            overtimeStatus: undefined,
             contractType: 'all',
         });
         onReset();
     };
 
     const onSubmit = (data: PaginatedAttendanceRecordsFilterInput) => {
-        // Filter out 'all' values before sending to API
         const sanitized = Object.fromEntries(
             Object.entries(data).map(([key, value]) => [
                 key,
                 value === 'all' ? undefined : value,
             ])
         ) as PaginatedAttendanceRecordsFilterInput;
+
+        if (variant === 'overtime') {
+            sanitized.status = undefined;
+        } else {
+            sanitized.overtimeStatus = undefined;
+        }
+
         onApply(sanitized);
     };
 
-    const findUnit = React.useCallback((id: string, units: OrganizationUnitType[]): OrganizationUnitType | null => {
-        for (const unit of units) {
-            if (unit.id === id) return unit;
-            if (unit.children) {
-                const found = findUnit(id, unit.children);
-                if (found) return found;
-            }
-        }
-        return null;
-    }, []);
-
-    const getAllUnitsOfType = React.useCallback((type: string, units: OrganizationUnitType[]): OrganizationUnitType[] => {
-        let result: OrganizationUnitType[] = [];
-        for (const unit of units) {
-            if (unit.type === type) {
-                result.push(unit);
-            }
-            if (unit.children) {
-                result = result.concat(getAllUnitsOfType(type, unit.children));
-            }
-        }
-        return result;
-    }, []);
 
     const filteredCompanies = React.useMemo(() => {
         if (!hierarchy?.[0]?.children) return [];
@@ -109,7 +151,7 @@ export function AttendanceFilterPanel({
         return sourceCompanies.filter((c: OrganizationUnitType) => c.id === user?.companyId);
     }, [hierarchy, isSystemAdmin, isTenantSuperAdmin, hasScope, user?.companyId]);
 
-    const canSelectCompany = isSystemAdmin || isTenantSuperAdmin || hasScope('attendance', 'read', PermissionScope.ALL);
+    const canSelectCompany = !isOwnScopeOnly && (isSystemAdmin || isTenantSuperAdmin || hasScope('attendance', 'read', PermissionScope.ALL));
 
     const filteredDivisions = React.useMemo(() => {
         if (!hierarchy) return [];
@@ -120,7 +162,7 @@ export function AttendanceFilterPanel({
         }
 
         return getAllUnitsOfType('DIVISION', hierarchy);
-    }, [hierarchy, selectedCompanyId, findUnit, getAllUnitsOfType]);
+    }, [hierarchy, selectedCompanyId]);
 
     const filteredSubDivisions = React.useMemo(() => {
         if (!hierarchy) return [];
@@ -136,7 +178,7 @@ export function AttendanceFilterPanel({
         }
 
         return getAllUnitsOfType('SUB_DIVISION', hierarchy);
-    }, [hierarchy, selectedDivisionId, selectedCompanyId, findUnit, getAllUnitsOfType]);
+    }, [hierarchy, selectedDivisionId, selectedCompanyId]);
 
     const filteredDepartments = React.useMemo(() => {
         if (!hierarchy) return [];
@@ -157,7 +199,7 @@ export function AttendanceFilterPanel({
         }
 
         return getAllUnitsOfType('DEPARTMENT', hierarchy);
-    }, [hierarchy, selectedSubDivisionId, selectedDivisionId, selectedCompanyId, findUnit, getAllUnitsOfType]);
+    }, [hierarchy, selectedSubDivisionId, selectedDivisionId, selectedCompanyId]);
 
     return (
         <form 
@@ -188,7 +230,7 @@ export function AttendanceFilterPanel({
                 )}
 
                 {/* Division Filter */}
-                {filteredDivisions.length > 0 && (
+                {!isOwnScopeOnly && filteredDivisions.length > 0 && (
                     <div className="w-full">
                         <FormSelect
                             id="filter-division"
@@ -207,7 +249,7 @@ export function AttendanceFilterPanel({
                 )}
 
                 {/* Sub-division Filter */}
-                {filteredSubDivisions.length > 0 && (
+                {!isOwnScopeOnly && filteredSubDivisions.length > 0 && (
                     <div className="w-full">
                         <FormSelect
                             id="filter-subdivision"
@@ -226,7 +268,7 @@ export function AttendanceFilterPanel({
                 )}
 
                 {/* Department Filter */}
-                {filteredDepartments.length > 0 && (
+                {!isOwnScopeOnly && filteredDepartments.length > 0 && (
                     <div className="w-full">
                         <FormSelect
                             id="filter-department"
@@ -264,42 +306,64 @@ export function AttendanceFilterPanel({
                     />
                 </div>
 
-                {/* Status Filter */}
-                <div className="w-full">
-                    <FormSelect
-                        id="filter-status"
-                        label={t('attendance.status', 'Status')}
-                        control={control as any}
-                        name="status"
-                        placeholder={t('attendance.all', 'All')}
-                        t={t}
-                        containerClassName="w-full space-y-4"
-                        options={[
-                            { label: t('attendance.all', 'All'), value: 'all' },
-                            ...Object.values(AttendanceStatus).map(s => ({ 
-                                label: s.charAt(0) + s.slice(1).toLowerCase().replace('_', ' '), 
-                                value: s 
-                            }))
-                        ]}
-                    />
-                </div>
+                {variant === 'overtime' ? (
+                    <div className="w-full">
+                        <FormSelect
+                            id="filter-overtime-status"
+                            label={t('attendance.overtimeStatus', 'Overtime status')}
+                            control={control as any}
+                            name="overtimeStatus"
+                            placeholder={t('attendance.all', 'All')}
+                            t={t}
+                            containerClassName="w-full space-y-4"
+                            options={[
+                                { label: t('attendance.all', 'All'), value: 'all' },
+                                ...OVERTIME_STATUS_OPTIONS.map((s) => ({
+                                    label: s.charAt(0) + s.slice(1).toLowerCase(),
+                                    value: s,
+                                })),
+                            ]}
+                        />
+                    </div>
+                ) : (
+                    <div className="w-full">
+                        <FormSelect
+                            id="filter-status"
+                            label={t('attendance.status', 'Status')}
+                            control={control as any}
+                            name="status"
+                            placeholder={t('attendance.all', 'All')}
+                            t={t}
+                            containerClassName="w-full space-y-4"
+                            options={[
+                                { label: t('attendance.all', 'All'), value: 'all' },
+                                ...Object.values(AttendanceStatus).map((s) => ({
+                                    label: s.charAt(0) + s.slice(1).toLowerCase().replace('_', ' '),
+                                    value: s,
+                                })),
+                            ]}
+                        />
+                    </div>
+                )}
 
                 {/* Contract Type Filter */}
-                <div className="w-full">
-                    <FormSelect
-                        id="filter-contracttype"
-                        label={t('attendance.contractType', 'Contract type')}
-                        control={control as any}
-                        name="contractType"
-                        placeholder={t('attendance.all', 'All')}
-                        t={t}
-                        containerClassName="w-full space-y-4"
-                        options={[
-                            { label: t('attendance.all', 'All'), value: 'all' },
-                            ...(options?.contractTypes.map(c => ({ label: c, value: c })) || [])
-                        ]}
-                    />
-                </div>
+                {!isOwnScopeOnly && (
+                    <div className="w-full">
+                        <FormSelect
+                            id="filter-contracttype"
+                            label={t('attendance.contractType', 'Contract type')}
+                            control={control as any}
+                            name="contractType"
+                            placeholder={t('attendance.all', 'All')}
+                            t={t}
+                            containerClassName="w-full space-y-4"
+                            options={[
+                                { label: t('attendance.all', 'All'), value: 'all' },
+                                ...(options?.contractTypes.map(c => ({ label: c, value: c })) || [])
+                            ]}
+                        />
+                    </div>
+                )}
             </div>
 
             <div className={cn(

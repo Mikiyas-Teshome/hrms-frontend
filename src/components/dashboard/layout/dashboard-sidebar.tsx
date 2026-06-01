@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import * as React from 'react';
@@ -52,6 +51,7 @@ type SidebarSubItem = {
     url: string;
     module?: string;
     action?: string;
+    actions?: string[];
     onClick?: () => void;
 };
 
@@ -157,12 +157,12 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
             icon: Shield,
             module: 'roles',
         },
-        {
-            title: t('sidebar.payrollOfficer.title'),
-            url: '/dashboard/payroll-officer',
-            icon: CircleDollarSign,
-            module: 'payroll_runs',
-        },
+        // {
+        //     title: t('sidebar.payrollOfficer.title'),
+        //     url: '/dashboard/payroll-officer',
+        //     icon: CircleDollarSign,
+        //     module: 'payroll_runs',
+        // },
         {
             title: t('sidebar.employees.title'),
             url: '/dashboard/employees',
@@ -185,6 +185,7 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                     }),
                     url: '/dashboard/employees/contracts',
                     module: 'contracts',
+                    actions: ['read', 'create'],
                 },
                 {
                     title: t('sidebar.employees.add'),
@@ -377,15 +378,23 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                 if (!permissionsMap) return false;
                 if (permissionsMap['all']?.['manage']) return true;
 
-                const action = subItem.action || 'read';
-                const modulePerms = permissionsMap[subItem.module];
-                if (!modulePerms) return false;
+                const checkAction = (action: string) => {
+                    const modulePerms = permissionsMap[subItem.module!];
+                    if (!modulePerms) return false;
 
-                return (
-                    !!modulePerms[action] ||
-                    !!modulePerms['manage'] ||
-                    (action === 'read' && Object.keys(modulePerms).length > 0)
-                );
+                    return (
+                        !!modulePerms[action] ||
+                        !!modulePerms['manage'] ||
+                        (action === 'read' && Object.keys(modulePerms).length > 0)
+                    );
+                };
+
+                if (subItem.actions?.length) {
+                    return subItem.actions.every((requiredAction) => checkAction(requiredAction));
+                }
+
+                const action = subItem.action || 'read';
+                return checkAction(action);
             });
 
             return { ...item, items: filteredSubItems };

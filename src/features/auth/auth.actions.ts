@@ -3,6 +3,8 @@
 import { safeAction, ActionResult } from '@/lib/safe-action';
 import { authGqlRequest } from '@/lib/auth-graphql-client';
 import { publicGqlRequest } from '@/lib/public-graphql-client';
+import { GqlRequestOptions } from '@/lib/graphql-client';
+import { AuthError } from '@/lib/errors';
 import { cookies } from 'next/headers';
 
 import { 
@@ -38,6 +40,7 @@ import {
     VERIFY_ONBOARDING_MUTATION,
     UPDATE_TENANT_PROFILE_MUTATION,
     UPDATE_USER_ONBOARDING_COMPLETE_MUTATION,
+    UPDATE_USER_ONBOARDING_STEP_MUTATION,
     RESEND_FREE_ONBOARDING_OTP_MUTATION
 } from './auth.queries';
 import { 
@@ -65,6 +68,7 @@ import {
     UpdateCompanyInput,
     CompanyResponse,
     UpdateOnboardingCompleteInput,
+    UpdateOnboardingStepInput,
     ResendFreeOnboardingOtpInput
 } from './auth.types';
 import { fetchRoles } from '@/features/roles/roles.actions';
@@ -230,24 +234,33 @@ export const refreshUserToken = async (input: RefreshTokenInput): Promise<Action
     });
 };
 
-export const getProfile = async (): Promise<UserResponse | null> => {
+export const getProfile = async (
+    options?: GqlRequestOptions,
+): Promise<UserResponse | null> => {
     try {
         const cookieStore = await cookies();
-        const hasTokens =
-            cookieStore.get('hrms.accessToken') || cookieStore.get('hrms.refreshToken');
+        const accessToken = cookieStore.get('hrms.accessToken');
+        const refreshToken = cookieStore.get('hrms.refreshToken');
 
-        // Short-circuit the request entirely to prevent useless backend network pings
-        if (!hasTokens) {
+        if (!accessToken && !refreshToken) {
             return null;
         }
 
-        const data = await authGqlRequest<{ profile: UserResponse }>(PROFILE_QUERY);
+        const data = await authGqlRequest<{ profile: UserResponse }>(
+            PROFILE_QUERY,
+            undefined,
+            options,
+        );
+
         return data.profile;
     } catch (error: unknown) {
+        if (error instanceof AuthError) {
+            return null;
+        }
+
         const message = error instanceof Error ? error.message : '';
 
-        // Suppress expected auth errors
-        if (message.includes('Not authenticated') || message.includes('User not found')) {
+        if (message.includes('User not found')) {
             return null;
         }
 
@@ -521,6 +534,18 @@ export const updateUserOnboardingComplete = async (input: UpdateOnboardingComple
         revalidatePath('/dashboard');
         revalidatePath('/onboarding');
         return data.updateUserOnboardingComplete;
+    });
+};
+
+export const updateUserOnboardingStep = async (input: UpdateOnboardingStepInput): Promise<ActionResult<UserResponse>> => {
+    return safeAction(async () => {
+        const data = await authGqlRequest<{ updateUserOnboardingStep: UserResponse }>(
+            UPDATE_USER_ONBOARDING_STEP_MUTATION,
+            { input }
+        );
+        revalidatePath('/dashboard');
+        revalidatePath('/onboarding');
+        return data.updateUserOnboardingStep;
     });
 };
 

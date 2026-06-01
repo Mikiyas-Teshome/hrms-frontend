@@ -15,7 +15,6 @@ export const LOGIN_MUTATION = `
         role
         roleProfile {
           name
-          level
           permissionsMap
         }
         status
@@ -25,6 +24,7 @@ export const LOGIN_MUTATION = `
         position
         isEmailVerified
         onboardingComplete
+        onboardingStep
         lastLoginAt
         createdAt
         updatedAt
@@ -69,7 +69,6 @@ export const REGISTER_TENANT_SUPER_ADMIN_MUTATION = `
         role
         roleProfile {
           name
-          level
           permissionsMap
         }
         status
@@ -79,6 +78,7 @@ export const REGISTER_TENANT_SUPER_ADMIN_MUTATION = `
         position
         isEmailVerified
         onboardingComplete
+        onboardingStep
         lastLoginAt
         createdAt
         updatedAt
@@ -122,7 +122,6 @@ export const REFRESH_TOKEN_MUTATION = `
         role
         roleProfile {
           name
-          level
           permissionsMap
         }
         status
@@ -132,6 +131,7 @@ export const REFRESH_TOKEN_MUTATION = `
         position
         isEmailVerified
         onboardingComplete
+        onboardingStep
         lastLoginAt
         createdAt
         updatedAt
@@ -151,7 +151,6 @@ export const PROFILE_QUERY = `
       role
       roleProfile {
         name
-        level
         permissionsMap
       } 
       status
@@ -161,6 +160,7 @@ export const PROFILE_QUERY = `
       position
       isEmailVerified
       onboardingComplete
+      onboardingStep
       createdAt
       updatedAt
       lastLoginAt
@@ -174,7 +174,6 @@ export const ROLES_BY_COMPANY_QUERY = `
       id
       name
       description
-      level
       companyId
       createdAt
       updatedAt
@@ -319,6 +318,7 @@ export const IMPERSONATE_USER_MUTATION = `
         status
         companyId
         onboardingComplete
+        onboardingStep
       }
     }
   }
@@ -438,6 +438,19 @@ export const UPDATE_TENANT_PROFILE_MUTATION = `
       website
       description
       logo
+      email
+      phone
+      address
+      city
+      state
+      postalCode
+      country
+      currency
+      timezone
+      themeColor
+      multiDept
+      crossDivision
+      requireDept
       size
       currentEmployees
       maxEmployees
@@ -457,7 +470,6 @@ export const UPDATE_USER_ONBOARDING_COMPLETE_MUTATION = `
       role
       roleProfile {
         name
-        level
         permissionsMap
       }
       status
@@ -467,6 +479,35 @@ export const UPDATE_USER_ONBOARDING_COMPLETE_MUTATION = `
       position
       isEmailVerified
       onboardingComplete
+      onboardingStep
+      lastLoginAt
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const UPDATE_USER_ONBOARDING_STEP_MUTATION = `
+  mutation UpdateUserOnboardingStep($input: UpdateOnboardingStepInput!) {
+    updateUserOnboardingStep(input: $input) {
+      id
+      email
+      firstName
+      lastName
+      fullName
+      role
+      roleProfile {
+        name
+        permissionsMap
+      }
+      status
+      companyId
+      department
+      phoneNumber
+      position
+      isEmailVerified
+      onboardingComplete
+      onboardingStep
       lastLoginAt
       createdAt
       updatedAt

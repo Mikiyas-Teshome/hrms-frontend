@@ -3,12 +3,11 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAttendanceOverviewStats } from '@/features/attendance/hooks/useAttendance';
-import { attendanceOverviewStats as mockStats } from '@/data/attendance';
+import { attendanceOverviewStats } from '@/data/attendance';
 import StatCardsList from '@/components/dashboard/attendance/StatCardsList';
 import AttendanceOverviewTable from '@/components/dashboard/attendance/AttendanceOverviewTable';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { ProtectedRoute } from '@/components/auth/protected-route';
-
 export default function AttendanceOverviewPage() {
     const { t } = useTranslation('dashboard');
     const now = new Date();
@@ -20,15 +19,17 @@ export default function AttendanceOverviewPage() {
         to: lastDay,
     });
 
-    const { data: statsData, isLoading, error } = useAttendanceOverviewStats(
+    const { data: statsData, isLoading } = useAttendanceOverviewStats(
         dateRange.from.toISOString(),
         dateRange.to.toISOString()
     );
 
-    const isLive = !!statsData;
+    const stats = attendanceOverviewStats.map((stat) => {
+        if (!statsData) {
+            return { ...stat, value: stat.id === 'overtime' ? '0hrs' : '0' };
+        }
 
-    const stats = !isLive ? mockStats : mockStats.map(stat => {
-        let value = "0";
+        let value = '0';
         switch (stat.id) {
             case 'employees':
                 value = statsData.totalEmployees.toString();
@@ -62,9 +63,12 @@ export default function AttendanceOverviewPage() {
                     </div>
                 </div>
 
-                <StatCardsList stats={stats} />
+                <StatCardsList stats={stats} isLoading={isLoading} />
 
-                <AttendanceOverviewTable />
+                <AttendanceOverviewTable
+                    startDate={dateRange.from?.toISOString()}
+                    endDate={dateRange.to?.toISOString()}
+                />
             </div>
         </ProtectedRoute>
     );

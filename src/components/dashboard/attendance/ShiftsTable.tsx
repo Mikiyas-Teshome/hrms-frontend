@@ -10,18 +10,10 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import {
     MoreVertical,
     Pencil,
     RefreshCw,
     Trash2,
-    ListFilter,
     Clock,
     CalendarDays,
 } from 'lucide-react';
@@ -29,10 +21,13 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import ConfirmationModal from '@/components/dashboard/shared/ConfirmationModal';
-import { useShiftTemplates } from '@/features/attendance/hooks/useAttendance';
+import { useShiftTemplates, useEmployeeShifts, useToggleShiftTemplateStatus } from '@/features/attendance/hooks/useAttendance';
 import { ShiftTemplate } from '@/features/attendance/attendance.types';
 import { formatTime, getWorkingDaysString } from '@/features/attendance/attendance.utils';
 import { usePermissions } from '@/features/auth/hooks/usePermissions';
+import { useAuth } from '@/contexts/AuthContext';
+import { ShiftSheet } from './ShiftSheet';
+import { useToast } from '@/hooks/use-toast';
 
 interface ShiftsTableProps {
     companyId?: string;
@@ -40,16 +35,59 @@ interface ShiftsTableProps {
 
 const ShiftsTable = ({ companyId }: ShiftsTableProps) => {
     const { t } = useTranslation('dashboard');
-    const { hasPermission } = usePermissions();
-    const { data: shiftTemplates, isLoading } = useShiftTemplates(companyId || '');
+    const { hasPermission, hasScope } = usePermissions();
+    const { user } = useAuth();
+    const isOwnScopeOnly =
+        hasScope('shifts', 'read', 'own') &&
+        !hasScope('shifts', 'read', 'department') &&
+        !hasScope('shifts', 'read', 'company') &&
+        !hasScope('shifts', 'read', 'all');
+
+    const { data: shiftTemplates, isLoading: isLoadingTemplates } = useShiftTemplates(!isOwnScopeOnly ? (companyId || '') : '');
+    const { data: employeeShifts, isLoading: isLoadingEmployeeShifts } = useEmployeeShifts(isOwnScopeOnly ? (user?.id || '') : '');
+
+    const isLoading = isOwnScopeOnly ? isLoadingEmployeeShifts : isLoadingTemplates;
+
+    const data = (isOwnScopeOnly
+        ? (employeeShifts?.map((es) => es.shiftTemplate).filter(Boolean) as ShiftTemplate[])
+        : (shiftTemplates || [])) || [];
 
     const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
-    const [showFilters, setShowFilters] = useState(false);
-    const [pendingFilters, setPendingFilters] = useState({ employee: 'all', location: 'all', shift: 'all', status: 'all' });
-    const [activeFilters, setActiveFilters] = useState({ employee: 'all', location: 'all', shift: 'all', status: 'all' });
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [shiftToDelete, setShiftToDelete] = useState<ShiftTemplate | null>(null);
-    const activeCount = Object.values(activeFilters).filter((v) => v !== 'all').length;
+
+    const { toast } = useToast();
+    const { mutate: toggleStatus } = useToggleShiftTemplateStatus();
+    const [togglingId, setTogglingId] = useState<string | null>(null);
+
+    const [isShiftSheetOpen, setIsShiftSheetOpen] = useState(false);
+    const [shiftToEdit, setShiftToEdit] = useState<ShiftTemplate | null>(null);
+
+    const handleEditClick = (shift: ShiftTemplate) => {
+        setShiftToEdit(shift);
+        setIsShiftSheetOpen(true);
+    };
+
+    const handleToggleStatus = (id: string) => {
+        setTogglingId(id);
+        toggleStatus(id, {
+            onSuccess: () => {
+                toast({
+                    title: t('attendance.success', 'Success'),
+                    description: t('attendance.statusUpdated', 'Shift status updated successfully'),
+                    variant: 'success',
+                });
+            },
+            onError: (error: any) => {
+                toast({
+                    title: t('attendance.error', 'Error'),
+                    description: error.message || t('attendance.statusUpdateFailed', 'Failed to update shift status'),
+                    variant: 'destructive',
+                });
+            },
+            onSettled: () => setTogglingId(null)
+        });
+    };
 
     const handleDeleteClick = (shift: ShiftTemplate) => {
         setShiftToDelete(shift);
@@ -61,112 +99,6 @@ const ShiftsTable = ({ companyId }: ShiftsTableProps) => {
             setShiftToDelete(null);
         }
     };
-
-    const handleApply = () => {
-        setActiveFilters(pendingFilters);
-        setShowFilters(false);
-    };
-
-    const handleReset = () => {
-        const defaultFilters = { employee: 'all', location: 'all', shift: 'all', status: 'all' };
-        setPendingFilters(defaultFilters);
-        setActiveFilters(defaultFilters);
-    };
-
-    const filterButton = (
-        <Button
-            variant="outline"
-            size="default"
-            className={cn('h-10 gap-2 border-input', showFilters && 'bg-black/5 dark:bg-white/5')}
-            onClick={() => setShowFilters((v) => !v)}
-        >
-            <ListFilter className="h-4 w-4" />
-            <span>Filter</span>
-            {activeCount > 0 && (
-                <span className="ml-1 flex size-4 items-center justify-center rounded-full bg-brand-600 text-[10px] text-white font-semibold">
-                    {activeCount}
-                </span>
-            )}
-        </Button>
-    );
-
-    const filterPanel = showFilters ? (
-        <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-border flex flex-col lg:flex-row lg:items-end gap-4 overflow-hidden">
-            <div className="flex-1 space-y-1.5">
-                <label className="text-sm font-semibold text-foreground px-1">{t('attendance.filterEmployee')}</label>
-                <Select value={pendingFilters.employee} onValueChange={(v) => setPendingFilters((p) => ({ ...p, employee: v }))}>
-                    <SelectTrigger className="h-10 bg-background rounded-lg">
-                        <SelectValue placeholder={t('attendance.allEmployees')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">{t('attendance.allEmployees')}</SelectItem>
-                        <SelectItem value="Miracle Torff">Miracle Torff</SelectItem>
-                        <SelectItem value="Cooper George">Cooper George</SelectItem>
-                        <SelectItem value="Nolan Dias">Nolan Dias</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-            
-            <div className="flex-1 space-y-1.5">
-                <label className="text-sm font-semibold text-foreground px-1">{t('attendance.filterLocation')}</label>
-                <Select value={pendingFilters.location} onValueChange={(v) => setPendingFilters((p) => ({ ...p, location: v }))}>
-                    <SelectTrigger className="h-10 bg-background rounded-lg">
-                        <SelectValue placeholder={t('attendance.allLocations')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">{t('attendance.allLocations')}</SelectItem>
-                        <SelectItem value="Dubai">Dubai</SelectItem>
-                        <SelectItem value="Riyadh">Riyadh</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-            
-            <div className="flex-1 space-y-1.5">
-                <label className="text-sm font-semibold text-foreground px-1">{t('attendance.filterShift')}</label>
-                <Select value={pendingFilters.shift} onValueChange={(v) => setPendingFilters((p) => ({ ...p, shift: v }))}>
-                    <SelectTrigger className="h-10 bg-background rounded-lg">
-                        <SelectValue placeholder={t('attendance.allShifts')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">{t('attendance.allShifts')}</SelectItem>
-                        <SelectItem value="Morning shift">Morning shift</SelectItem>
-                        <SelectItem value="Evening shift">Evening shift</SelectItem>
-                        <SelectItem value="Night shift">Night shift</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-            
-            <div className="flex-1 space-y-1.5">
-                <label className="text-sm font-semibold text-foreground px-1">{t('attendance.filterStatus')}</label>
-                <Select value={pendingFilters.status} onValueChange={(v) => setPendingFilters((p) => ({ ...p, status: v }))}>
-                    <SelectTrigger className="h-10 bg-background rounded-lg">
-                        <SelectValue placeholder={t('attendance.all')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">{t('attendance.all')}</SelectItem>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Inactive">Inactive</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0 pt-2 lg:pt-0">
-                <Button
-                    onClick={handleApply}
-                    className="h-10 px-6 rounded-lg bg-primary hover:bg-primary/80 text-white font-medium shadow-sm transition-colors"
-                >
-                    {t('attendance.applyFilters', 'Apply filters')}
-                </Button>
-                <Button
-                    onClick={handleReset}
-                    variant="outline"
-                    className="h-10 px-6 rounded-lg bg-white border-border hover:bg-muted font-medium shadow-sm transition-colors"
-                >
-                    {t('attendance.resetFilters', 'Reset filters')}
-                </Button>
-            </div>
-        </div>
-    ) : undefined;
 
     const columns: ColumnConfig<ShiftTemplate>[] = [
         { 
@@ -261,11 +193,16 @@ const ShiftsTable = ({ companyId }: ShiftsTableProps) => {
                 <DropdownMenuContent align="end" className="w-44 rounded-xl shadow-lg">
                     {canUpdate && (
                         <>
-                            <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => console.log('Edit', item.id)}>
+                            <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => handleEditClick(item)}>
                                 <Pencil className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.edit', 'Edit')}</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => console.log('Change status', item.id)}>
-                                <RefreshCw className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.changeStatus', 'Change status')}</span>
+                            <DropdownMenuItem 
+                                className="gap-3 cursor-pointer py-2.5" 
+                                onClick={() => handleToggleStatus(item.id)}
+                                disabled={togglingId === item.id}
+                            >
+                                <RefreshCw className={cn("h-4 w-4 text-muted-foreground", togglingId === item.id && "animate-spin")} />
+                                <span>{t('attendance.changeStatus', 'Change status')}</span>
                             </DropdownMenuItem>
                         </>
                     )}
@@ -285,18 +222,15 @@ const ShiftsTable = ({ companyId }: ShiftsTableProps) => {
     return (
     <div className="flex flex-col gap-4">
         <UniversalDataTable
-          data={shiftTemplates || []}
+          data={data}
           columns={columns}
-          enableSelection
+          enableSelection={!isOwnScopeOnly}
           selectedIds={selectedIds}
           onSelectionChange={setSelectedIds}
-          showSearch
+          showSearch={false}
           isLoading={isLoading}
-          searchPlaceholder={t('attendance.searchShifts', 'Search for shifts')}
-          renderCustomFilter={filterButton}
-          renderFilterPanel={filterPanel}
-          showImport={hasPermission('shifts:create')}
-          showExport={hasPermission('shifts:read')}
+          showImport={!isOwnScopeOnly && hasPermission('shifts:create')}
+          showExport={!isOwnScopeOnly && hasPermission('shifts:read')}
           importText={t('attendance.importBtn', 'Import')}
           exportText={t('attendance.exportBtn', 'Export')}
           currentPage={1}
@@ -304,7 +238,14 @@ const ShiftsTable = ({ companyId }: ShiftsTableProps) => {
           pageSize={10}
           onPageChange={() => {}}
           onPageSizeChange={() => {}}
-          renderRowActions={renderRowActions}
+          renderRowActions={isOwnScopeOnly ? undefined : renderRowActions}
+        />
+
+        <ShiftSheet
+            open={isShiftSheetOpen}
+            onOpenChange={setIsShiftSheetOpen}
+            shiftToEdit={shiftToEdit}
+            defaultCompanyId={companyId}
         />
 
         <ConfirmationModal

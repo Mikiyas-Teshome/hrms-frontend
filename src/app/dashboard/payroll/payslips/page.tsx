@@ -1,19 +1,21 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Download, RefreshCw, FileText, Wallet, FileStack } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UniversalDataTable, ColumnConfig } from "@/components/ui/universal-data-table";
 import { TableActionMenu } from "@/components/ui/table-action-menu";
 import SummaryStatCard from "@/components/dashboard/shared/SummaryStatCard";
+import { SummaryStatCardSkeleton } from "@/components/common/SummaryStatSkeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePayrollRuns, usePayslipsByPayrollRun, useGeneratePayslip } from "@/features/payroll/hooks/usePayroll";
 // import { mockPayrollRuns, mockPayslips } from "@/data/mock-payroll";
-import { PayslipResponse, PayrollRunResponse } from "@/features/payroll/payroll.types";
+import { PayslipResponse } from "@/features/payroll/payroll.types";
 import { format } from "date-fns";
 import { ProtectedRoute } from "@/components/auth/protected-route";
+import { useDisplayCurrency } from "@/features/settings/hooks/useDisplayCurrency";
 
 export default function PayslipsPage() {
   const { t } = useTranslation("dashboard");
@@ -22,13 +24,9 @@ export default function PayslipsPage() {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const { mutate: generatePayslip } = useGeneratePayslip();
 
-  useEffect(() => {
-    if (runs.length > 0 && !selectedRunId) {
-      setSelectedRunId(runs[0].id);
-    }
-  }, [runs, selectedRunId]);
+  const currentRunId = selectedRunId || (runs.length > 0 ? runs[0].id : "");
 
-  const { data: payslips = [], isLoading } = usePayslipsByPayrollRun(selectedRunId || "");
+  const { data: payslips = [], isLoading } = usePayslipsByPayrollRun(currentRunId);
   
   // Mapping mock data to match UI expectations
   /*
@@ -51,13 +49,7 @@ export default function PayslipsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(value);
-  };
+  const { formatAmount } = useDisplayCurrency();
 
   const handleRegenerate = (item: PayslipResponse) => {
     generatePayslip({
@@ -83,20 +75,20 @@ export default function PayslipsPage() {
       key: "basicSalary",
       label: t("payrollData.columns.basicSalary", "Basic salary"),
       sortable: true,
-      render: (item) => <span className="text-muted-foreground">{formatCurrency(item.basicSalary)}</span>,
+      render: (item) => <span className="text-muted-foreground">{formatAmount(item.basicSalary)}</span>,
     },
     {
       key: "totalPay",
       label: t("payrollData.columns.totalPay", "Net pay"),
       sortable: true,
-      render: (item) => <span className="text-muted-foreground font-semibold">{formatCurrency(item.netPay)}</span>,
+      render: (item) => <span className="text-muted-foreground font-semibold">{formatAmount(item.netPay)}</span>,
     },
     {
       key: "status",
       label: t("payrollData.columns.status", "Status"),
       sortable: true,
-      render: (item) => {
-        const isGenerated = true; // Backend doesn't have status for payslips yet, assuming generated
+      render: () => {
+        // const isGenerated = true; // Backend doesn't have status for payslips yet, assuming generated
         const statusText = t("payrollData.status.generated", "Generated");
         return (
           <Badge
@@ -143,7 +135,7 @@ export default function PayslipsPage() {
           {t("payrollData.payslipsTitle", "Payslips")}
         </h1>
         {runs.length > 0 && (
-          <Select value={selectedRunId || ""} onValueChange={setSelectedRunId}>
+          <Select value={currentRunId} onValueChange={setSelectedRunId}>
             <SelectTrigger className="w-60 h-10">
               <SelectValue placeholder="Select payroll run" />
             </SelectTrigger>
@@ -159,30 +151,40 @@ export default function PayslipsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryStatCard
-          title={t("payrollData.stats.totalPayslip", "Total payslips")}
-          value={payslips.length.toString()}
-          icon={FileText}
-          iconColor="#2865E3"
-          iconBgColor="transparent"
-          borderColor="#2865E380"
-        />
-        <SummaryStatCard
-          title={t("payrollData.stats.totalPay", "Total net pay")}
-          value={formatCurrency(totalNetPay)}
-          icon={Wallet}
-          iconColor="#2865E3"
-          iconBgColor="transparent"
-          borderColor="#2865E380"
-        />
-        <SummaryStatCard
-          title={t("payrollData.stats.generated", "Generated")}
-          value={payslips.length.toString()}
-          icon={FileStack}
-          iconColor="#2865E3"
-          iconBgColor="transparent"
-          borderColor="#2865E380"
-        />
+        {isLoading ? (
+          <>
+            <SummaryStatCardSkeleton />
+            <SummaryStatCardSkeleton />
+            <SummaryStatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <SummaryStatCard
+              title={t("payrollData.stats.totalPayslip", "Total payslips")}
+              value={payslips.length.toString()}
+              icon={FileText}
+              iconColor="#2865E3"
+              iconBgColor="transparent"
+              borderColor="#2865E380"
+            />
+            <SummaryStatCard
+              title={t("payrollData.stats.totalPay", "Total net pay")}
+              value={formatAmount(totalNetPay)}
+              icon={Wallet}
+              iconColor="#2865E3"
+              iconBgColor="transparent"
+              borderColor="#2865E380"
+            />
+            <SummaryStatCard
+              title={t("payrollData.stats.generated", "Generated")}
+              value={payslips.length.toString()}
+              icon={FileStack}
+              iconColor="#2865E3"
+              iconBgColor="transparent"
+              borderColor="#2865E380"
+            />
+          </>
+        )}
       </div>
 
       <UniversalDataTable

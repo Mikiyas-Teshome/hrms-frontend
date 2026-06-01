@@ -14,7 +14,7 @@ export function I18nProvider({ children, initialLanguage }: I18nProviderProps) {
   const [synced, setSynced] = useState(false);
 
   if (!synced && initialLanguage && i18n.language !== initialLanguage) {
-    (i18n as any).language = initialLanguage;
+    i18n.changeLanguage(initialLanguage);
     setSynced(true);
   } 
 

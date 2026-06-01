@@ -44,7 +44,6 @@ export const GET_ROLES_QUERY = `
       id
       name
       description
-      level
       companyId
       createdAt
       updatedAt
@@ -77,7 +76,6 @@ export const CREATE_ROLE_MUTATION = `
       id
       name
       description
-      level
       companyId
       createdAt
       updatedAt
@@ -110,7 +108,6 @@ export const UPDATE_ROLE_MUTATION = `
       id
       name
       description
-      level
       companyId
       createdAt
       updatedAt
@@ -142,7 +139,6 @@ export const REMOVE_ROLE_MUTATION = `
     removeRole(id: $id) {
       id
       name
-      level
       companyId
     }
   }
@@ -154,7 +150,6 @@ export const GET_ROLE_QUERY = `
       id
       name
       description
-      level
       companyId
       createdAt
       updatedAt

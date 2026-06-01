@@ -101,6 +101,19 @@ export const GET_COMPANY_QUERY = `
       description
       logo
       website
+      email
+      phone
+      address
+      city
+      state
+      postalCode
+      country
+      currency
+      timezone
+      themeColor
+      multiDept
+      crossDivision
+      requireDept
       status
       tier
       currentEmployees

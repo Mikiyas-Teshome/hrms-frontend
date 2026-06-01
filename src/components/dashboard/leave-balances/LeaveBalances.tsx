@@ -5,9 +5,12 @@ import { useTranslation } from 'react-i18next';
 import SummaryStatList from '@/components/dashboard/shared/SummaryStatList';
 import LeaveBalancesTable from './LeaveBalancesTable';
 import { leaveBalanceStats } from '@/data/leave-balances';
+import { useLeaveBalances } from '@/features/leave-balance/hooks/useLeaveBalance';
+import { SummaryStatListSkeleton } from '@/components/common/SummaryStatSkeleton';
 
 const LeaveBalances = () => {
     const { t } = useTranslation('dashboard');
+    const { isLoading } = useLeaveBalances();
 
     return (
         <div className="flex flex-col gap-8 w-full">
@@ -17,18 +20,22 @@ const LeaveBalances = () => {
                 </h2>
             </div>
 
-            <SummaryStatList
-                stats={leaveBalanceStats.map((stat) => ({
-                    title: t(`leaveBalances.stats.${stat.title === 'Number of employees' ? 'employees' : stat.title === 'Total allocated days' ? 'allocated' : stat.title === 'Total remaining days' ? 'remaining' : 'carriedForward'}`, stat.title),
-                    value: typeof stat.value === 'string' && stat.value.includes('days') 
-                        ? `${stat.value.split(' ')[0]} ${t('common.table.days', 'days')}`
-                        : stat.value,
-                    icon: stat.icon,
-                    iconColor: stat.iconColor,
-                    iconBgColor: stat.iconBgColor,
-                    borderColor: stat.borderColor
-                }))}
-            />
+            {isLoading ? (
+                <SummaryStatListSkeleton count={4} />
+            ) : (
+                <SummaryStatList
+                    stats={leaveBalanceStats.map((stat) => ({
+                        title: t(`leaveBalances.stats.${stat.title === 'Number of employees' ? 'employees' : stat.title === 'Total allocated days' ? 'allocated' : stat.title === 'Total remaining days' ? 'remaining' : 'carriedForward'}`, stat.title),
+                        value: typeof stat.value === 'string' && stat.value.includes('days') 
+                            ? `${stat.value.split(' ')[0]} ${t('common.table.days', 'days')}`
+                            : stat.value,
+                        icon: stat.icon,
+                        iconColor: stat.iconColor,
+                        iconBgColor: stat.iconBgColor,
+                        borderColor: stat.borderColor
+                    }))}
+                />
+            )}
 
             <LeaveBalancesTable />
         </div>

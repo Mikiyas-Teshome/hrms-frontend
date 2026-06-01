@@ -11,6 +11,12 @@ export const organizationProfileSchema = zod.object({
   name: zod.string().optional(),
   industry: zod.string().optional(),
   size: zod.string().optional(),
+  smtpHost: zod.string().optional().or(zod.literal("")),
+  smtpPort: zod.coerce.number().optional().or(zod.literal("")),
+  smtpEmail: zod.string().email("invalidEmail").optional().or(zod.literal("")),
+  smtpUsername: zod.string().optional().or(zod.literal("")),
+  smtpPassword: zod.string().optional().or(zod.literal("")),
+  smtpSecure: zod.boolean().optional(),
 });
 
 export type OrganizationProfileValues = zod.infer<typeof organizationProfileSchema>;

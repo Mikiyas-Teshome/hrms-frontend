@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useMemo } from 'react';
@@ -84,7 +83,7 @@ function UnitRow({ unit, parentName, cfg }: UnitRowProps) {
             </div>
             <div className="flex items-center gap-3 shrink-0">
                 <span className="text-xs text-muted-foreground">
-                    {unit.totalMembers ?? 0} members
+                    {unit.employeeCount ?? 0} employees
                 </span>
                 <Badge
                     variant={unit.status === 'ACTIVE' ? 'default' : 'secondary'}
@@ -147,7 +146,7 @@ export function OrgUnitList({ type, title, description }: OrgUnitListProps) {
                             <p className="text-sm font-medium text-foreground">
                                 No {cfg.label.toLowerCase()}s found
                             </p>
-                            <p className="text-xs text-muted-foreground max-w-[260px]">
+                            <p className="text-xs text-muted-foreground max-w-65">
                                 Add {cfg.label.toLowerCase()}s from the Organisational hierarchy
                                 page using the unit builder.
                             </p>

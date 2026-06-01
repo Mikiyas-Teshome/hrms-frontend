@@ -15,12 +15,17 @@ import { PublicHeader } from '@/components/common/public-header';
 import { LanguageSwitcher } from '@/components/common/language-switcher';
 import { loginUser } from '@/features/auth/auth.actions';
 import { LoginFormValues, loginSchema } from '@/features/auth/schemas/login-schema';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { AUTH_PROFILE_QUERY_KEY } from '@/features/auth/auth-session.constants';
+import { writeAuthSessionCache } from '@/features/auth/auth-session-cache.util';
+import { resolvePostAuthPath } from '@/lib/onboarding/navigation';
 
 const LoginPage = () => {
     const { t } = useTranslation('login');
     const router = useRouter();
-    const { reloadSession } = useAuth();
+    const queryClient = useQueryClient();
+    const { reloadSession, setUser } = useAuth();
     const [isPending, startTransition] = useTransition();
     const [serverError, setServerError] = useState<string | null>(null);
 
@@ -53,8 +58,21 @@ const LoginPage = () => {
                     return;
                 }
 
+                if (result.data.user) {
+                    setUser(result.data.user);
+                    writeAuthSessionCache(result.data.user);
+                }
+
                 await reloadSession();
-                router.push('/dashboard');
+
+                const sessionUser =
+                    queryClient.getQueryData<{ role: string; onboardingComplete: boolean; onboardingStep: number }>(
+                        AUTH_PROFILE_QUERY_KEY,
+                    ) ?? result.data.user;
+                const destination = sessionUser
+                    ? resolvePostAuthPath(sessionUser)
+                    : '/dashboard';
+                router.push(destination);
             } catch (err) {
                 const message =
                     err instanceof Error

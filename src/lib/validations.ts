@@ -30,7 +30,6 @@ export const optionalPhoneValidation = (errorMsg: string) =>
  */
 export const numericValidation = (errorMsg: string) =>
     z.string()
-     .optional()
      .refine(val => !val || /^\d+$/.test(val), errorMsg);
 
 /**
@@ -38,7 +37,6 @@ export const numericValidation = (errorMsg: string) =>
  */
 export const futureDateValidation = (errorMsg: string) =>
     z.any()
-     .optional()
      .refine(val => {
          if (!val) return true;
          const today = new Date();
@@ -51,7 +49,6 @@ export const futureDateValidation = (errorMsg: string) =>
  */
 export const pastDateValidation = (errorMsg: string) =>
     z.any()
-     .optional()
      .refine(val => {
          if (!val) return true;
          const today = new Date();
@@ -67,10 +64,8 @@ export const SWIFT_REGEX = /^[A-Z]{6}[A-Z\d]{2}([A-Z\d]{3})?$/;
 
 export const ibanValidation = (errorMsg: string) =>
     z.string()
-     .optional()
      .refine(val => !val || IBAN_REGEX.test(val), errorMsg);
 
 export const swiftValidation = (errorMsg: string) =>
     z.string()
-     .optional()
      .refine(val => !val || SWIFT_REGEX.test(val), errorMsg);

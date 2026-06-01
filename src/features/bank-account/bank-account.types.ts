@@ -13,16 +13,19 @@ export interface BankAccount {
     updatedAt: string;
 }
 
-export interface CreateBankAccountInput {
+export interface CreateMyBankAccountInput {
     accountName: string;
     accountNumber: string;
     bankName: string;
     branchName?: string;
-    employeeId: string;
     iban?: string;
     isPrimary?: boolean;
     routingNumber?: string;
     swiftCode?: string;
+}
+
+export interface CreateBankAccountInput extends CreateMyBankAccountInput {
+    employeeId: string;
 }
 
 export interface UpdateBankAccountInput {

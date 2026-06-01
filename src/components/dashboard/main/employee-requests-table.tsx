@@ -62,7 +62,7 @@ const requests = [
 
 export function EmployeeRequestsTable() {
     const { t } = useTranslation('dashboard');
-    const [searchValue, setSearchValue] = useState('');
+    const [searchValue] = useState('');
 
     const getStatusIcon = (type: string) => {
         switch (type) {

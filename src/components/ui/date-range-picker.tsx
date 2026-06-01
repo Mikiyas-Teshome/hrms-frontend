@@ -5,7 +5,7 @@ import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-interface DateRange {
+export interface DateRange {
     from: Date | null;
     to: Date | null;
 }
@@ -127,9 +127,12 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
 
     const ref = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        if (value) setRange(value);
-    }, [value]);
+    const [prevValue, setPrevValue] = useState<DateRange | undefined>(value);
+
+    if (value !== prevValue) {
+        setRange(value || { from: null, to: null });
+        setPrevValue(value);
+    }
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {

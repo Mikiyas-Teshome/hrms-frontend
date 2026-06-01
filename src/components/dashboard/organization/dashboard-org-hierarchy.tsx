@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -30,6 +29,7 @@ import { HierarchyNode } from '@/components/onboarding/organization/hierarchy-no
 import { HierarchyTreeBuilder } from '@/components/onboarding/organization/builder/hierarchy-tree-builder';
 import { SimpleUnitModal } from '@/components/onboarding/organization/builder/simple-unit-modal';
 import { OrgHierarchyStats } from '@/components/dashboard/organization/org-stats';
+import { DashboardOrgHierarchySkeleton } from './DashboardOrgHierarchySkeleton';
 
 export function DashboardOrganizationHierarchy() {
     const { t } = useTranslation('orgStructure');
@@ -80,17 +80,17 @@ export function DashboardOrganizationHierarchy() {
     const {
         register,
         control,
-        handleSubmit: _handleSubmit,
+        // handleSubmit: _handleSubmit,
         setValue,
         watch,
-        formState: { isSubmitting: _isSubmitting },
+        // formState: { isSubmitting: _isSubmitting },
     } = useForm<OrgStructureValues>({
         resolver: zodResolver(orgStructureSchema),
         defaultValues: emptyOrgStructureValues,
     });
 
     const { fields: levelFields } = useFieldArray({ control, name: 'hierarchyLevels' });
-    const { fields: _unitFields, append: appendUnit, remove: removeUnit } = useFieldArray({
+    const { append: appendUnit, remove: removeUnit } = useFieldArray({
         control,
         name: 'units',
     });
@@ -116,12 +116,12 @@ export function DashboardOrganizationHierarchy() {
             const inputs = activeLevels.map((l) => ({ label: l.name, type: l.type }));
             await nomenclatureMutation.mutateAsync({ inputs, language: 'en' });
             if (currentLevels[0]?.name) setValue('groupName', currentLevels[0].name);
-            toast({ title: t('hierarchy.nomenclatureUpdated') || 'Nomenclature updated' });
+            toast({ title: t('hierarchy.nomenclatureUpdated') });
         } catch (error: any) {
             toast({
                 variant: 'destructive',
-                title: 'Update Failed',
-                description: error.message || 'Failed to update labels.',
+                title: t('toasts.updateFailed'),
+                description: error.message || t('toasts.updateFailedDescription'),
             });
         }
     };
@@ -164,7 +164,7 @@ export function DashboardOrganizationHierarchy() {
     const flattenUnit = (unit: any) => {
         if (!unit) return null;
         const { companyProfile, ...rest } = unit;
-        const { id: _profileId, ...profileData } = companyProfile || {};
+        const { ...profileData } = companyProfile || {};
         return { ...rest, ...profileData };
     };
 
@@ -241,7 +241,7 @@ export function DashboardOrganizationHierarchy() {
                     industry: data.industry,
                 });
                 appendUnit({ ...data, id: response.id });
-                toast({ title: t('builder.unitCreated') || 'Unit created' });
+                toast({ title: t('builder.unitCreated') });
             } else {
                 const targetId = unitIdx !== undefined ? units[unitIdx]?.id : unitId;
                 if (!targetId) throw new Error('Could not identify unit to update');
@@ -264,7 +264,7 @@ export function DashboardOrganizationHierarchy() {
                     updatedUnits[unitIdx] = { ...updatedUnits[unitIdx], ...data };
                     setValue('units', updatedUnits);
                 }
-                toast({ title: t('builder.unitUpdated') || 'Unit updated' });
+                toast({ title: t('builder.unitUpdated') });
             }
             await refetchHierarchy();
             setIsSheetOpen(false);
@@ -272,8 +272,8 @@ export function DashboardOrganizationHierarchy() {
         } catch (error: any) {
             toast({
                 variant: 'destructive',
-                title: 'Error saving unit',
-                description: error.message || 'Please try again',
+                title: t('toasts.saveUnitFailed'),
+                description: error.message || t('toasts.saveUnitFailedDescription'),
             });
         }
     };
@@ -290,12 +290,12 @@ export function DashboardOrganizationHierarchy() {
                 const unitIdx = units.findIndex((u: any) => u.id === deleteUnitId);
                 if (unitIdx !== -1) removeUnit(unitIdx);
                 await refetchHierarchy();
-                toast({ title: t('builder.unitDeleted') || 'Unit successfully removed' });
+                toast({ title: t('builder.unitDeleted') });
             } catch (error: any) {
                 toast({
                     variant: 'destructive',
-                    title: 'Delete Failed',
-                    description: error.message || 'Failed to remove the unit.',
+                    title: t('toasts.deleteFailed'),
+                    description: error.message || t('toasts.deleteFailedDescription'),
                 });
             } finally {
                 setIsDeleteModalOpen(false);
@@ -323,17 +323,7 @@ export function DashboardOrganizationHierarchy() {
     };
 
     if (isHierarchyLoading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-                <div className="relative">
-                    <Loader2 className="size-12 text-primary animate-spin" />
-                    <div className="absolute inset-0 size-12 border-4 border-primary/20 rounded-full" />
-                </div>
-                <p className="text-lg font-semibold text-foreground animate-pulse">
-                    {t('fetchingHierarchy')}
-                </p>
-            </div>
-        );
+        return <DashboardOrgHierarchySkeleton />;
     }
 
     return (
@@ -418,7 +408,7 @@ export function DashboardOrganizationHierarchy() {
                                     {isHierarchyFetching ? (
                                         <>
                                             <Loader2 className="mr-2 size-4 animate-spin" />
-                                            {t('actions.loading') || 'Loading...'}
+                                            {t('actions.loading')}
                                         </>
                                     ) : (
                                         t('hierarchy.continueToBuilder')
@@ -583,7 +573,13 @@ export function DashboardOrganizationHierarchy() {
                               (n: any) => n.id === deleteUnitId,
                           )
                         : null;
-                    return u ? `Delete ${(u as any).type?.toLowerCase()} data` : t('builder.menu.remove');
+                    if (!u) return t('builder.menu.remove');
+                    const levelIdx = hierarchyLevels.findIndex((l) => l.type === (u as any).type);
+                    const typeLabel =
+                        levelIdx >= 0
+                            ? getLabel((u as any).type, levelIdx)
+                            : (u as any).type?.toLowerCase();
+                    return t('builder.deleteTitle', { type: typeLabel });
                 })()}
                 message={(() => {
                     const u = deleteUnitId
@@ -592,9 +588,13 @@ export function DashboardOrganizationHierarchy() {
                               (n: any) => n.id === deleteUnitId,
                           )
                         : null;
-                    return u
-                        ? `Are you sure you want to delete this ${(u as any).type?.toLowerCase()}'s data? This action cannot be reversed.`
-                        : t('hierarchy.customizeAlert');
+                    if (!u) return t('hierarchy.customizeAlert');
+                    const levelIdx = hierarchyLevels.findIndex((l) => l.type === (u as any).type);
+                    const typeLabel =
+                        levelIdx >= 0
+                            ? getLabel((u as any).type, levelIdx)
+                            : (u as any).type?.toLowerCase();
+                    return t('builder.deleteMessage', { type: typeLabel });
                 })()}
                 onConfirm={handleConfirmDelete}
             />
@@ -604,8 +604,18 @@ export function DashboardOrganizationHierarchy() {
                 onOpenChange={setIsSimpleModalOpen}
                 title={
                     simpleModalConfig
-                        ? `${simpleModalConfig.mode === 'edit' ? 'Edit' : 'Add'} ${getLabel(hierarchyLevels[simpleModalConfig.levelIdx]?.type, simpleModalConfig.levelIdx)}`
-                        : 'Unit'
+                        ? t(
+                              simpleModalConfig.mode === 'edit'
+                                  ? 'builder.sheet.editTitle'
+                                  : 'builder.sheet.addTitle',
+                              {
+                                  type: getLabel(
+                                      hierarchyLevels[simpleModalConfig.levelIdx]?.type,
+                                      simpleModalConfig.levelIdx,
+                                  ),
+                              },
+                          )
+                        : t('builder.unitFallback')
                 }
                 initialName={simpleModalConfig?.initialName}
                 onSave={async (name) => {

@@ -24,6 +24,27 @@ export const ASSIGN_EMPLOYEE_SHIFT_MUTATION = `
   }
 `;
 
+export const CREATE_SHIFT_POLICY_ASSIGNMENT_MUTATION = `
+  mutation CreateShiftPolicyAssignment($input: CreateShiftPolicyAssignmentInput!) {
+    createShiftPolicyAssignment(input: $input) {
+      id
+      scopeType
+      scopeRefId
+      shiftTemplateId
+      validFrom
+      validTo
+      isActive
+      shiftTemplate {
+        id
+        name
+        startTime
+        endTime
+        type
+      }
+    }
+  }
+`;
+
 export const BULK_ASSIGN_EMPLOYEE_SHIFT_MUTATION = `
   mutation BulkAssignEmployeeShift($inputs: [CreateEmployeeShiftInput!]!) {
     bulkAssignEmployeeShift(inputs: $inputs)
@@ -97,6 +118,33 @@ export const CREATE_SHIFT_TEMPLATE_MUTATION = `
     }
   }
 `;
+export const UPDATE_SHIFT_TEMPLATE_MUTATION = `
+  mutation UpdateShiftTemplate($input: UpdateShiftTemplateInput!) {
+    updateShiftTemplate(input: $input) {
+      id
+      companyId
+      companyOuId
+      name
+      startTime
+      endTime
+      breakDuration
+      workingDays
+      flexibleMinutes
+      overtimeAllowed
+      type
+      isActive
+    }
+  }
+`;
+
+export const TOGGLE_SHIFT_TEMPLATE_STATUS_MUTATION = `
+  mutation ToggleShiftTemplateStatus($id: ID!) {
+    toggleShiftTemplateStatus(id: $id) {
+      id
+      isActive
+    }
+  }
+`;
 
 export const CREATE_TIMESHEET_MUTATION = `
   mutation CreateTimesheet($input: CreateTimesheetInput!) {
@@ -155,6 +203,22 @@ export const UPDATE_TIMESHEET_STATUS_MUTATION = `
   }
 `;
 
+export const IMPORT_ATTENDANCE_RECORD_MUTATION = `
+  mutation ImportAttendanceRecord($input: AdminUpdateAttendanceInput!) {
+    importAttendanceRecord(input: $input) {
+      id
+      userId
+      employeeName
+      status
+      clockIn
+      clockOut
+      totalMinutes
+      overtimeMinutes
+      remarks
+    }
+  }
+`;
+
 export const ADMIN_UPDATE_ATTENDANCE_RECORD_MUTATION = `
   mutation AdminUpdateAttendanceRecord($input: AdminUpdateAttendanceInput!) {
     adminUpdateAttendanceRecord(input: $input) {
@@ -167,6 +231,15 @@ export const ADMIN_UPDATE_ATTENDANCE_RECORD_MUTATION = `
       totalMinutes
       overtimeMinutes
       remarks
+    }
+  }
+`;
+
+export const UPDATE_OVERTIME_STATUS_MUTATION = `
+  mutation UpdateOvertimeStatus($input: UpdateOvertimeStatusInput!) {
+    updateOvertimeStatus(input: $input) {
+      id
+      overtimeStatus
     }
   }
 `;
@@ -205,6 +278,9 @@ export const GET_EMPLOYEE_SHIFTS_QUERY = `
         startTime
         endTime
         breakDuration
+        isActive
+        workingDays
+        overtimeAllowed
       }
     }
   }
@@ -234,6 +310,7 @@ export const GET_SHIFT_TEMPLATES_QUERY = `
       endTime
       workingDays
       overtimeAllowed
+      breakDuration
     }
   }
 `;
@@ -280,19 +357,22 @@ export const GET_TIMESHEETS_QUERY = `
 `;
 
 export const GET_ATTENDANCE_OVERVIEW_STATS_QUERY = `
-  query AttendanceOverviewStats($startDate: DateTime!, $endDate: DateTime!) {
-    attendanceOverviewStats(startDate: $startDate, endDate: $endDate) {
+  query AttendanceOverviewStats($startDate: DateTime!, $endDate: DateTime!, $forOvertime: Boolean) {
+    attendanceOverviewStats(startDate: $startDate, endDate: $endDate, forOvertime: $forOvertime) {
       totalEmployees
       activeEmployees
       onLeave
       totalOvertimeHours
+      overtimeEmployees
+      approvedOvertime
+      pendingOvertime
     }
   }
 `;
 
 export const GET_PAGINATED_ATTENDANCE_RECORDS_QUERY = `
-  query PaginatedAttendanceRecords($limit: Int, $offset: Int, $filter: PaginatedAttendanceRecordsFilterInput) {
-    paginatedAttendanceRecords(limit: $limit, offset: $offset, filter: $filter) {
+  query PaginatedAttendanceRecords($pagination: PaginationInput, $filter: PaginatedAttendanceRecordsFilterInput) {
+    paginatedAttendanceRecords(pagination: $pagination, filter: $filter) {
       data {
         id
         userId
@@ -312,12 +392,16 @@ export const GET_PAGINATED_ATTENDANCE_RECORDS_QUERY = `
         status
         totalMinutes
         overtimeMinutes
+        overtimeStatus
       }
-      pagination {
+      metaData {
         page
-        limit
+        size
         total
         totalPages
+        hasNext
+        hasPrevious
+        timestamp
       }
     }
   }
@@ -364,8 +448,8 @@ export const GET_ATTENDANCE_FILTER_OPTIONS_QUERY = `
 `;
 
 export const GET_SHIFT_STATS_QUERY = `
-  query ShiftStats {
-    shiftStats {
+  query ShiftStats($companyOuId: ID) {
+    shiftStats(companyOuId: $companyOuId) {
       totalShifts
       morningEmployees
       eveningEmployees

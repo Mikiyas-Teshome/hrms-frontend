@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Clock, Settings, Plus, Pencil } from "lucide-react";
+import { ArrowLeft, Clock, Plus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -239,7 +239,7 @@ export function HrPoliciesForm({ onNext, onBack }: HrPoliciesFormProps) {
       const parseTime = (timeStr: string) => {
         try {
           return new Date(`${currentDate}T${timeStr}`).toISOString();
-        } catch(err) {
+        } catch {
           return new Date().toISOString();
         }
       };

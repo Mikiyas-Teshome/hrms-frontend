@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState } from 'react';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { MoreVertical, Users, UserPlus } from 'lucide-react';
 // No mock data imports needed
 import SummaryStatList from '@/components/dashboard/shared/SummaryStatList';
+import { SummaryStatListSkeleton } from '@/components/common/SummaryStatSkeleton';
 import { UniversalDataTable, ColumnConfig } from '@/components/ui/universal-data-table';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -75,10 +75,10 @@ const HRReportsPage = () => {
         format(startOfMonth(new Date()), 'yyyy-MM-dd'),
     );
     const [dateTo, setDateTo] = useState<string>(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
-    const [companyOuId, setCompanyOuId] = useState<string>('');
+    const [companyOuId] = useState<string>('');
     const [divisionOuId, setDivisionOuId] = useState<string>('');
     const [subDivisionOuId, setSubDivisionOuId] = useState<string>('');
-    const [employeeType, setEmployeeType] = useState<any>('ALL');
+    const [employeeType] = useState<any>('ALL');
 
     const { data: profile } = useProfile();
     const { data: employees = [] } = useEmployees();
@@ -369,42 +369,46 @@ const HRReportsPage = () => {
                 </div>
             </Card>
 
-            <SummaryStatList
-                stats={[
-                    {
-                        title: t('reports.hr.stats.totalEmployees'),
-                        value: reportData?.summary.totalEmployees.toString() || '0',
-                        icon: Users,
-                        iconBgColor: 'rgba(40, 101, 227, 0.05)',
-                        iconColor: '#2865E3',
-                        borderColor: 'rgba(40, 101, 227, 0.5)',
-                    },
-                    {
-                        title: t('reports.hr.stats.newHires'),
-                        value: reportData?.summary.newHires.toString() || '0',
-                        icon: UserPlus,
-                        iconBgColor: 'rgba(217, 119, 6, 0.05)',
-                        iconColor: '#D97706',
-                        borderColor: 'rgba(217, 119, 6, 0.5)',
-                    },
-                    {
-                        title: t('reports.hr.stats.attendanceRate'),
-                        value: `${reportData?.summary.attendanceRate || 0}%`,
-                        icon: Users,
-                        iconBgColor: 'rgba(138, 56, 245, 0.05)',
-                        iconColor: '#8A38F5',
-                        borderColor: 'rgba(138, 56, 245, 0.5)',
-                    },
-                    {
-                        title: t('reports.hr.stats.complianceRate'),
-                        value: `${reportData?.summary.complianceRate || 0}%`,
-                        icon: UserPlus,
-                        iconBgColor: 'rgba(34, 197, 94, 0.05)',
-                        iconColor: '#22C55E',
-                        borderColor: 'rgba(34, 197, 94, 0.5)',
-                    },
-                ]}
-            />
+            {isLoadingReport ? (
+                <SummaryStatListSkeleton count={4} />
+            ) : (
+                <SummaryStatList
+                    stats={[
+                        {
+                            title: t('reports.hr.stats.totalEmployees'),
+                            value: reportData?.summary.totalEmployees.toString() || '0',
+                            icon: Users,
+                            iconBgColor: 'rgba(40, 101, 227, 0.05)',
+                            iconColor: '#2865E3',
+                            borderColor: 'rgba(40, 101, 227, 0.5)',
+                        },
+                        {
+                            title: t('reports.hr.stats.newHires'),
+                            value: reportData?.summary.newHires.toString() || '0',
+                            icon: UserPlus,
+                            iconBgColor: 'rgba(217, 119, 6, 0.05)',
+                            iconColor: '#D97706',
+                            borderColor: 'rgba(217, 119, 6, 0.5)',
+                        },
+                        {
+                            title: t('reports.hr.stats.attendanceRate'),
+                            value: `${reportData?.summary.attendanceRate || 0}%`,
+                            icon: Users,
+                            iconBgColor: 'rgba(138, 56, 245, 0.05)',
+                            iconColor: '#8A38F5',
+                            borderColor: 'rgba(138, 56, 245, 0.5)',
+                        },
+                        {
+                            title: t('reports.hr.stats.complianceRate'),
+                            value: `${reportData?.summary.complianceRate || 0}%`,
+                            icon: UserPlus,
+                            iconBgColor: 'rgba(34, 197, 94, 0.05)',
+                            iconColor: '#22C55E',
+                            borderColor: 'rgba(34, 197, 94, 0.5)',
+                        },
+                    ]}
+                />
+            )}
 
             <Tabs defaultValue="overview" className="w-full">
                 <TabsList className="bg-muted/50 p-1 rounded-lg mb-6">

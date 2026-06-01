@@ -17,7 +17,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormSelect } from "@/components/ui/FormSelect";
 import { FormField } from "@/components/ui/FormField";
 import { leaveTypeSchema, type LeaveTypeValues } from "@/components/onboarding/schemas/leave-type";
-import { cn } from "@/lib/utils";
 
 interface AddLeaveTypeSheetProps {
   open: boolean;
@@ -39,9 +38,9 @@ export function AddLeaveTypeSheet({
   const {
     register,
     handleSubmit,
-    setValue,
+    // setValue,
     reset,
-    watch,
+    // watch,
     control,
     formState: { errors },
   } = useForm<LeaveTypeValues>({
@@ -55,8 +54,8 @@ export function AddLeaveTypeSheet({
     },
   });
 
-  const status = watch("status");
-  const condition = watch("condition");
+  // const status = watch("status");
+  // const condition = watch("condition");
 
   useEffect(() => {
     if (open) {

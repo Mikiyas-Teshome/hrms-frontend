@@ -10,6 +10,7 @@ import { QueryProvider } from '@/components/providers/query-provider';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { BrandColorProvider } from '@/components/providers/brand-color-provider';
 import { Toaster } from '@/components/ui/toaster';
+import { getProfile } from '@/features/auth/auth.actions';
 
 const albertSans = Albert_Sans({
     variable: '--font-albert-sans',
@@ -37,6 +38,14 @@ export default async function RootLayout({ children }: Props) {
     const locale = (cookieStore.get('hrms_language')?.value as 'en' | 'ar') || 'en';
     const isRTL = locale === 'ar';
 
+    let initialUser = null;
+
+    try {
+        initialUser = await getProfile({ mutableCookies: false });
+    } catch (e) {
+        console.error('Failed to pre-fetch profile on server:', e);
+    }
+
     return (
         <html
             lang={locale}
@@ -58,7 +67,7 @@ export default async function RootLayout({ children }: Props) {
                     <BrandColorProvider>
                         <I18nProvider initialLanguage={locale}>
                             <QueryProvider>
-                                <AuthProvider>
+                                <AuthProvider initialUser={initialUser}>
                                     <TooltipProvider>
                                         {children}
                                     </TooltipProvider>

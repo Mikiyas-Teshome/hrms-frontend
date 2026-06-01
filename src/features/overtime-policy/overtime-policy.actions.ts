@@ -91,7 +91,7 @@ export async function createOvertimePoliciesBatch(
   return safeAction(async () => {
     const results: OvertimePolicyResponse[] = [];
     
-    for (const [index, input] of inputs.entries()) {
+    for (const input of inputs) {
       const data = await gqlRequest<{ createOvertimePolicy: OvertimePolicyResponse }>(
         GraphQLService.PAYROLL,
         CREATE_OVERTIME_POLICY_MUTATION,

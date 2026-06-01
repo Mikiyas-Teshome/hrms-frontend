@@ -109,6 +109,10 @@
   "selectNationality": "Select nationality",
   "selectCountry": "Select country",
   "nationality": "Nationality",
+  "full_time": "Full-time",
+  "part_time": "Part-time",
+  "intern": "Intern",
+  "consultant": "Consultant",
   "errors": {
     "numbersOnly": "Must contain only numbers",
     "futureDateRequired": "Date must be in the future",

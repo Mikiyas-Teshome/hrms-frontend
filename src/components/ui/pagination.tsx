@@ -54,7 +54,13 @@ function PaginationLink({
     <Button
       variant={isActive ? "outline" : "ghost"}
       size={size}
-      className={cn(className)}
+      className={cn(
+        isActive &&
+          "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary",
+        !isActive && "text-foreground hover:bg-muted hover:text-foreground",
+        className,
+      )}
+      aria-current={isActive ? "page" : undefined}
       {...props}
     />
   )
@@ -137,7 +143,7 @@ function PaginationEllipsis({
       aria-hidden
       data-slot="pagination-ellipsis"
       className={cn(
-        "flex size-8 items-center justify-center [&_svg:not([class*='size-'])]:size-4",
+        "flex size-8 items-center justify-center text-muted-foreground [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}
