@@ -4,7 +4,6 @@ import { Card, CardContent } from '@/components/ui/card';
 export function OrgUnitTableSkeleton() {
     return (
         <div className="space-y-6">
-            {/* Header Skeleton */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <Skeleton className="h-8 w-48 rounded-md" />
                 <div className="flex flex-wrap items-center gap-3">
@@ -14,7 +13,6 @@ export function OrgUnitTableSkeleton() {
                 </div>
             </div>
 
-            {/* Stats Skeleton */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => (
                     <Card key={i} className="border border-border bg-card shadow-sm">
@@ -26,7 +24,6 @@ export function OrgUnitTableSkeleton() {
                 ))}
             </div>
 
-            {/* Table Skeleton */}
             <div className="rounded-xl border border-border bg-card overflow-hidden">
                 <div className="p-4 border-b border-border flex justify-between items-center bg-muted/30">
                     <Skeleton className="h-9 w-64 rounded-md" />

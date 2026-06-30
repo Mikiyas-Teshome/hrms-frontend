@@ -13,7 +13,12 @@ const resolveTitle = (
     t: TFunction,
     titleKey: string,
     titleDefault?: string,
+    titleOverride?: string,
 ): string => {
+    if (titleOverride) {
+        return titleOverride;
+    }
+
     if (titleDefault) {
         return t(titleKey, { defaultValue: titleDefault });
     }
@@ -128,7 +133,9 @@ export const filterDashboardNavigationItems = (
                 return true;
             }
 
-            const parentAllowed = !item.module || checkDashboardModulePermission(permissionsMap, item.module);
+            const parentAllowed =
+                !item.module ||
+                checkDashboardModulePermission(permissionsMap, item.module, item.action ?? 'read');
             const hasVisibleChildren = !!item.items?.length;
 
             return parentAllowed || hasVisibleChildren;
@@ -144,7 +151,12 @@ export const resolveDashboardNavigationItems = (
     return items.map((item) => {
         const resolvedSubItems = item.items?.map((subItem) => {
             const subItemResult: DashboardNavigationSubItem = {
-                title: resolveTitle(t, subItem.titleKey, subItem.titleDefault),
+                title: resolveTitle(
+                    t,
+                    subItem.titleKey,
+                    subItem.titleDefault,
+                    subItem.title,
+                ),
                 url: subItem.url,
                 module: subItem.module,
                 action: subItem.action,
@@ -188,7 +200,12 @@ export const buildDashboardQuickSearchItems = (
             return;
         }
 
-        const title = resolveTitle(t, config.titleKey, config.titleDefault);
+        const title = resolveTitle(
+            t,
+            config.titleKey,
+            config.titleDefault,
+            'title' in config ? config.title : undefined,
+        );
         const id = `${group}-${config.url}-${title}`;
 
         results.push({

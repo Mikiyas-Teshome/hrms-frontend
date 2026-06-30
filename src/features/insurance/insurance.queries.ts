@@ -2,7 +2,7 @@ export const INSURANCE_FIELDS_FRAGMENT = `
   fragment InsuranceFields on Insurance {
     id
     employeeId
-    companyOuId
+    ouId
     dependentId
     insuranceName
     providerName
@@ -65,8 +65,8 @@ export const UPDATE_INSURANCE_STATUS_MUTATION = `
 `;
 
 export const GET_INSURANCE_STATS_QUERY = `
-  query InsuranceStats($companyOuId: ID) {
-    insuranceStats(companyOuId: $companyOuId) {
+  query InsuranceStats($ouId: ID) {
+    insuranceStats(ouId: $ouId) {
       totalPlans
       activePlans
       providerCount

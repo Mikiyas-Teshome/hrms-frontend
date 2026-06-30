@@ -7,8 +7,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Users, DollarSign, Wallet, FileSpreadsheet } from 'lucide-react';
 import { useProfile } from '@/features/auth/hooks/useAuth';
 import { useEmployees } from '@/features/employee/hooks/useEmployee';
-import { useAllowances } from '@/features/allowance/hooks/useAllowance';
-import { useDeductions } from '@/features/deduction/hooks/useDeduction';
+import { useAllPayrollComponents } from '@/features/payroll/hooks/usePayroll';
+import { PayrollComponentType } from '@/features/payroll/payroll.types';
 
 import { PayrollOfficerViewSkeleton } from './payroll-officer-view-skeleton';
 
@@ -18,10 +18,18 @@ export function PayrollOfficerView() {
 
     const { data: profile, isLoading: profileLoading } = useProfile();
     const { data: employees = [], isLoading: employeesLoading } = useEmployees();
-    const { data: allowances = [], isLoading: allowancesLoading } = useAllowances(profile?.companyId);
-    const { data: deductions = [], isLoading: deductionsLoading } = useDeductions(profile?.companyId);
+    const { data: componentsResponse, isLoading: componentsLoading } = useAllPayrollComponents(
+        profile?.companyId,
+    );
+    const components = componentsResponse?.data ?? [];
+    const allowancesCount = components.filter(
+        (component) => component.category === PayrollComponentType.ALLOWANCE,
+    ).length;
+    const deductionsCount = components.filter(
+        (component) => component.category === PayrollComponentType.DEDUCTION,
+    ).length;
 
-    const isLoading = profileLoading || employeesLoading || allowancesLoading || deductionsLoading;
+    const isLoading = profileLoading || employeesLoading || componentsLoading;
 
     if (isLoading) {
         return <PayrollOfficerViewSkeleton />;
@@ -42,13 +50,13 @@ export function PayrollOfficerView() {
         },
         {
             title: t('payrollOfficerDashboard.totalAllowances'),
-            value: allowances.length.toString(),
+            value: allowancesCount.toString(),
             icon: Wallet,
             styleClass: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300',
         },
         {
             title: t('payrollOfficerDashboard.totalDeductions'),
-            value: deductions.length.toString(),
+            value: deductionsCount.toString(),
             icon: FileSpreadsheet,
             styleClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
         },
@@ -56,7 +64,6 @@ export function PayrollOfficerView() {
 
     return (
         <div className="flex min-h-screen flex-col gap-8 rounded-tl-[32px] bg-background p-[24px_24px_12px] font-sans text-foreground">
-            {/* Header Section */}
             <div className="flex flex-col gap-6">
                 <div className="flex min-h-14 items-center justify-between gap-3">
                     <div className="flex-1 space-y-0 text-left rtl:text-right">
@@ -72,7 +79,6 @@ export function PayrollOfficerView() {
                 </div>
             </div>
 
-            {/* Stats Row Container */}
             <div className="grid gap-4 w-full sm:grid-cols-2 lg:grid-cols-4">
                 {stats.map((stat, idx) => (
                     <Card
@@ -100,7 +106,6 @@ export function PayrollOfficerView() {
                 ))}
             </div>
 
-            {/* Main Empty State Content */}
             <div className="flex min-h-115 flex-1 flex-col items-center justify-center rounded-[24px] border border-dashed border-border bg-muted/30">
                 <div className="flex max-w-120 flex-col items-center justify-center p-8 text-center">
                     <h2 className="text-[24px] font-bold text-foreground mb-3">

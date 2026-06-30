@@ -19,12 +19,18 @@ import {
     HandHeart,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/features/auth/hooks/usePermissions';
 
 import { useTranslation } from 'react-i18next';
 import { useLogout } from '@/features/auth/hooks/useAuth';
+import { canAccessSettings } from '@/features/settings/settings-navigation.util';
+import { useOrganizationNomenclature } from '@/features/organization/hooks/useOrganization';
+import { buildOrganizationSidebarSubItems } from '@/features/organization/organization-sidebar.util';
 import ConfirmationModal from '@/components/dashboard/shared/ConfirmationModal';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import AddEmployeeSheet from '@/components/dashboard/employees/AddEmployeeSheet';
+import { AssistantNavLink, AssistantSidebarThreads } from '@/components/dashboard/assistant/assistant-sidebar-threads';
 
 import {
     Sidebar,
@@ -40,11 +46,14 @@ import {
     SidebarMenuSub,
     SidebarMenuSubButton,
     SidebarMenuSubItem,
+    SidebarRail,
     SidebarTrigger,
     useSidebar,
+    useSidebarCollapsedInteraction,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { usePathname, useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 type SidebarSubItem = {
     title: string;
@@ -52,6 +61,7 @@ type SidebarSubItem = {
     module?: string;
     action?: string;
     actions?: string[];
+    actionsAny?: string[];
     onClick?: () => void;
 };
 
@@ -76,33 +86,40 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
     const [showLogoutModal, setShowLogoutModal] = React.useState(false);
     const [isLoggingOut, setIsLoggingOut] = React.useState(false);
     const { permissionsMap, isInitializing } = useAuth();
+    const { isSystemAdmin } = usePermissions();
+    const { data: organizationNomenclature } = useOrganizationNomenclature();
     const [showAddEmployeeSheet, setShowAddEmployeeSheet] = React.useState(false);
-    const [submenuOpenState, setSubmenuOpenState] = React.useState<Record<string, boolean>>({});
+    const [submenuOpenState, setSubmenuOpenState] = React.useState<{
+        path: string;
+        state: Record<string, boolean>;
+    }>({ path: '', state: {} });
     const { state, setOpen } = useSidebar();
+    const { handleItemClick, expandCollapsedSidebar, isCollapsedDesktop } =
+        useSidebarCollapsedInteraction();
 
     React.useEffect(() => {
         try {
             const savedState = localStorage.getItem(SIDEBAR_SUBMENU_STATE_KEY);
-            if (savedState) {
-                setSubmenuOpenState(JSON.parse(savedState) as Record<string, boolean>);
+            if (!savedState) {
+                return;
+            }
+
+            const parsed = JSON.parse(savedState) as {
+                path?: string;
+                state?: Record<string, boolean>;
+            };
+            if (parsed?.path && parsed.state) {
+                setSubmenuOpenState({ path: parsed.path, state: parsed.state });
             }
         } catch (error) {
             console.error('Failed to restore sidebar submenu state', error);
         }
     }, []);
 
-    React.useEffect(() => {
-        setSubmenuOpenState({});
-        try {
-            localStorage.removeItem(SIDEBAR_SUBMENU_STATE_KEY);
-        } catch (error) {
-            console.error('Failed to clear sidebar submenu state', error);
-        }
-    }, [pathname]);
-
     const setSubmenuOpen = React.useCallback((menuUrl: string, open: boolean) => {
         setSubmenuOpenState((prev) => {
-            const next = { ...prev, [menuUrl]: open };
+            const baseState = prev.path === pathname ? prev.state : {};
+            const next = { path: pathname, state: { ...baseState, [menuUrl]: open } };
             try {
                 localStorage.setItem(SIDEBAR_SUBMENU_STATE_KEY, JSON.stringify(next));
             } catch (error) {
@@ -110,13 +127,15 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
             }
             return next;
         });
-    }, []);
+    }, [pathname]);
 
     const isSubmenuOpen = React.useCallback(
         (menuUrl: string) => {
-            const persisted = submenuOpenState[menuUrl];
-            if (typeof persisted === 'boolean') {
-                return persisted;
+            if (submenuOpenState.path === pathname) {
+                const persisted = submenuOpenState.state[menuUrl];
+                if (typeof persisted === 'boolean') {
+                    return persisted;
+                }
             }
             return pathname.startsWith(menuUrl);
         },
@@ -143,6 +162,11 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
         }
     };
 
+    const organizationSubItems = React.useMemo(
+        () => buildOrganizationSidebarSubItems(organizationNomenclature, t),
+        [organizationNomenclature, t],
+    );
+
     const menuItems: SidebarItem[] = [
         {
             title: t('sidebar.dashboard'),
@@ -157,12 +181,6 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
             icon: Shield,
             module: 'roles',
         },
-        // {
-        //     title: t('sidebar.payrollOfficer.title'),
-        //     url: '/dashboard/payroll-officer',
-        //     icon: CircleDollarSign,
-        //     module: 'payroll_runs',
-        // },
         {
             title: t('sidebar.employees.title'),
             url: '/dashboard/employees',
@@ -201,33 +219,7 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
             url: '/dashboard/organization',
             icon: Building2,
             module: 'org_hierarchy',
-            items: [
-                {
-                    title: t('sidebar.organization.hierarchy'),
-                    url: '/dashboard/organization/hierarchy',
-                    module: 'org_hierarchy',
-                },
-                {
-                    title: t('sidebar.organization.company'),
-                    url: '/dashboard/organization/company',
-                    module: 'org_hierarchy',
-                },
-                {
-                    title: t('sidebar.organization.division'),
-                    url: '/dashboard/organization/division',
-                    module: 'org_hierarchy',
-                },
-                {
-                    title: t('sidebar.organization.subDivision'),
-                    url: '/dashboard/organization/sub-division',
-                    module: 'org_hierarchy',
-                },
-                {
-                    title: t('sidebar.organization.department'),
-                    url: '/dashboard/organization/department',
-                    module: 'org_hierarchy',
-                },
-            ],
+            items: organizationSubItems,
         },
         {
             title: t('sidebar.attendance.title'),
@@ -239,6 +231,11 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                     title: t('sidebar.attendance.overview'),
                     url: '/dashboard/attendance/overview',
                     module: 'attendance',
+                },
+                {
+                    title: t('sidebar.attendance.calendar'),
+                    url: '/dashboard/attendance/calendar',
+                    module: 'shifts',
                 },
                 {
                     title: t('sidebar.attendance.shifts'),
@@ -256,22 +253,19 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
             title: t('sidebar.leave.title'),
             url: '/dashboard/leave',
             icon: CalendarOff,
-            module: 'leave_types',
+            module: 'leave_requests',
             items: [
                 {
                     title: t('sidebar.leave.requests'),
                     url: '/dashboard/leave/leave-requests',
                     module: 'leave_requests',
-                },
-                {
-                    title: t('sidebar.leave.types'),
-                    url: '/dashboard/leave/leave-types',
-                    module: 'leave_types',
+                   
                 },
                 {
                     title: t('sidebar.leave.policies'),
                     url: '/dashboard/leave/policies',
                     module: 'leave_policies',
+                    action: 'create',
                 },
                 {
                     title: t('sidebar.leave.balances'),
@@ -297,8 +291,18 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                     module: 'employee_salaries',
                 },
                 {
+                    title: t('sidebar.payroll.salaryStructures'),
+                    url: '/dashboard/payroll/salary-structures',
+                    module: 'employee_salaries',
+                },
+                {
                     title: t('sidebar.payroll.components'),
                     url: '/dashboard/payroll/components',
+                    module: 'payroll_components',
+                },
+                {
+                    title: t('sidebar.payroll.taxRules', 'Tax rules'),
+                    url: '/dashboard/payroll/tax-rules',
                     module: 'payroll_components',
                 },
                 {
@@ -317,10 +321,14 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                 {
                     title: t('sidebar.benefits.insurance'),
                     url: '/dashboard/benefits/insurance',
+                    module: 'benefits_insurance',
+                    actionsAny: ['create', 'update'],
                 },
                 {
                     title: t('sidebar.benefits.entitlements'),
                     url: '/dashboard/benefits/entitlements',
+                    module: 'benefits_entitlements',
+                    actionsAny: ['create', 'update'],
                 },
             ],
         },
@@ -344,6 +352,7 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                     title: t('sidebar.documents.categories'),
                     url: '/dashboard/documents/categories',
                     module: 'document_categories',
+                    action: 'create',
                 },
             ],
         },
@@ -372,8 +381,8 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
         },
     ]
         .map((item: SidebarItem) => {
-            // Filter sub-items first
             const filteredSubItems = item.items?.filter((subItem: SidebarSubItem) => {
+                if (isSystemAdmin) return true;
                 if (!subItem.module) return true;
                 if (!permissionsMap) return false;
                 if (permissionsMap['all']?.['manage']) return true;
@@ -389,6 +398,10 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                     );
                 };
 
+                if (subItem.actionsAny?.length) {
+                    return subItem.actionsAny.some((requiredAction) => checkAction(requiredAction));
+                }
+
                 if (subItem.actions?.length) {
                     return subItem.actions.every((requiredAction) => checkAction(requiredAction));
                 }
@@ -400,10 +413,10 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
             return { ...item, items: filteredSubItems };
         })
         .filter((item: SidebarItem) => {
+            if (isSystemAdmin) return true;
             if (isInitializing) return false;
             if (!permissionsMap) return false;
 
-            // Global Super Admin check
             if (permissionsMap['all']?.['manage']) return true;
 
             const checkPerm = (mod?: string, action: string = 'read') => {
@@ -418,24 +431,41 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                 );
             };
 
-            // Visible if parent is allowed OR if any (already filtered) child exists
             const parentAllowed = !item.module || checkPerm(item.module);
             const hasVisibleChildren = item.items && item.items.length > 0;
 
-            return parentAllowed || hasVisibleChildren;
+            if (item.items) {
+                return !!hasVisibleChildren;
+            }
+
+            return parentAllowed;
         });
 
+    const canAccessAssistant = (map: typeof permissionsMap) => {
+        if (!map) return false;
+        if (map.all?.manage) return true;
+        return !!map.assistant?.query || !!map.assistant?.manage;
+    };
+
     const systemItems = [
-        {
-            title: t('sidebar.settings'),
-            url: '/dashboard/settings',
-            icon: Settings,
-        },
-        {
-            title: t('sidebar.assistant'),
-            url: '/dashboard/assistant',
-            icon: Bot,
-        },
+        ...(canAccessSettings(permissionsMap) || isSystemAdmin
+            ? [
+                  {
+                      title: t('sidebar.settings'),
+                      url: '/dashboard/settings',
+                      icon: Settings,
+                  },
+              ]
+            : []),
+        ...(canAccessAssistant(permissionsMap) || isSystemAdmin
+            ? [
+                  {
+                      title: t('sidebar.assistant'),
+                      url: '/dashboard/assistant',
+                      icon: Bot,
+                  },
+              ]
+            : []),
     ];
 
     const footerItems = [
@@ -454,9 +484,24 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
     return (
         <>
             <Sidebar variant="sidebar" collapsible="icon" {...props}>
+                <SidebarRail />
                 <SidebarHeader className="p-4">
                     <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
+                        <div
+                            className={cn(
+                                'flex items-center gap-2',
+                                isCollapsedDesktop && 'cursor-pointer',
+                            )}
+                            onClick={expandCollapsedSidebar}
+                            onKeyDown={(event) => {
+                                if (isCollapsedDesktop && (event.key === 'Enter' || event.key === ' ')) {
+                                    event.preventDefault();
+                                    expandCollapsedSidebar();
+                                }
+                            }}
+                            role={isCollapsedDesktop ? 'button' : undefined}
+                            tabIndex={isCollapsedDesktop ? 0 : undefined}
+                        >
                             <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                                 <Building2 className="size-4" />
                             </div>
@@ -494,7 +539,16 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                                             >
                                                 <div>
                                                     <CollapsibleTrigger asChild>
-                                                        <SidebarMenuButton tooltip={item.title}>
+                                                        <SidebarMenuButton
+                                                            tooltip={item.title}
+                                                            onClick={(event) => {
+                                                                if (isCollapsedDesktop) {
+                                                                    event.preventDefault();
+                                                                    setOpen(true);
+                                                                    setSubmenuOpen(item.url, true);
+                                                                }
+                                                            }}
+                                                        >
                                                             {item.icon && <item.icon />}
                                                             <span>{item.title}</span>
                                                             <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
@@ -517,12 +571,14 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                                                                             <Link
                                                                                 href={subItem.url}
                                                                                 onClick={(e) => {
-                                                                                    if (
-                                                                                        subItem.onClick
-                                                                                    ) {
+                                                                                    if (subItem.onClick) {
                                                                                         e.preventDefault();
-                                                                                        subItem.onClick();
                                                                                     }
+                                                                                    handleItemClick(e, () => {
+                                                                                        if (subItem.onClick) {
+                                                                                            subItem.onClick();
+                                                                                        }
+                                                                                    });
                                                                                 }}
                                                                             >
                                                                                 <span>
@@ -546,16 +602,20 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                                                 <Link
                                                     href={item.url}
                                                     onClick={(e) => {
-                                                        if (state === 'collapsed') {
-                                                            setOpen(true);
-                                                        }
                                                         if (
                                                             'onClick' in item &&
                                                             typeof item.onClick === 'function'
                                                         ) {
                                                             e.preventDefault();
-                                                            (item as any).onClick();
                                                         }
+                                                        handleItemClick(e, () => {
+                                                            if (
+                                                                'onClick' in item &&
+                                                                typeof item.onClick === 'function'
+                                                            ) {
+                                                                (item as any).onClick();
+                                                            }
+                                                        });
                                                     }}
                                                 >
                                                     {item.icon && <item.icon />}
@@ -577,17 +637,37 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                             <SidebarMenu>
                                 {systemItems.map((item) => (
                                     <SidebarMenuItem key={item.title}>
-                                        <SidebarMenuButton asChild tooltip={item.title}>
-                                            <Link
-                                                href={item.url}
-                                                onClick={() => {
-                                                    if (state === 'collapsed') setOpen(true);
-                                                }}
+                                        {item.url === '/dashboard/assistant' ? (
+                                            <>
+                                                <Suspense
+                                                    fallback={
+                                                        <SidebarMenuButton tooltip={item.title}>
+                                                            {item.icon && <item.icon />}
+                                                            <span>{item.title}</span>
+                                                        </SidebarMenuButton>
+                                                    }
+                                                >
+                                                    <AssistantNavLink
+                                                        title={item.title}
+                                                        icon={item.icon}
+                                                    />
+                                                </Suspense>
+                                                <Suspense fallback={null}>
+                                                    <AssistantSidebarThreads />
+                                                </Suspense>
+                                            </>
+                                        ) : (
+                                            <SidebarMenuButton
+                                                asChild
+                                                tooltip={item.title}
+                                                isActive={pathname === item.url}
                                             >
-                                                {item.icon && <item.icon />}
-                                                <span>{item.title}</span>
-                                            </Link>
-                                        </SidebarMenuButton>
+                                                <Link href={item.url} onClick={(e) => handleItemClick(e)}>
+                                                    {item.icon && <item.icon />}
+                                                    <span>{item.title}</span>
+                                                </Link>
+                                            </SidebarMenuButton>
+                                        )}
                                     </SidebarMenuItem>
                                 ))}
                             </SidebarMenu>
@@ -610,8 +690,7 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                                     {item.url === '/logout' ? (
                                         <a
                                             onClick={(e) => {
-                                                if (state === 'collapsed') setOpen(true);
-                                                handleLogoutClick(e);
+                                                handleItemClick(e, () => handleLogoutClick(e));
                                             }}
                                             className="flex items-center w-full"
                                         >
@@ -619,12 +698,7 @@ export function DashboardSidebar({ ...props }: React.ComponentProps<typeof Sideb
                                             <span>{item.title}</span>
                                         </a>
                                     ) : (
-                                        <Link
-                                            href={item.url}
-                                            onClick={() => {
-                                                if (state === 'collapsed') setOpen(true);
-                                            }}
-                                        >
+                                        <Link href={item.url} onClick={(e) => handleItemClick(e)}>
                                             {item.icon && <item.icon />}
                                             <span>{item.title}</span>
                                         </Link>

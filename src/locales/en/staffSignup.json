@@ -41,6 +41,18 @@
     "addressDocs": "Address & Docs",
     "bankAccount": "Bank Account #{{index}}",
     "addAnotherBank": "Add another bank",
+    "step": "Step {{current}} of {{total}}",
+    "stepPersonalTitle": "Personal information",
+    "stepPersonalSubtitle": "Tell us about yourself and your emergency contact.",
+    "stepAddressTitle": "Address details",
+    "stepAddressSubtitle": "Add your current residence and permanent home address.",
+    "stepDocumentsTitle": "Identity documents",
+    "stepDocumentsSubtitle": "Provide your passport, visa, and work permit details.",
+    "stepBankingTitle": "Banking information",
+    "stepBankingSubtitle": "Add your bank account for payroll deposits.",
+    "stepDocumentUploadsTitle": "Upload documents",
+    "stepDocumentUploadsSubtitle": "Upload your compliance documents based on your company's requirements.",
+    "back": "Back",
     "continue": "Continue",
     "continueToAddress": "Continue to Address",
     "continueToBanking": "Continue to Banking",
@@ -115,6 +127,35 @@
       "remove": "Remove",
       "add": "Add"
     },
+    "avatar": {
+      "label": "Profile photo",
+      "hint": "Upload a photo for your employee profile. JPG or PNG, max 5 MB.",
+      "upload": "Upload photo",
+      "change": "Change photo",
+      "remove": "Remove",
+      "invalidType": "Only image files (JPG, PNG, WebP) are allowed.",
+      "tooLarge": "File must be under 5 MB.",
+      "uploadFailed": "Failed to save profile photo. Please try again."
+    },
+    "documentUploads": {
+      "sectionTitle": "Required documents",
+      "sectionHint": "Upload files for each category below. Required items must be provided before you can finish setup.",
+      "required": "Required",
+      "optional": "Optional",
+      "selectFile": "Document file",
+      "noFileChosen": "No file chosen",
+      "chooseFile": "Choose file",
+      "expiryDate": "Expiry date",
+      "allowedTypes": "Allowed: {{types}} · Max {{size}} MB",
+      "emptyCategories": "No document categories are configured for your profile. You can finish setup and upload documents later from your dashboard.",
+      "loadError": "We could not load your required document list. Check your connection and try again.",
+      "retry": "Try again",
+      "errors": {
+        "required": "{{category}} is required",
+        "expiryRequired": "Expiry date is required for this document",
+        "incomplete": "Please complete all required document uploads before finishing."
+      }
+    },
     "errors": {
       "firstNameRequired": "First name is required",
       "lastNameRequired": "Last name is required",
@@ -144,8 +185,9 @@
       "noResults": "No results found"
     }
   },
-  "reviewContractTitle": "Please review you contract",
-  "reviewContractSubtitle": "Review you assigned contract and accept to continue to join the workstation.",
+  "reviewContractTitle": "Review your employment contract",
+  "reviewContractSubtitle": "Review your assigned contract details and documents before continuing.",
+  "contractAgreementLabel": "I have read and understood the employment contract and employee agreement, and I agree to its terms and conditions.",
   "contractInformation": "Contract information",
   "contractLabel": "Contract",
   "standardContract": "Full-time permanent",
@@ -174,5 +216,6 @@
   "goBack": "Go Back & Review",
   "noContractTitle": "No Pending Contract",
   "noContractDesc": "There is no pending contract assigned to your profile at the moment. Please ask your HR manager to assign a contract.",
+  "salaryPendingPayroll": "Salary has not been assigned yet. Please contact HR to confirm your compensation details.",
   "checkAgain": "Check Again"
 }

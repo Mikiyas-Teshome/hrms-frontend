@@ -21,6 +21,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from "@/lib/utils";
 import { useCreateShiftPolicyAssignment, useShiftTemplates } from '@/features/attendance/hooks/useAttendance';
 import { ShiftPolicyScopeType } from '@/features/attendance/attendance.types';
+import { formatShiftTime24 } from '@/features/attendance/attendance.utils';
 import { useProfile } from '@/features/auth/hooks/useAuth';
 import { useCompanyOptions, useOrganizationHierarchy } from '@/features/organization/hooks/useOrganization';
 
@@ -41,18 +42,6 @@ interface AssignShiftFormValues {
     validTo?: Date | null;
 }
 
-/** Format ISO time string to 24-hour format (e.g. '1970-01-01T08:00:00.000Z' to '08:00') */
-const formatShiftTime24 = (isoTime: string): string => {
-    try {
-        const timePart = isoTime.includes('T') ? isoTime.split('T')[1] : isoTime;
-        const [hours, minutes] = timePart.split(':');
-        return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
-    } catch {
-        return isoTime;
-    }
-};
-
-/** Recursive helper to find the parent company containing a given unit ID */
 const findCompanyForUnit = (unitId: string, nodes: any[]): any | null => {
     for (const node of nodes) {
         if (node.id === unitId) {
@@ -88,7 +77,6 @@ export function AssignShiftModal({ isOpen, onClose, target }: AssignShiftModalPr
 
     const [comboboxOpen, setComboboxOpen] = useState(false);
 
-    // Reset form when modal opens/closes
     React.useEffect(() => {
         if (isOpen) {
             form.reset({
@@ -99,14 +87,11 @@ export function AssignShiftModal({ isOpen, onClose, target }: AssignShiftModalPr
         }
     }, [isOpen, form]);
 
-    // Fetch shift templates for the target's resolved company context
     const resolvedCompanyId = React.useMemo(() => {
         if (!target) return '';
         
-        // 1. If target itself is a company, use its ID
         if (target.type === 'COMPANY') return target.id;
         
-        // 2. Try to find parent company in the organization hierarchy
         if (hierarchy.length > 0) {
             const unitIdToSearch = target.type === 'EMPLOYEE' ? target.companyId : target.id;
             if (unitIdToSearch) {
@@ -115,16 +100,19 @@ export function AssignShiftModal({ isOpen, onClose, target }: AssignShiftModalPr
             }
         }
 
-        // 3. Fallbacks
         return target.companyId || profile?.companyId || companies[0]?.id || '';
     }, [target, hierarchy, profile, companies]);
 
     const { data: shiftTemplates = [], isLoading: isLoadingShifts } = useShiftTemplates(resolvedCompanyId);
 
+    const activeShiftTemplates = React.useMemo(
+        () => shiftTemplates.filter((shift) => shift.isActive),
+        [shiftTemplates],
+    );
+
     const onSubmit = async (data: AssignShiftFormValues) => {
         if (!target) return;
 
-        // Map scope type directly using ShiftPolicyScopeType
         const scopeType = target.type as ShiftPolicyScopeType;
 
         const payload = {
@@ -155,7 +143,6 @@ export function AssignShiftModal({ isOpen, onClose, target }: AssignShiftModalPr
 
     if (!target) return null;
 
-    // Use employee message if scope is EMPLOYEE, otherwise use organization unit message
     const infoMessage = target.type === 'EMPLOYEE'
         ? t('orgStructure:assignShift.infoMessageEmployee', 'This will apply only to this employee and will override any inherited organizational shift policy.')
         : t('orgStructure:assignShift.infoMessage', 'This apply for all the employees in this unit. But it will be overwritten if a shift is assigned to a child unit.');
@@ -164,7 +151,6 @@ export function AssignShiftModal({ isOpen, onClose, target }: AssignShiftModalPr
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden border border-border shadow-2xl bg-background text-foreground rounded-2xl">
                 
-                {/* WAI-ARIA Screen Reader Compliance */}
                 <DialogDescription className="sr-only">
                     Modal dialog for assigning a shift policy.
                 </DialogDescription>
@@ -182,7 +168,6 @@ export function AssignShiftModal({ isOpen, onClose, target }: AssignShiftModalPr
                             onSubmit={form.handleSubmit(onSubmit)}
                             className="space-y-5"
                         >
-                            {/* Shift Selection Field */}
                             <FormField
                                 control={form.control}
                                 name="shiftTemplateId"
@@ -207,8 +192,8 @@ export function AssignShiftModal({ isOpen, onClose, target }: AssignShiftModalPr
                                                     >
                                                         <span className="truncate">
                                                             {field.value
-                                                                ? (shiftTemplates.find((shift) => shift.id === field.value)
-                                                                    ? `${shiftTemplates.find((shift) => shift.id === field.value)?.name} (${formatShiftTime24(shiftTemplates.find((shift) => shift.id === field.value)?.startTime || '')} - ${formatShiftTime24(shiftTemplates.find((shift) => shift.id === field.value)?.endTime || '')})`
+                                                                ? (activeShiftTemplates.find((shift) => shift.id === field.value)
+                                                                    ? `${activeShiftTemplates.find((shift) => shift.id === field.value)?.name} (${formatShiftTime24(activeShiftTemplates.find((shift) => shift.id === field.value)?.startTime || '')} - ${formatShiftTime24(activeShiftTemplates.find((shift) => shift.id === field.value)?.endTime || '')})`
                                                                     : field.value)
                                                                 : isLoadingShifts 
                                                                     ? t('orgStructure:assignShift.loadingShifts', "Loading shifts...") 
@@ -226,7 +211,7 @@ export function AssignShiftModal({ isOpen, onClose, target }: AssignShiftModalPr
                                                             {isLoadingShifts ? "Loading shifts..." : t('orgStructure:assignShift.noShiftsFound', "No shift template found.")}
                                                         </CommandEmpty>
                                                         <CommandGroup>
-                                                            {shiftTemplates.map((shift) => (
+                                                            {activeShiftTemplates.map((shift) => (
                                                                 <CommandItem
                                                                     key={shift.id}
                                                                     value={shift.name}
@@ -259,7 +244,6 @@ export function AssignShiftModal({ isOpen, onClose, target }: AssignShiftModalPr
                                 )}
                             />
 
-                            {/* Valid From Date */}
                             <FormField
                                 control={form.control}
                                 name="validFrom"
@@ -282,7 +266,6 @@ export function AssignShiftModal({ isOpen, onClose, target }: AssignShiftModalPr
                                 )}
                             />
 
-                            {/* Valid To Date */}
                             <FormField
                                 control={form.control}
                                 name="validTo"
@@ -307,7 +290,6 @@ export function AssignShiftModal({ isOpen, onClose, target }: AssignShiftModalPr
                                 )}
                             />
 
-                            {/* Premium Blue Information Card */}
                             <div className="p-3.5 rounded-xl border border-blue-100 bg-[#eff6ff]/70 dark:bg-blue-950/20 dark:border-blue-900/30 flex items-start gap-2.5 text-start rtl:text-end mt-4">
                                 <Info className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0 mt-0.5" />
                                 <p className="text-[13px] text-[#1e40af] dark:text-blue-300 font-medium leading-relaxed font-sans">

@@ -1,3 +1,9 @@
+export enum EmployeePayrollContractStatus {
+    NONE = 'NONE',
+    DRAFT = 'DRAFT',
+    ACTIVE = 'ACTIVE',
+}
+
 export enum EmployeeStatus {
     ACTIVE = 'active',
     INACTIVE = 'inactive',
@@ -13,6 +19,7 @@ export interface EmployeeResponse {
     id: string;
     employeeNumber: string;
     userId?: string | null;
+    avatarUrl?: string | null;
     activeEmployeeContractId?: string | null;
     firstName: string;
     lastName: string;
@@ -34,6 +41,7 @@ export interface EmployeeResponse {
     workPermitExpiry?: string | null;
     jobTitle: string;
     departmentId?: string | null;
+    companyOuId?: string | null;
     managerId?: string | null;
     employmentType?: string | null;
     hireDate?: string | null;
@@ -41,6 +49,7 @@ export interface EmployeeResponse {
     transferDate?: string | null;
     salary?: number | null;
     currency?: string | null;
+    payrollContractStatus: EmployeePayrollContractStatus;
     status: EmployeeStatus;
     address?: string | null;
     city?: string | null;
@@ -52,8 +61,8 @@ export interface EmployeeResponse {
     homeState?: string | null;
     homeCountry?: string | null;
     homePostalCode?: string | null;
-    // emergencyContactName?: string | null;
-    // emergencyContactPhone?: string | null;
+    emergencyContactName?: string | null;
+    emergencyContactPhone?: string | null;
     emergencyContactRelationship?: string | null;
     previousCompanyId?: string | null;
     previousEmployeeId?: string | null;
@@ -61,6 +70,7 @@ export interface EmployeeResponse {
         orgUnitId: string;
         orgUnitName: string;
     } | null;
+    roleName?: string | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -238,10 +248,11 @@ export interface BaseInvitationEmployeeInput {
     ouId?: string;
     roleId?: string;
     role?: string;
-    contractId?: string;
+    contractId: string;
     employmentType?: string;
     jobTitle?: string;
     salary?: number;
+    salaryStructureId?: string;
 }
 
 export interface CreateInvitationInput extends BaseInvitationEmployeeInput {

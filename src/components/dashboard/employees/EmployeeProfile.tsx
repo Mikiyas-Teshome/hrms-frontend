@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import {
@@ -10,7 +10,6 @@ import {
     PencilLine,
     Clock,
     CalendarDays,
-    User,
     Loader2,
     Building2,
     CreditCard,
@@ -19,19 +18,39 @@ import {
     MapPin,
     Phone,
     Mail,
-    MoreVertical,
 } from 'lucide-react';
 import { useEmployee, useEmployees } from '@/features/employee/hooks/useEmployee';
 import { useBankAccounts } from '@/features/bank-account/hooks/useBankAccount';
 import { usePermissions } from '@/features/auth/hooks/usePermissions';
+import { useProfile } from '@/features/auth/hooks/useAuth';
 import { useEmployeeContracts } from '@/features/contracts/hooks/useEmployeeContracts';
 import { useDisplayCurrency } from '@/features/settings/hooks/useDisplayCurrency';
+import { useEmployeeSalaryStructure } from '@/features/payroll/salary-structure/hooks/useSalaryStructure';
+import { useEmployeeDocumentsPaged } from '@/features/documents/hooks/useEmployeeDocuments';
+import { fetchDocumentCategories } from '@/features/documents/documents.actions';
+import {
+    getDocumentComplianceLabels,
+    resolveDocumentComplianceMeta,
+} from '@/features/documents/document-compliance-display.util';
+import { ContractDocumentPreviewButton } from '@/components/dashboard/contracts/ContractDocumentPreviewButton';
+import {
+    DocumentApprovalState,
+    DocumentCategory,
+    DocumentComplianceStatus,
+    EmployeeDocumentRow,
+} from '@/features/documents/documents.types';
+import EmployeeDocumentDetailSheet from '@/components/dashboard/documents/EmployeeDocumentDetailSheet';
+import { Badge } from '@/components/ui/badge';
+import { SecureAvatar } from '@/components/common/secure-avatar';
+import { formatDateString } from '@/lib/date-utils';
+import { formatIntlCurrency, getCurrencySymbol } from '@/lib/currency';
+import { resolveEmployeeCompensationCurrency } from '@/features/employee/employee-display.utils';
 import EditEmployeeSheet from './EditEmployeeSheet';
 import UpdateEmployeeContractSheet from './UpdateEmployeeContractSheet';
-import { ProfilePageLoader, ProfilePageNotFound } from '@/components/dashboard/shared/profile-page-states';
+import { ProfilePageNotFound } from '@/components/dashboard/shared/profile-page-states';
+import EmployeeProfileSkeleton from './EmployeeProfileSkeleton';
 import { format } from 'date-fns';
 
-// ─── Lifecycle stages ───────────────────────────────────────────────────────
 const LIFECYCLE_STAGES = [
     { key: 'onboarding',  color: '#136DEC', statuses: ['invited', 'onboarding'] },
     { key: 'active',      color: '#3DE483', statuses: ['active'] },
@@ -42,7 +61,10 @@ const LIFECYCLE_STAGES = [
 
 const TABS = ['basicInfo', 'employmentDetails', 'contactInfo', 'bankingInfo', 'contract', 'documents'];
 
-// ─── Shared field cell — theme-aware ───────────────────────────────────────
+const EMPLOYMENT_TAB_INDEX = TABS.indexOf('employmentDetails');
+const CONTRACT_TAB_INDEX = TABS.indexOf('contract');
+const DOCUMENTS_TAB_INDEX = TABS.indexOf('documents');
+
 function InfoCell({ label, value }: { label: string; value?: string | null }) {
     return (
         <div className="flex flex-col items-start px-3 py-4 gap-3 h-19 border border-border/60 rounded-lg box-border bg-background">
@@ -56,7 +78,15 @@ function InfoCell({ label, value }: { label: string; value?: string | null }) {
     );
 }
 
-// ─── Section divider with icon ──────────────────────────────────────────────
+function getDocumentFileExtension(name: string): string {
+    const parts = name.split('.');
+    if (parts.length < 2) {
+        return 'FILE';
+    }
+    return parts[parts.length - 1].toUpperCase().slice(0, 4);
+}
+
+
 function SectionHeader({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
     return (
         <div className="flex items-center gap-2 pb-1 border-b border-border">
@@ -69,22 +99,42 @@ function SectionHeader({ icon: Icon, label }: { icon: React.ElementType; label: 
 }
 
 export default function EmployeeProfile({ employeeId }: { employeeId: string }) {
-    const { t }   = useTranslation('employees');
+    const { t, i18n } = useTranslation(['employees', 'document']);
     const { hasPermission } = usePermissions();
     const router  = useRouter();
     const [activeTab, setActiveTab] = useState(0);
     const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
     const [isContractSheetOpen, setIsContractSheetOpen] = useState(false);
+    const [documentCategories, setDocumentCategories] = useState<DocumentCategory[]>([]);
+    const [selectedDocument, setSelectedDocument] = useState<EmployeeDocumentRow | null>(null);
+    const [isDocumentDetailOpen, setIsDocumentDetailOpen] = useState(false);
+    const dateLocale = i18n.language === 'ar' ? 'ar-SA' : 'en-US';
 
     const { data: employee, isLoading } = useEmployee(employeeId);
     const { data: employeesData } = useEmployees();
+    const { data: authProfile } = useProfile();
     const { data: bankAccounts = [], isLoading: bankLoading } = useBankAccounts(employeeId);
-    const CONTRACT_TAB_INDEX = TABS.indexOf('contract');
     const { data: employeeContractsResponse, isLoading: contractsLoading } = useEmployeeContracts(
         { employeeId },
-        { enabled: activeTab === CONTRACT_TAB_INDEX },
+        { enabled: activeTab === CONTRACT_TAB_INDEX || activeTab === EMPLOYMENT_TAB_INDEX },
     );
-    const { formatAmount } = useDisplayCurrency(employee?.orgUnit?.orgUnitId);
+    const companyContextId =
+        authProfile?.companyId ?? employee?.companyOuId ?? employee?.orgUnit?.orgUnitId;
+    const { data: salaryStructure } = useEmployeeSalaryStructure(
+        employeeId,
+        companyContextId,
+    );
+    const { currencyCode } = useDisplayCurrency(
+        employee?.orgUnit?.orgUnitId ?? employee?.companyOuId ?? undefined,
+    );
+    const { data: employeeDocumentsResponse, isLoading: documentsLoading } = useEmployeeDocumentsPaged(
+        {
+            page: 1,
+            size: 50,
+            filter: { ownerId: employeeId },
+        },
+        { enabled: activeTab === DOCUMENTS_TAB_INDEX && Boolean(employeeId) },
+    );
 
     const employees = employeesData || [];
     const currentIndex = employees.findIndex(e => e.id === employeeId);
@@ -101,8 +151,47 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
 
     const [now] = useState(() => Date.now());
 
+    useEffect(() => {
+        if (activeTab !== DOCUMENTS_TAB_INDEX) {
+            return;
+        }
+        let isMounted = true;
+        void fetchDocumentCategories().then((categories) => {
+            if (isMounted) {
+                setDocumentCategories(categories);
+            }
+        });
+        return () => {
+            isMounted = false;
+        };
+    }, [activeTab]);
+
+    const complianceLabels = React.useMemo(() => getDocumentComplianceLabels(t), [t]);
+
+    const getComplianceMeta = useCallback(
+        (status?: DocumentComplianceStatus, approvalState?: DocumentApprovalState) =>
+            resolveDocumentComplianceMeta(status, approvalState, complianceLabels),
+        [complianceLabels],
+    );
+
+    const getApprovalLabel = useCallback((state?: DocumentApprovalState) => {
+        if (!state) {
+            return '-';
+        }
+        switch (state) {
+            case DocumentApprovalState.PENDING:
+                return t('employeeDocuments.approval.pending', { ns: 'document' });
+            case DocumentApprovalState.APPROVED:
+                return t('employeeDocuments.approval.approved', { ns: 'document' });
+            case DocumentApprovalState.REJECTED:
+                return t('employeeDocuments.approval.rejected', { ns: 'document' });
+            default:
+                return state;
+        }
+    }, [t]);
+
     if (isLoading) {
-        return <ProfilePageLoader />;
+        return <EmployeeProfileSkeleton />;
     }
 
     if (!employee) {
@@ -118,8 +207,9 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
         );
     }
 
-    // ── Derived values ──────────────────────────────────────────────────────
     const fullName    = `${employee.firstName}${employee.middleName ? ` ${employee.middleName}` : ''} ${employee.lastName}`;
+    const employeeInitials =
+        `${employee.firstName?.[0] ?? ''}${employee.lastName?.[0] ?? ''}`.toUpperCase() || 'U';
     const statusLower = employee.status.toLowerCase();
     const isActive    = statusLower === 'active';
     const stageIndex  = LIFECYCLE_STAGES.findIndex(s => s.statuses.includes(statusLower));
@@ -139,7 +229,6 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
         return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     };
 
-    // ── Field groups ────────────────────────────────────────────────────────
     const basicInfoFields = [
         { label: t('fullName'),     value: fullName },
         { label: t('email'),         value: employee.email },
@@ -149,13 +238,37 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
         { label: t('gender'),        value: t(employee.gender?.toLowerCase() || '') || employee.gender },
     ];
 
+    const employeeContracts = employeeContractsResponse?.data || [];
+    const activeContract = employeeContracts.find(c => c.status === 'active') || employeeContracts[0];
+
+    const resolvedSalaryAmount =
+        activeContract?.salary ??
+        employee.salary ??
+        salaryStructure?.baseSalary ??
+        null;
+
+    const resolvedCurrency = resolveEmployeeCompensationCurrency({
+        salaryAssignmentCurrency: salaryStructure?.currency,
+        companyCurrency: currencyCode,
+        employeeCurrency: employee.currency,
+    });
+
+    const resolvedCurrencySymbol = getCurrencySymbol(resolvedCurrency);
+    const salaryLabel = t('salary', { symbol: resolvedCurrencySymbol });
+    const displaySalary =
+        resolvedSalaryAmount != null && resolvedCurrency
+            ? formatIntlCurrency(resolvedSalaryAmount, resolvedCurrency)
+            : resolvedSalaryAmount != null
+              ? formatIntlCurrency(resolvedSalaryAmount, currencyCode)
+              : null;
+
     const employmentFields = [
         { label: t('jobTitle'),        value: employee.jobTitle },
         { label: t('employmentType'),  value: formatEmploymentType(employee.employmentType) },
         { label: t('hireDate'),        value: employee.hireDate ? format(new Date(employee.hireDate), 'MMMM d, yyyy') : null },
         { label: t('terminationDate'), value: employee.terminationDate ? format(new Date(employee.terminationDate), 'MMMM d, yyyy') : null },
-        { label: t('salary'),           value: employee.salary != null ? formatAmount(employee.salary) : null },
-        { label: t('currency'),         value: employee.currency },
+        { label: salaryLabel,          value: displaySalary },
+        { label: t('currency'),         value: resolvedCurrency },
         { label: t('nationality'),      value: employee.nationality },
         { label: t('nationalId'),      value: employee.nationalId },
     ];
@@ -191,23 +304,33 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
         { label: t('workPermitExpiry'), value: employee.workPermitExpiry ? format(new Date(employee.workPermitExpiry), 'dd/MM/yyyy') : null },
     ];
 
-    const employeeContracts = employeeContractsResponse?.data || [];
-    const activeContract = employeeContracts.find(c => c.status === 'active') || employeeContracts[0];
-
-    const displaySalary = activeContract?.salary != null
-        ? formatAmount(activeContract.salary)
-        : employee.salary != null
-            ? formatAmount(employee.salary)
-            : null;
-
     const displayContractName = activeContract?.contract?.contractName || 'Full-time permanent';
     const displayEmploymentType = formatEmploymentType(activeContract?.employmentType || employee.employmentType) || 'Full-time';
     const displayJobTitle = activeContract?.jobTitle || employee.jobTitle || 'Designer';
+    const uploadedDocuments = employeeDocumentsResponse?.data ?? [];
+
+    const handleOpenDocument = (document: EmployeeDocumentRow) => {
+        setSelectedDocument(document);
+        setIsDocumentDetailOpen(true);
+    };
 
     return (
         <div className="flex flex-col gap-8 w-full animate-in fade-in duration-500">
 
-            {/* ── Header ──────────────────────────────────────────────────── */}
+            <EmployeeDocumentDetailSheet
+                open={isDocumentDetailOpen}
+                onOpenChange={setIsDocumentDetailOpen}
+                document={selectedDocument}
+                mode="view"
+                categories={documentCategories}
+                dateLocale={dateLocale}
+                isCompanyScopeEditor={false}
+                canEdit={false}
+                onSave={async () => false}
+                getComplianceMeta={getComplianceMeta}
+                getApprovalLabel={getApprovalLabel}
+            />
+
             <div className="flex flex-col items-start gap-2 w-full">
                 <button
                     onClick={() => router.back()}
@@ -223,15 +346,18 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                 </h1>
             </div>
 
-            {/* ── Top row: identity card + right panel ────────────────────── */}
-            <div className="flex flex-row items-end gap-6 w-full">
+            <div className="flex flex-col lg:flex-row items-end gap-6 w-full">
 
-                {/* Identity card */}
-                <div className="shrink-0 flex flex-col w-60.5 h-58 bg-card border border-border shadow-sm rounded-xl">
+                <div className="shrink-0 flex flex-col w-full lg:w-60.5 h-58 bg-card border border-border shadow-sm rounded-xl">
                     <div className="flex justify-center items-center w-full pt-2 px-2 h-30">
-                        <div className="w-22.5 h-22.5 bg-[#FFBEB8] rounded-xl flex items-center justify-center overflow-hidden">
-                            <User className="w-10 h-10 text-white" />
-                        </div>
+                        <SecureAvatar
+                            className="w-22.5 h-22.5 rounded-xl border-none"
+                            reference={employee.avatarUrl}
+                            alt={fullName}
+                            fallback={employeeInitials}
+                            fallbackClassName="w-full h-full rounded-xl bg-[#FFBEB8] text-white text-xl font-semibold"
+                            imageClassName="rounded-xl"
+                        />
                     </div>
                     <div className="flex flex-col justify-center items-center gap-2 w-full pt-2 pb-4">
                         <div className="flex flex-col items-center gap-1 px-2 text-center">
@@ -245,7 +371,6 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                                 {employee.orgUnit?.orgUnitName || employee.departmentId || 'Unassigned'}
                             </span>
                         </div>
-                        {/* Status badge */}
                         <div className="flex items-center gap-1 px-2 py-0.5 h-5 bg-card border border-border rounded-lg">
                             {isActive
                                 ? <CircleCheck className="w-3 h-3 text-[#22C55E]" />
@@ -258,7 +383,6 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                     </div>
                 </div>
 
-                {/* Right column */}
                 <div className="flex flex-col justify-end flex-1 min-w-0 gap-6 h-57.5">
 
                     <div className="flex flex-row justify-between items-center w-full">
@@ -280,24 +404,18 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                         </button>
                     </div>
 
-                    {/* Lifecycle card */}
                     <div className="flex flex-col justify-center items-start gap-2 w-full h-42.5 bg-card border border-border shadow-sm rounded-xl px-6 py-4">
                         <span className=" font-semibold text-[20px] leading-5 text-foreground">
                             {t('lifecycleStatus')}
                         </span>
-                        {/* CSS Grid: 5 equal columns — dot+line in row 1, label in row 2 */}
-                        <div
-                            className="w-full px-8 pt-6"
-                            style={{ display: 'grid', gridTemplateColumns: `repeat(${LIFECYCLE_STAGES.length}, 1fr)`, rowGap: 8 }}
-                        >
-                            {/* Row 1: dot + line filling each cell */}
+                        <div className="w-full px-2 sm:px-8 pt-4 sm:pt-6 overflow-x-auto">
+                            <div className="grid grid-cols-5 min-w-[400px] gap-x-0" style={{ rowGap: 8 }}>
                             {LIFECYCLE_STAGES.map((stage, i) => {
                                 const completed  = i <= stageIndex;
                                 const lineActive = i < stageIndex;
                                 const isLast     = i === LIFECYCLE_STAGES.length - 1;
                                 return (
                                     <div key={`dot-${stage.key}`} className="flex items-center" style={{ opacity: i > stageIndex ? 0.6 : 1 }}>
-                                        {/* Dot */}
                                         <div
                                             className="shrink-0 w-4 h-4 rounded-full box-border"
                                             style={{
@@ -305,7 +423,6 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                                                 border: `3px solid ${stage.color}`,
                                             }}
                                         />
-                                        {/* Line — stretches to right edge of cell, connects to next dot */}
                                         {!isLast && (
                                             <div
                                                 className="flex-1 h-0.5"
@@ -315,7 +432,6 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                                     </div>
                                 );
                             })}
-                            {/* Row 2: labels — each left-aligned below its dot */}
                             {LIFECYCLE_STAGES.map((stage, i) => (
                                 <div key={`label-${stage.key}`} style={{ opacity: i > stageIndex ? 0.6 : 1 }}>
                                     <span className="font-medium text-sm leading-5.5 text-foreground whitespace-nowrap">
@@ -327,15 +443,13 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                     </div>
                 </div>
             </div>
+            </div>
 
-            {/* ── Bottom row ──────────────────────────────────────────────── */}
-            <div className="flex flex-row items-start gap-6 w-full">
+            <div className="flex flex-col lg:flex-row items-start gap-6 w-full">
 
-                {/* Left: tabs + content */}
                 <div className="flex flex-col items-start gap-4 flex-1 min-w-0">
 
-                    {/* Tabs bar */}
-                    <div className="flex flex-row items-center w-full h-9 p-0.75 bg-secondary rounded-[10px]">
+                    <div className="flex flex-row items-center w-full h-9 p-0.75 bg-secondary rounded-[10px] overflow-x-auto">
                         {TABS.map((tab, i) => (
                             <button
                                 key={tab}
@@ -354,10 +468,8 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                         ))}
                     </div>
 
-                    {/* Content card */}
                     <div className="flex flex-col w-full p-6 gap-4 bg-card border border-border shadow-sm rounded-[10px] min-h-88">
 
-                        {/* Card header */}
                         <div className="flex flex-row items-center w-full gap-1.5 h-9">
                             <div className="flex-1">
                                 <span className=" font-medium text-base leading-6 text-card-foreground">
@@ -386,36 +498,33 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                             )}
                         </div>
 
-                        {/* ── Tab 0: Basic info ───────────────────────────── */}
                         {activeTab === 0 && (
-                            <div className="grid grid-cols-2 w-full gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 w-full gap-3">
                                 {basicInfoFields.map((f) => (
                                     <InfoCell key={f.label} label={f.label} value={f.value} />
                                 ))}
                             </div>
                         )}
 
-                        {/* ── Tab 1: Employment details ───────────────────── */}
                         {activeTab === 1 && (
-                            <div className="grid grid-cols-2 w-full gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 w-full gap-3">
                                 {employmentFields.map((f) => (
                                     <InfoCell key={f.label} label={f.label} value={f.value} />
                                 ))}
                             </div>
                         )}
 
-                        {/* ── Tab 2: Contact info ─────────────────────────── */}
                         {activeTab === 2 && (
                             <div className="flex flex-col gap-4 w-full">
                                 <SectionHeader icon={MapPin} label="Work & contact" />
-                                <div className="grid grid-cols-2 w-full gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 w-full gap-3">
                                     {workContactFields.map((f) => (
                                         <InfoCell key={f.label} label={f.label} value={f.value} />
                                     ))}
                                 </div>
 
                                 <SectionHeader icon={Phone} label="Home address" />
-                                <div className="grid grid-cols-2 w-full gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 w-full gap-3">
                                     {homeAddressFields.map((f) => (
                                         <InfoCell key={f.label} label={f.label} value={f.value} />
                                     ))}
@@ -423,7 +532,6 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                             </div>
                         )}
 
-                        {/* ── Tab 3: Banking info ─────────────────────────── */}
                         {activeTab === 3 && (
                             <div className="flex flex-col gap-4 w-full">
                                 {bankLoading ? (
@@ -464,7 +572,7 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 <InfoCell label="Account holder"  value={account.accountName} />
                                                 <InfoCell label="Account number"  value={account.accountNumber} />
                                                 {account.iban          && <InfoCell label="IBAN"           value={account.iban} />}
@@ -477,7 +585,6 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                             </div>
                         )}
 
-                        {/* ── Tab 4: Contract ─────────────────────────────── */}
                         {activeTab === 4 && (
                             <div className="flex flex-col gap-4 w-full">
                                 {contractsLoading ? (
@@ -491,10 +598,9 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                                     </div>
                                 ) : (
                                     <>
-                                        {/* ── Fields grid ───────────────────── */}
-                                        <div className="grid grid-cols-2 w-full gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 w-full gap-3">
                                             <InfoCell label={t('contract')} value={displayContractName} />
-                                            <InfoCell label={t('salary')} value={displaySalary} />
+                                            <InfoCell label={salaryLabel} value={displaySalary} />
                                             <InfoCell label={t('employmentType')} value={displayEmploymentType} />
                                             <InfoCell label={t('jobTitle')} value={displayJobTitle} />
                                             {activeContract.effectiveDate && (
@@ -523,36 +629,12 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                                             )}
                                         </div>
 
-                                        {/* ── Document attachment row ────────── */}
                                         {activeContract.contract?.documentUrl ? (
-                                            <a
-                                                href={activeContract.contract.documentUrl}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="flex items-center justify-between p-4 border border-border rounded-xl bg-background mt-2 no-underline hover:bg-muted/40 transition-colors"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center shrink-0 border border-red-100">
-                                                        <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                        </svg>
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-semibold text-sm text-foreground">
-                                                            {displayContractName}
-                                                        </span>
-                                                        <span className="font-normal text-xs text-muted-foreground">
-                                                            Contract document
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={(e) => e.preventDefault()}
-                                                    className="p-1.5 hover:bg-muted rounded-lg transition-colors border-none bg-transparent cursor-pointer"
-                                                >
-                                                    <MoreVertical className="w-4 h-4 text-muted-foreground" />
-                                                </button>
-                                            </a>
+                                            <ContractDocumentPreviewButton
+                                                documentReference={activeContract.contract.documentUrl}
+                                                documentName={displayContractName}
+                                                className="mt-2"
+                                            />
                                         ) : (
                                             <div className="flex items-center justify-between p-4 border border-border rounded-xl bg-background mt-2 opacity-60">
                                                 <div className="flex items-center gap-3">
@@ -568,36 +650,126 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                             </div>
                         )}
 
-                        {/* ── Tab 5: Documents ────────────────────────────── */}
-                        {activeTab === 5 && (
-                            <div className="flex flex-col gap-4 w-full">
-                                <SectionHeader icon={FileText} label="Passport & Visa" />
-                                <div className="grid grid-cols-2 w-full gap-3">
-                                    {passportVisaFields.map((f) => (
-                                        <InfoCell key={f.label} label={f.label} value={f.value} />
-                                    ))}
+                        {activeTab === DOCUMENTS_TAB_INDEX && (
+                            <div className="flex flex-col gap-6 w-full">
+                                <div className="flex flex-col gap-4">
+                                    <SectionHeader icon={FileText} label="Passport & Visa" />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 w-full gap-3">
+                                        {passportVisaFields.map((f) => (
+                                            <InfoCell key={f.label} label={f.label} value={f.value} />
+                                        ))}
+                                    </div>
                                 </div>
 
-                                <SectionHeader icon={Mail} label={t('workPermit')} />
-                                <div className="grid grid-cols-2 w-full gap-3">
-                                    {workPermitFields.map((f) => (
-                                        <InfoCell key={f.label} label={f.label} value={f.value} />
-                                    ))}
+                                <div className="flex flex-col gap-4">
+                                    <SectionHeader icon={Mail} label={t('workPermit')} />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 w-full gap-3">
+                                        {workPermitFields.map((f) => (
+                                            <InfoCell key={f.label} label={f.label} value={f.value} />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <SectionHeader
+                                            icon={FileText}
+                                            label={t('uploadedDocuments', 'Uploaded documents')}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                router.push(
+                                                    `/dashboard/documents/employee-documents/${employeeId}?name=${encodeURIComponent(fullName)}`,
+                                                )
+                                            }
+                                            className="text-sm font-medium text-primary hover:underline border-none bg-transparent cursor-pointer shrink-0"
+                                        >
+                                            {t('viewAllDocuments', 'View all')}
+                                        </button>
+                                    </div>
+
+                                    {documentsLoading ? (
+                                        <div className="flex items-center justify-center py-8">
+                                            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                                        </div>
+                                    ) : uploadedDocuments.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-8 gap-3 text-muted-foreground border border-dashed border-border rounded-xl">
+                                            <FileText className="w-10 h-10 text-border" />
+                                            <span className="font-normal text-sm">
+                                                {t('noUploadedDocuments', 'No documents uploaded yet')}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                            {uploadedDocuments.map((document) => {
+                                                const complianceMeta = resolveDocumentComplianceMeta(
+                                                    document.compliance,
+                                                    document.approvalState,
+                                                    complianceLabels,
+                                                );
+                                                return (
+                                                <div
+                                                    key={document.id}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => handleOpenDocument(document)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' || e.key === ' ') {
+                                                            e.preventDefault();
+                                                            handleOpenDocument(document);
+                                                        }
+                                                    }}
+                                                    className="flex flex-col gap-3 border border-border rounded-xl p-4 bg-background hover:bg-muted/50 cursor-pointer transition-colors"
+                                                >
+                                                    <div className="flex items-center justify-center h-20 rounded-lg bg-muted/60 border border-border/60">
+                                                        <div className="flex flex-col items-center gap-1.5">
+                                                            <FileText className="w-8 h-8 text-muted-foreground" />
+                                                            <span className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                                                                {getDocumentFileExtension(document.documentName)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex min-w-0 flex-col gap-0.5">
+                                                        <span className="font-semibold text-sm text-foreground truncate">
+                                                            {document.documentName}
+                                                        </span>
+                                                        <span className="text-xs text-muted-foreground truncate">
+                                                            {document.categoryName}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-col gap-1.5 mt-auto">
+                                                        <Badge
+                                                            variant="outline"
+                                                            className={`text-xs w-fit ${complianceMeta.className}`}
+                                                        >
+                                                            {complianceMeta.label}
+                                                        </Badge>
+                                                        {document.expiryDate ? (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {t('expiryDate', 'Expiry')}:{' '}
+                                                                {formatDateString(document.expiryDate)}
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
+                                                </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Right: Employment summary */}
-                <div className="shrink-0 flex flex-col w-67.5 h-70 bg-card border border-border shadow-sm rounded-[10px] overflow-hidden">
+                <div className="shrink-0 flex flex-col w-full lg:w-67.5 h-70 bg-card border border-border shadow-sm rounded-[10px] overflow-hidden">
                     <div className="flex items-center w-full h-15 px-6 bg-card-header-background shrink-0">
                         <span className=" font-semibold text-lg leading-7 tracking-tight text-card-foreground">
                             {t('employmentSummary')}
                         </span>
                     </div>
                     <div className="flex flex-col justify-center items-center flex-1 p-6 gap-10">
-                        {/* Duration */}
                         <div className="flex flex-row items-start w-full gap-3">
                             <div className="flex items-center justify-center shrink-0 w-10 h-10 bg-primary rounded-lg">
                                 <Clock className="w-4 h-4 text-primary-foreground" />
@@ -611,7 +783,6 @@ export default function EmployeeProfile({ employeeId }: { employeeId: string }) 
                                 </span>
                             </div>
                         </div>
-                        {/* Hired date */}
                         <div className="flex flex-row items-start w-full gap-3">
                             <div className="flex items-center justify-center shrink-0 w-10 h-10 bg-primary rounded-lg">
                                 <CalendarDays className="w-4 h-4 text-primary-foreground" />

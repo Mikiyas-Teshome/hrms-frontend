@@ -17,15 +17,21 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Loader2, Info } from 'lucide-react';
-import PermissionGroup from '../roles/PermissionGroup';
+import PermissionGroup, { PERMISSION_SCOPE_DISPLAY_ORDER } from '../roles/PermissionGroup';
 import { Separator } from '@/components/ui/separator';
 import { useTranslation } from 'react-i18next';
 import { Role, PermissionScope } from '@/features/roles/roles.types';
-import { normalizePermissionScope } from '@/features/roles/permission-scope.util';
-import { fetchPermissions, fetchRoles, setUserPermissionOverrides, fetchProfileWithPermissionSets } from '@/features/roles/roles.actions';
+import { normalizePermissionScope, scopeRank } from '@/features/roles/permission-scope.util';
+import { fetchPermissions, fetchRoles, setUserPermissionOverrides, fetchProfileWithPermissionSets, updateUserRole } from '@/features/roles/roles.actions';
+import {
+    buildPermissionIdLookups,
+    resolveCatalogPermissionId,
+} from '@/features/roles/resolve-catalog-permission-id.util';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/features/auth/hooks/usePermissions';
+import { getAllowedGrantScopesForAction } from '@/features/roles/grantable-permissions.util';
 import { useToast } from "@/hooks/use-toast";
-import { roleSchema, type RoleFormValues } from '../schemas/role.schema';
+import { roleSchema, type RoleFormValues } from '@/features/roles/schemas/role.schema';
 import { Employee } from '@/types/employee';
 import { FormSection } from '@/components/ui/form-section';
 
@@ -36,10 +42,85 @@ interface UpdatePermissionSheetProps {
     onSuccess?: () => void;
 }
 
+type ResolvedGrant = { permissionId: string; scope: string };
+
+function resolveRoleFormGrants(
+    role: Role,
+    permissionIdByAction: Map<string, string>,
+): {
+    permissionIds: string[];
+    permissionScopes: Record<string, PermissionScope>;
+    grants: ResolvedGrant[];
+} {
+    const grants = (role.permissionGrants ?? [])
+        .map((grant) => {
+            const permissionId = resolveCatalogPermissionId(
+                grant.permissionId,
+                grant.permission?.action,
+                permissionIdByAction,
+            );
+            if (!permissionId) {
+                return null;
+            }
+            return {
+                permissionId,
+                scope: String(grant.scope).toLowerCase(),
+            };
+        })
+        .filter((grant): grant is ResolvedGrant => grant !== null);
+
+    const permissionIds = grants.map((grant) => grant.permissionId);
+    const permissionScopes: Record<string, PermissionScope> = {};
+
+    grants.forEach((grant) => {
+        const scope = normalizePermissionScope(grant.scope);
+        if (scope) {
+            permissionScopes[grant.permissionId] = scope;
+        }
+    });
+
+    return { permissionIds, permissionScopes, grants };
+}
+
+function grantsMatchForm(
+    baselineGrants: ResolvedGrant[],
+    currentPermissions: string[],
+    getScopeForPermission: (permissionId: string) => string,
+    resolveId: (permissionId: string) => string | null | undefined,
+): boolean {
+    const baselineById = new Map(
+        baselineGrants
+            .map((grant) => {
+                const resolvedId = resolveId(grant.permissionId);
+                return resolvedId ? [resolvedId, grant] as const : null;
+            })
+            .filter((entry): entry is readonly [string, ResolvedGrant] => entry !== null),
+    );
+
+    if (baselineById.size !== currentPermissions.length) {
+        return false;
+    }
+
+    return currentPermissions.every((permissionId) => {
+        const resolvedId = resolveId(permissionId);
+        if (!resolvedId) {
+            return false;
+        }
+
+        const baseline = baselineById.get(resolvedId);
+        if (!baseline) {
+            return false;
+        }
+
+        return baseline.scope === getScopeForPermission(resolvedId).toLowerCase();
+    });
+}
+
 const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onOpenChange, employee, onSuccess }) => {
     const { t } = useTranslation('roles');
     const { toast } = useToast();
-    const { user } = useAuth();
+    const { user, permissionsMap } = useAuth();
+    const { isSystemAdmin } = usePermissions();
     const form = useForm<RoleFormValues>({
         resolver: zodResolver(roleSchema),
         defaultValues: {
@@ -47,12 +128,13 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
             description: '',
             permissions: [],
             scope: PermissionScope.ALL,
-            moduleScopes: {},
+            permissionScopes: {},
         },
     });
 
-    const [permissionModules, setPermissionModules] = useState<{ id: string, name: string, permissions: { id: string, label: string }[] }[]>([]);
+    const [permissionModules, setPermissionModules] = useState<{ id: string, name: string, permissions: { id: string, label: string, action: string }[] }[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
+    const [permissionIdByAction, setPermissionIdByAction] = useState<Map<string, string>>(new Map());
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -63,8 +145,10 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
                 ]);
                 
                 setRoles(fetchedRoles);
+                const { permissionIdByAction: actionLookup } = buildPermissionIdLookups(perms);
+                setPermissionIdByAction(actionLookup);
 
-                const formatTitleCase = (s: string) => 
+                const formatTitleCase = (s: string) =>
                     s.replace(/[_-]/g, ' ')
                      .split(' ')
                      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
@@ -94,9 +178,9 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
                         group = { id: groupId, name: moduleName, permissions: [] };
                         acc.push(group);
                     }
-                    group.permissions.push({ id: p.id, label: labelName });
+                    group.permissions.push({ id: p.id, label: labelName, action: actionStr });
                     return acc;
-                }, [] as { id: string, name: string, permissions: { id: string, label: string }[] }[]);
+                }, [] as { id: string, name: string, permissions: { id: string, label: string, action: string }[] }[]);
                 
                 setPermissionModules(grouped);
             } catch (error) {
@@ -111,6 +195,7 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
 
     const [isFetchingPermissions, setIsFetchingPermissions] = useState(false);
     const [initialGrants, setInitialGrants] = useState<{ permissionId: string, scope: string }[]>([]);
+    const [initialRoleName, setInitialRoleName] = useState('');
 
     useEffect(() => {
         const loadEmployeePermissions = async () => {
@@ -125,46 +210,56 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
                     const roleProfile = userData.roleProfile;
                     
                     const grants = roleProfile?.permissionGrants || [];
-                    setInitialGrants(grants.map(g => ({ 
-                        permissionId: g.permissionId, 
-                        scope: (g.scope as string).toLowerCase() 
-                    })));
-                    
-                    const permissionIds = grants.map(pg => pg.permissionId);
-                    
-                    // Map permissions back to modules to restore module scopes
-                    const restoredModuleScopes: Record<string, PermissionScope> = {};
-                    grants.forEach(grant => {
-                        const permId = grant.permissionId;
-                        const scope = normalizePermissionScope(grant.scope as string);
-                        
-                        const mod = permissionModules.find(m => m.permissions.some(p => p.id === permId));
-                        if (mod && scope) {
-                            restoredModuleScopes[mod.id] = scope;
+                    const resolvedGrants = grants
+                        .map((grant) => {
+                            const permissionId = resolveCatalogPermissionId(
+                                grant.permissionId,
+                                grant.permission?.action,
+                                permissionIdByAction,
+                            );
+                            if (!permissionId) {
+                                return null;
+                            }
+                            return {
+                                permissionId,
+                                scope: String(grant.scope).toLowerCase(),
+                            };
+                        })
+                        .filter((grant): grant is { permissionId: string; scope: string } => grant !== null);
+
+                    setInitialGrants(resolvedGrants);
+
+                    const permissionIds = resolvedGrants.map((grant) => grant.permissionId);
+
+                    const restoredPermissionScopes: Record<string, PermissionScope> = {};
+                    resolvedGrants.forEach((grant) => {
+                        const scope = normalizePermissionScope(grant.scope);
+                        if (scope) {
+                            restoredPermissionScopes[grant.permissionId] = scope;
                         }
                     });
 
-                    // Find the role name that matches case-insensitively
                     const roleName = userData.role || employee.role;
                     const matchingRole = roles.find(r => r.name.toLowerCase() === roleName.toLowerCase());
                     const finalRoleName = matchingRole ? matchingRole.name : roleName;
+                    setInitialRoleName(finalRoleName);
                     
                     form.reset({
                         name: finalRoleName,
                         description: roleProfile?.description || '',
                         permissions: permissionIds,
                         scope: normalizePermissionScope(roleProfile?.permissionGrants?.[0]?.scope as string) || PermissionScope.ALL,
-                        moduleScopes: restoredModuleScopes,
+                        permissionScopes: restoredPermissionScopes,
                     });
                 } else {
-                    // Fallback if fetch fails
                     setInitialGrants([]);
+                    setInitialRoleName(employee.role);
                     form.reset({
                         name: employee.role,
                         description: '',
                         permissions: [],
                         scope: PermissionScope.ALL,
-                        moduleScopes: {},
+                        permissionScopes: {},
                     });
                 }
             } catch (error) {
@@ -179,10 +274,10 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
             }
         };
 
-        if (open && employee) {
+        if (open && employee && permissionIdByAction.size > 0) {
             loadEmployeePermissions();
         }
-    }, [open, employee, form, toast, roles, permissionModules, t]);
+    }, [open, employee, form, toast, roles, permissionModules, permissionIdByAction, t]);
 
     const selectedPermissions = form.watch('permissions');
     const totalPermissions = permissionModules.reduce(
@@ -192,6 +287,27 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
     const allPermissionsChecked =
         selectedPermissions.length === totalPermissions && totalPermissions > 0;
     const somePermissionsChecked = selectedPermissions.length > 0 && !allPermissionsChecked;
+
+    const ensurePermissionScopes = (permissionIds: string[]) => {
+        const currentScopes = form.getValues('permissionScopes') || {};
+        const nextScopes = { ...currentScopes };
+        let changed = false;
+        const defaultScope = form.getValues('scope') || PermissionScope.ALL;
+
+        permissionIds.forEach((permissionId) => {
+            if (!nextScopes[permissionId]) {
+                nextScopes[permissionId] = defaultScope;
+                changed = true;
+            }
+        });
+
+        if (changed) {
+            form.setValue('permissionScopes', nextScopes, {
+                shouldDirty: true,
+                shouldValidate: true,
+            });
+        }
+    };
 
     const handleToggleModule = (moduleId: string, checked: boolean) => {
         const permModule = permissionModules.find((m) => m.id === moduleId);
@@ -206,6 +322,7 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
                 Array.from(new Set([...currentSelected, ...modulePermIds])),
                 { shouldValidate: true, shouldDirty: true },
             );
+            ensurePermissionScopes(modulePermIds);
         } else {
             form.setValue(
                 'permissions',
@@ -219,6 +336,7 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
         const currentSelected = form.getValues('permissions');
         if (checked) {
             form.setValue('permissions', [...currentSelected, id], { shouldValidate: true, shouldDirty: true });
+            ensurePermissionScopes([id]);
         } else {
             form.setValue(
                 'permissions',
@@ -232,6 +350,7 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
         if (checked) {
             const allIds = permissionModules.flatMap((m) => m.permissions.map((p) => p.id));
             form.setValue('permissions', allIds, { shouldValidate: true, shouldDirty: true });
+            ensurePermissionScopes(allIds);
         } else {
             form.setValue('permissions', [], { shouldValidate: true, shouldDirty: true });
         }
@@ -240,44 +359,113 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
     const onSubmit = async (data: RoleFormValues) => {
         if (!employee) return;
         try {
-            // 2. Set Permission Overrides
+            const targetUserId = employee.userId || employee.id;
             const currentPermissions = data.permissions;
+            const selectedRole = roles.find(
+                (role) => role.name.toLowerCase() === data.name.toLowerCase(),
+            );
+            const roleChanged = Boolean(selectedRole?.id && data.name !== initialRoleName);
+
+            if (roleChanged && selectedRole?.id) {
+                const roleResult = await updateUserRole(targetUserId, { roleId: selectedRole.id });
+                if (!roleResult.success) {
+                    throw new Error(roleResult.error);
+                }
+            }
             
-            // Helper to find scope for a permission
-            const getScopeForPermission = (permId: string) => {
-                const mod = permissionModules.find(m => m.permissions.some(p => p.id === permId));
-                return (mod ? data.moduleScopes?.[mod.id] : null) || data.scope || PermissionScope.ALL;
-            };
+            const getScopeForPermission = (permId: string) =>
+                data.permissionScopes?.[permId] || data.scope || PermissionScope.ALL;
 
-            const overrides: any[] = [];
+            const resolveId = (permissionId: string) =>
+                resolveCatalogPermissionId(permissionId, undefined, permissionIdByAction);
 
-            // Identify removals: things in initialGrants but not in currentPermissions or with different scope
-            initialGrants.forEach(initial => {
-                const stillSelected = currentPermissions.includes(initial.permissionId);
-                
+            const baselineGrants =
+                roleChanged && selectedRole
+                    ? resolveRoleFormGrants(selectedRole, permissionIdByAction).grants
+                    : initialGrants;
+
+            if (
+                roleChanged &&
+                grantsMatchForm(baselineGrants, currentPermissions, getScopeForPermission, resolveId)
+            ) {
+                toast({
+                    title: t("permissionUpdateSuccess", "Permission updated"),
+                    description: t("roleUpdateSuccessDesc", "The employee role has been updated."),
+                    variant: "success",
+                });
+                onSuccess?.();
+                onOpenChange(false);
+                form.reset();
+                return;
+            }
+
+            const overrides: Array<{
+                userId: string;
+                permissionId: string;
+                effect: 'ALLOW' | 'DENY' | 'REMOVE';
+                scope: string;
+                description?: string;
+            }> = [];
+
+            baselineGrants.forEach((initial) => {
+                const resolvedId = resolveId(initial.permissionId);
+                if (!resolvedId) {
+                    return;
+                }
+
+                const stillSelected = currentPermissions.includes(initial.permissionId)
+                    || currentPermissions.includes(resolvedId);
+
                 if (!stillSelected) {
-                    // If it was there but now it's not, we explicitly DENY it
                     overrides.push({
-                        userId: employee.userId || employee.id,
-                        permissionId: initial.permissionId,
+                        userId: targetUserId,
+                        permissionId: resolvedId,
                         effect: 'DENY',
                         scope: initial.scope.toLowerCase(),
-                        description: t('denyingPermission', 'Permission explicitly denied')
+                        description: t('denyingPermission', 'Permission explicitly denied'),
                     });
                 }
             });
 
-            // Identify additions/updates: everything currently selected
-            currentPermissions.forEach(permId => {
-                const scope = getScopeForPermission(permId);
-                // We always 'ALLOW' to ensure the current scope is set
-                overrides.push({
-                    userId: employee.userId || employee.id,
-                    permissionId: permId,
-                    effect: 'ALLOW',
-                    scope: scope.toLowerCase(),
-                    description: data.description || t("permissionOverrideDesc", "Employee permission override")
-                });
+            currentPermissions.forEach((permId) => {
+                const resolvedId = resolveId(permId);
+                if (!resolvedId) {
+                    return;
+                }
+
+                const scope = getScopeForPermission(resolvedId).toLowerCase();
+                const baseline = baselineGrants.find(
+                    (grant) => grant.permissionId === resolvedId || grant.permissionId === permId,
+                );
+
+                if (baseline && baseline.scope !== scope) {
+                    const scopeRank = (value: string) =>
+                        ['own', 'department', 'company', 'all'].indexOf(value);
+                    if (scopeRank(scope) < scopeRank(baseline.scope)) {
+                        overrides.push({
+                            userId: targetUserId,
+                            permissionId: resolvedId,
+                            effect: 'REMOVE',
+                            scope: baseline.scope.toLowerCase(),
+                            description: t('scopeOverrideRemoved', 'Superseded permission scope removed'),
+                        });
+                    }
+                }
+
+                const isBaselineMatch =
+                    baseline &&
+                    baseline.scope === scope &&
+                    (currentPermissions.includes(baseline.permissionId) || currentPermissions.includes(resolvedId));
+
+                if (!isBaselineMatch) {
+                    overrides.push({
+                        userId: targetUserId,
+                        permissionId: resolvedId,
+                        effect: 'ALLOW',
+                        scope,
+                        description: data.description || t('permissionOverrideDesc', 'Employee permission override'),
+                    });
+                }
             });
 
             if (overrides.length > 0) {
@@ -287,7 +475,9 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
 
             toast({
                 title: t("permissionUpdateSuccess", "Permission updated"),
-                description: t("permissionUpdateSuccessDesc", "The permissions have been successfully updated."),
+                description: roleChanged
+                    ? t("roleUpdateSuccessDesc", "The employee role has been updated.")
+                    : t("permissionUpdateSuccessDesc", "The permissions have been successfully updated."),
                 variant: "success",
             });
 
@@ -343,7 +533,35 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
                                 render={({ field }) => (
                                     <FormItem className="space-y-3">
                                         <FormLabel className="text-sm font-medium text-foreground">{t('role', "Role")}</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
+                                        <Select
+                                            onValueChange={(value) => {
+                                                field.onChange(value);
+                                                const role = roles.find(
+                                                    (entry) => entry.name.toLowerCase() === value.toLowerCase(),
+                                                );
+                                                if (
+                                                    !role ||
+                                                    permissionIdByAction.size === 0 ||
+                                                    permissionModules.length === 0
+                                                ) {
+                                                    return;
+                                                }
+
+                                                const { permissionIds, permissionScopes } = resolveRoleFormGrants(
+                                                    role,
+                                                    permissionIdByAction,
+                                                );
+                                                form.setValue('permissions', permissionIds, {
+                                                    shouldDirty: true,
+                                                    shouldValidate: true,
+                                                });
+                                                form.setValue('permissionScopes', permissionScopes, {
+                                                    shouldDirty: true,
+                                                    shouldValidate: true,
+                                                });
+                                            }}
+                                            value={field.value}
+                                        >
                                             <FormControl>
                                                 <SelectTrigger className="h-9 border-border w-full bg-background shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                                                     <SelectValue placeholder={t('selectRole', "Select role")} />
@@ -425,13 +643,44 @@ const UpdatePermissionSheet: React.FC<UpdatePermissionSheetProps> = ({ open, onO
                                         selectedIds={selectedPermissions}
                                         onToggleAll={(checked: boolean) => handleToggleModule(permModule.id, checked)}
                                         onTogglePermission={(id: string, checked: boolean) => handleTogglePermission(id, checked)}
-                                        scope={form.watch('moduleScopes')?.[permModule.id] || PermissionScope.ALL}
-                                        onScopeChange={(scope: PermissionScope) => {
-                                            const currentScopes = form.getValues('moduleScopes') || {};
-                                            form.setValue('moduleScopes', {
-                                                ...currentScopes,
-                                                [permModule.id]: scope
-                                            }, { shouldDirty: true, shouldValidate: true });
+                                        permissionScopes={form.watch('permissionScopes') || {}}
+                                        defaultScope={form.watch('scope') || PermissionScope.ALL}
+                                        resolveAllowedScopes={(permissionId) => {
+                                            const permission = permModule.permissions.find(
+                                                (entry) => entry.id === permissionId,
+                                            );
+                                            if (!permission?.action) {
+                                                return [...PERMISSION_SCOPE_DISPLAY_ORDER];
+                                            }
+                                            return getAllowedGrantScopesForAction(
+                                                permissionsMap,
+                                                permission.action,
+                                                isSystemAdmin,
+                                            );
+                                        }}
+                                        onPermissionScopeChange={(permissionId, scope) => {
+                                            const permission = permModule.permissions.find(
+                                                (entry) => entry.id === permissionId,
+                                            );
+                                            const maxScope = permission?.action
+                                                ? getAllowedGrantScopesForAction(
+                                                      permissionsMap,
+                                                      permission.action,
+                                                      isSystemAdmin,
+                                                  ).at(-1) ?? PermissionScope.ALL
+                                                : PermissionScope.ALL;
+                                            const cappedScope = scopeRank(scope) > scopeRank(maxScope)
+                                                ? maxScope
+                                                : scope;
+                                            const currentScopes = form.getValues('permissionScopes') || {};
+                                            form.setValue(
+                                                'permissionScopes',
+                                                {
+                                                    ...currentScopes,
+                                                    [permissionId]: cappedScope,
+                                                },
+                                                { shouldDirty: true, shouldValidate: true },
+                                            );
                                         }}
                                     />
                                 ))}

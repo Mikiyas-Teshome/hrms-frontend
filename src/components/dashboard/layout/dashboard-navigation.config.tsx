@@ -121,6 +121,12 @@ export const DASHBOARD_PLATFORM_NAV_CONFIG: DashboardNavigationItemConfig[] = [
                 keywords: ['attendance', 'overview'],
             },
             {
+                titleKey: 'sidebar.attendance.calendar',
+                url: '/dashboard/attendance/calendar',
+                module: 'shifts',
+                keywords: ['attendance', 'calendar', 'holiday', 'working hours'],
+            },
+            {
                 titleKey: 'sidebar.attendance.shifts',
                 url: '/dashboard/attendance/shifts',
                 module: 'shifts',
@@ -138,7 +144,7 @@ export const DASHBOARD_PLATFORM_NAV_CONFIG: DashboardNavigationItemConfig[] = [
         titleKey: 'sidebar.leave.title',
         url: '/dashboard/leave',
         icon: CalendarOff,
-        module: 'leave_types',
+        module: 'leave_requests',
         keywords: ['leave', 'vacation', 'time off', 'holiday'],
         items: [
             {
@@ -146,12 +152,6 @@ export const DASHBOARD_PLATFORM_NAV_CONFIG: DashboardNavigationItemConfig[] = [
                 url: '/dashboard/leave/leave-requests',
                 module: 'leave_requests',
                 keywords: ['leave', 'request', 'vacation'],
-            },
-            {
-                titleKey: 'sidebar.leave.types',
-                url: '/dashboard/leave/leave-types',
-                module: 'leave_types',
-                keywords: ['leave', 'types'],
             },
             {
                 titleKey: 'sidebar.leave.policies',
@@ -187,10 +187,22 @@ export const DASHBOARD_PLATFORM_NAV_CONFIG: DashboardNavigationItemConfig[] = [
                 keywords: ['payroll', 'salary', 'salaries', 'employee'],
             },
             {
+                titleKey: 'sidebar.payroll.salaryStructures',
+                url: '/dashboard/payroll/salary-structures',
+                module: 'employee_salaries',
+                keywords: ['payroll', 'salary', 'structure', 'template'],
+            },
+            {
                 titleKey: 'sidebar.payroll.components',
                 url: '/dashboard/payroll/components',
                 module: 'payroll_components',
                 keywords: ['payroll', 'components'],
+            },
+            {
+                titleKey: 'sidebar.payroll.taxRules',
+                url: '/dashboard/payroll/tax-rules',
+                module: 'payroll_components',
+                keywords: ['payroll', 'tax', 'income tax', 'withholding'],
             },
             {
                 titleKey: 'sidebar.payroll.payslips',
@@ -210,11 +222,13 @@ export const DASHBOARD_PLATFORM_NAV_CONFIG: DashboardNavigationItemConfig[] = [
             {
                 titleKey: 'sidebar.benefits.insurance',
                 url: '/dashboard/benefits/insurance',
+                module: 'benefits_insurance',
                 keywords: ['benefits', 'insurance'],
             },
             {
                 titleKey: 'sidebar.benefits.entitlements',
                 url: '/dashboard/benefits/entitlements',
+                module: 'benefits_entitlements',
                 keywords: ['benefits', 'entitlements'],
             },
         ],
@@ -242,6 +256,7 @@ export const DASHBOARD_PLATFORM_NAV_CONFIG: DashboardNavigationItemConfig[] = [
                 titleKey: 'sidebar.documents.categories',
                 url: '/dashboard/documents/categories',
                 module: 'document_categories',
+                action: 'create',
                 keywords: ['documents', 'categories'],
             },
         ],
@@ -281,11 +296,14 @@ export const DASHBOARD_SYSTEM_NAV_CONFIG: DashboardNavigationItemConfig[] = [
         url: '/dashboard/settings',
         icon: Settings,
         keywords: ['settings', 'preferences', 'configuration'],
+        requiresSettingsAccess: true,
     },
     {
         titleKey: 'sidebar.assistant',
         url: '/dashboard/assistant',
         icon: Bot,
+        module: 'assistant',
+        action: 'query',
         keywords: ['assistant', 'ai', 'help'],
     },
 ];

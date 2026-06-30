@@ -13,10 +13,16 @@ export const hrPoliciesSchema = zod.object({
   leavePolicies: zod.array(
     zod.object({
       id: zod.string(),
-      name: zod.string().optional(),
       enabled: zod.boolean(),
-      days: zod.number(),
-      condition: zod.enum(["paid", "unpaid"]).optional(),
+      formSnapshot: zod.any().optional(),
+      name: zod.string().optional(),
+      code: zod.string().optional(),
+      maxDaysPerYear: zod.number().optional(),
+      entitlementGrantMode: zod
+        .enum(["yearly_allocation", "monthly_accrual", "manual"])
+        .optional(),
+      paidLeave: zod.boolean().optional(),
+      carryForwardEnabled: zod.boolean().optional(),
       description: zod.string().optional(),
     })
   ),

@@ -64,7 +64,7 @@ export enum EntitlementAccessBasis {
 export interface Insurance {
     id: string;
     employeeId?: string;
-    companyOuId?: string;
+    ouId: string;
     dependentId?: string;
     insuranceName: string;
     providerName: string;
@@ -91,7 +91,7 @@ export interface Insurance {
 
 export interface CreateInsuranceInput {
     employeeId?: string;
-    companyOuId?: string;
+    ouId: string;
     dependentId?: string;
     insuranceName: string;
     providerName: string;
@@ -116,7 +116,7 @@ export interface CreateInsuranceInput {
 
 export interface UpdateInsuranceInput {
     employeeId?: string;
-    companyOuId?: string;
+    ouId?: string;
     insuranceName?: string;
     providerName?: string;
     policyNumber?: string;
@@ -144,7 +144,7 @@ export interface UpdateInsuranceStatusInput {
 
 export interface InsuranceFilterInput {
     employeeId?: string;
-    companyOuId?: string;
+    ouId?: string;
     status?: string;
     coverageType?: InsuranceCoverageType;
     assignment?: InsuranceAssignment;

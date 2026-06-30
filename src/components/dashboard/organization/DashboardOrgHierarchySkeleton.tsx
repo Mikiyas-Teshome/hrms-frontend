@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 export function DashboardOrgHierarchySkeleton() {
     return (
         <div className="space-y-6">
-            {/* Stats Skeleton */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {Array.from({ length: 4 }).map((_, i) => (
                     <Card key={i} className="border border-border bg-card shadow-sm">
@@ -16,12 +15,10 @@ export function DashboardOrgHierarchySkeleton() {
                 ))}
             </div>
 
-            {/* Tabs Skeleton */}
             <div className="flex">
                 <Skeleton className="h-9 w-full max-w-[400px] rounded-[10px]" />
             </div>
 
-            {/* Hierarchy Content Skeleton */}
             <Card className="rounded-[12px] border border-border/80 bg-card shadow-none overflow-hidden">
                 <CardHeader className="bg-muted/40 px-6 py-4 border-b border-border/40">
                     <Skeleton className="h-4 w-32 rounded-md" />

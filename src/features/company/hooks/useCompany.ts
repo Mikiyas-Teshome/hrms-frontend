@@ -63,8 +63,6 @@ export const useUpdateCompanySmtp = () => {
     });
 };
 
-// Query Hooks
-
 export const useCompanies = () => {
     return useQuery({
         queryKey: ['companies'],

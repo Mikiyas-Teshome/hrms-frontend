@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { hasPermission } from "@/features/auth/utils/permissions";
+import { hasModuleAccess, hasPermission } from "@/features/auth/utils/permissions";
 import { DashboardSkeleton } from "@/components/dashboard/layout/dashboard-skeleton";
 
 interface ProtectedRouteProps {
@@ -11,38 +11,47 @@ interface ProtectedRouteProps {
   module: string;
   action?: string;
   actions?: string[];
+  actionsAny?: string[];
+  allowAnyModulePermission?: boolean;
 }
 
-export function ProtectedRoute({ 
-  children, 
-  module, 
+export function ProtectedRoute({
+  children,
+  module,
   action = "read",
   actions,
+  actionsAny,
+  allowAnyModulePermission = false,
 }: ProtectedRouteProps) {
   const { permissionsMap, isInitializing, isAuthenticated } = useAuth();
   const router = useRouter();
 
-  const requiredActions = actions?.length ? actions : [action];
-  const allowed = requiredActions.every((requiredAction) =>
-    hasPermission(permissionsMap, module, requiredAction),
-  );
+  const allowed = allowAnyModulePermission
+    ? hasModuleAccess(permissionsMap, module, { action, actionsAny })
+    : actionsAny?.length
+      ? actionsAny.some((requiredAction) =>
+          hasPermission(permissionsMap, module, requiredAction),
+        )
+      : (actions?.length ? actions : [action]).every((requiredAction) =>
+          hasPermission(permissionsMap, module, requiredAction),
+        );
 
   useEffect(() => {
-    if (!isInitializing) {
-      if (!isAuthenticated) {
-        router.push("/login");
-      } else if (!allowed) {
-        router.push("/404");
-      }
+    if (!isInitializing && !isAuthenticated) {
+      router.push("/login");
     }
-  }, [isInitializing, isAuthenticated, allowed, router]);
+  }, [isInitializing, isAuthenticated, router]);
 
   if (isInitializing) {
     return <DashboardSkeleton />;
   }
 
-  if (!isAuthenticated || !allowed) {
+  if (!isAuthenticated) {
     return null;
+  }
+
+  if (!allowed) {
+    notFound();
   }
 
   return <>{children}</>;

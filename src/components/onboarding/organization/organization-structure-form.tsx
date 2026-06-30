@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslation } from "react-i18next";
@@ -32,6 +32,11 @@ import { HierarchyNode } from "@/components/onboarding/organization/hierarchy-no
 import { HierarchyTreeBuilder } from "@/components/onboarding/organization/builder/hierarchy-tree-builder";
 import { SimpleUnitModal } from "@/components/onboarding/organization/builder/simple-unit-modal";
 import { OrganizationStructureSkeleton } from "./organization-structure-skeleton";
+import {
+  buildHierarchyLevelsFromNomenclature,
+  flattenHierarchyToFormUnits,
+} from "@/features/organization/organization-structure.util";
+import { getOrganizationLevelLabel } from "@/features/organization/organization-sidebar.util";
 
 interface OrganizationStructureFormProps {
   onNext?: () => void;
@@ -48,7 +53,6 @@ export function OrganizationStructureForm({
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("hierarchy");
 
-  // Sheet State
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [sheetConfig, setSheetConfig] = useState<{
     mode: "add" | "edit";
@@ -58,37 +62,47 @@ export function OrganizationStructureForm({
     defaultParentId?: string;
   } | null>(null);
 
-  // Simple Modal State (for non-company units)
   const [isSimpleModalOpen, setIsSimpleModalOpen] = useState(false);
   const [simpleModalConfig, setSimpleModalConfig] = useState<{
     mode: "add" | "edit";
     levelIdx: number;
     parentId: string;
     unitIdx?: number;
-    unitId?: string; // for units from hierarchy not yet in form units array
+    unitId?: string;
     initialName?: string;
   } | null>(null);
 
-  // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteUnitId, setDeleteUnitId] = useState<string | null>(null);
 
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
   const [viewUnitId, setViewUnitId] = useState<string | null>(null);
+  const [isPreparingBuilder, setIsPreparingBuilder] = useState(false);
 
-  // Backend integration
+  const waitForHierarchyRoot = async (maxAttempts = 12, delayMs = 1000) => {
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const result = await refetchHierarchy();
+      if (result.data?.[0]) {
+        return true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+    return false;
+  };
   const createOUMutation = useCreateOrganizationUnit();
   const updateOUMutation = useUpdateOrganizationUnit();
   const deactivateOUMutation = useDeactivateOrganizationUnit();
   const nomenclatureMutation = useUpdateOrganizationNomenclature();
-  const { data: nomenclature, refetch: refetchNomenclature } = useOrganizationNomenclature();
+  const { data: nomenclature, refetch: refetchNomenclature, isLoading: isNomenclatureLoading } = useOrganizationNomenclature();
   const { data: hierarchy, refetch: refetchHierarchy, isLoading: isHierarchyLoading, isFetching: isHierarchyFetching } = useOrganizationHierarchy();
+  const hasHydratedFromBackendRef = useRef(false);
   const {
     register,
     control,
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { isSubmitting },
   } = useForm<OrgStructureValues>({
     resolver: zodResolver(orgStructureSchema),
@@ -108,16 +122,60 @@ export function OrganizationStructureForm({
   const hierarchyLevels = useWatch({ control, name: "hierarchyLevels" });
   const units = useWatch({ control, name: "units" }) || [];
 
-  // Sync group name from nomenclature if available
   useEffect(() => {
-    if (nomenclature && nomenclature.length > 0) {
-      const groupNom = nomenclature.find(n => n.type === 'GROUP');
-      if (groupNom) {
-        setValue("groupName", groupNom.label);
-        setValue("hierarchyLevels.0.name", groupNom.label);
-      }
+    if (isHierarchyLoading || isNomenclatureLoading || hasHydratedFromBackendRef.current) {
+      return;
     }
-  }, [nomenclature, setValue]);
+
+    const hierarchyLevels = buildHierarchyLevelsFromNomenclature(nomenclature);
+    const groupName = getOrganizationLevelLabel("GROUP", nomenclature) || hierarchyLevels[0]?.name || "";
+    const units = hierarchy?.length ? flattenHierarchyToFormUnits(hierarchy) : [];
+
+    reset({
+      groupName,
+      hierarchyLevels,
+      units,
+      locations: [],
+    });
+
+    hasHydratedFromBackendRef.current = true;
+  }, [hierarchy, nomenclature, isHierarchyLoading, isNomenclatureLoading, reset]);
+
+  const persistNomenclature = useCallback(
+    async (
+      levels?: OrgStructureValues["hierarchyLevels"],
+      options?: { showToast?: boolean },
+    ) => {
+      try {
+        const currentLevels = levels ?? watch("hierarchyLevels");
+        const activeLevels = currentLevels.filter((level, idx) => idx === 0 || level.isActive);
+        const inputs = activeLevels.map((level) => ({
+          label: level.name,
+          type: level.type,
+        }));
+
+        await nomenclatureMutation.mutateAsync({
+          inputs,
+          language: "en",
+        });
+
+        if (currentLevels[0]?.name) {
+          setValue("groupName", currentLevels[0].name);
+        }
+
+        if (options?.showToast) {
+          toast({ title: t("hierarchy.nomenclatureUpdated") || "Nomenclature updated" });
+        }
+      } catch (error: any) {
+        toast({
+          variant: "destructive",
+          title: "Update Failed",
+          description: error.message || "Failed to update labels.",
+        });
+      }
+    },
+    [watch, nomenclatureMutation, setValue, toast, t],
+  );
 
   const onSubmit = async (data: OrgStructureValues) => {
     try {      
@@ -172,32 +230,7 @@ export function OrganizationStructureForm({
   };
 
   const handleUpdateNomenclature = async () => {
-    try {
-      const currentLevels = watch("hierarchyLevels");
-      const activeLevels = currentLevels.filter((l, idx) => idx === 0 || l.isActive);
-      
-      const inputs = activeLevels.map(l => ({
-        label: l.name,
-        type: l.type
-      }));
-
-      await nomenclatureMutation.mutateAsync({
-        inputs,
-        language: 'en'
-      });
-      
-      if (currentLevels[0]?.name) {
-        setValue("groupName", currentLevels[0].name);
-      }
-
-      toast({ title: t("hierarchy.nomenclatureUpdated") || "Nomenclature updated" });
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: error.message || "Failed to update labels.",
-      });
-    }
+    await persistNomenclature(undefined, { showToast: true });
   };
 
   const flattenHierarchyNodes = (nodes: any[]): any[] => {
@@ -216,7 +249,6 @@ export function OrganizationStructureForm({
     const prevLevel = hierarchyLevels[levelIdx - 1];
     const allExistingUnits = flattenHierarchyNodes(hierarchy || []);
     
-    // Combine units from form state and hierarchy tree for robustness
     const allAvailableUnits = [
       ...allExistingUnits,
       ...units.filter(u => !allExistingUnits.some(node => node.id === u.id))
@@ -361,10 +393,11 @@ export function OrganizationStructureForm({
         toast({ title: t("builder.unitUpdated") || "Unit updated" });
       }
 
-      // Refetch to ensure the tree reflects latest nested structure
       await refetchHierarchy();
       setIsSheetOpen(false);
       setSheetConfig(null);
+      setIsSimpleModalOpen(false);
+      setSimpleModalConfig(null);
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -384,7 +417,6 @@ export function OrganizationStructureForm({
     if (deleteUnitId) {
       try {
         await deactivateOUMutation.mutateAsync(deleteUnitId);
-        // Also remove from form units if present
         const unitIdx = units.findIndex((u: any) => u.id === deleteUnitId);
         if (unitIdx !== -1) removeUnit(unitIdx);
         await refetchHierarchy();
@@ -403,13 +435,45 @@ export function OrganizationStructureForm({
   };
 
   const handleLevelToggle = (index: number, checked: boolean) => {
+    const currentLevels = [...watch("hierarchyLevels")];
+
     if (!checked) {
-      for (let i = index; i < hierarchyLevels.length; i++) {
+      for (let i = index; i < currentLevels.length; i++) {
+        currentLevels[i] = { ...currentLevels[i], isActive: false };
         setValue(`hierarchyLevels.${i}.isActive`, false);
       }
     } else {
+      currentLevels[index] = { ...currentLevels[index], isActive: true };
       setValue(`hierarchyLevels.${index}.isActive`, true);
     }
+
+    void persistNomenclature(currentLevels);
+  };
+
+  const handleTabChange = async (value: string) => {
+    if (value === "builder" && activeTab === "hierarchy") {
+      setIsPreparingBuilder(true);
+      try {
+        await persistNomenclature();
+        const isReady = await waitForHierarchyRoot();
+        if (!isReady) {
+          toast({
+            variant: "destructive",
+            title: t("hierarchy.setupPendingTitle"),
+            description: t("hierarchy.setupPendingDescription"),
+          });
+          return;
+        }
+        await refetchNomenclature();
+      } catch (error) {
+        console.error("Failed to prepare builder tab:", error);
+        return;
+      } finally {
+        setIsPreparingBuilder(false);
+      }
+    }
+
+    setActiveTab(value);
   };
 
   const isLevelSwitchDisabled = (index: number): boolean => {
@@ -420,13 +484,13 @@ export function OrganizationStructureForm({
     return false;
   };
 
-  if (isHierarchyLoading) {
+  if (isHierarchyLoading || isNomenclatureLoading) {
     return <OrganizationStructureSkeleton />;
   }
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
-      <OnboardingStepTabs value={activeTab} onValueChange={setActiveTab}>
+      <OnboardingStepTabs value={activeTab} onValueChange={handleTabChange}>
         <OnboardingStepTabsList>
           <OnboardingStepTabTrigger value="hierarchy">
             {t("tabs.hierarchy")}
@@ -471,26 +535,33 @@ export function OrganizationStructureForm({
                   type="button"
                   variant="outline"
                   onClick={async () => {
+                    setIsPreparingBuilder(true);
                     try {
                       await handleUpdateNomenclature();
-                      // Wait a moment for the backend to build the root hierarchy node
-                      await new Promise((resolve) => setTimeout(resolve, 1500));
-                      await Promise.all([
-                        refetchHierarchy(),
-                        refetchNomenclature()
-                      ]);
+                      const isReady = await waitForHierarchyRoot();
+                      if (!isReady) {
+                        toast({
+                          variant: "destructive",
+                          title: t("hierarchy.setupPendingTitle"),
+                          description: t("hierarchy.setupPendingDescription"),
+                        });
+                        return;
+                      }
+                      await refetchNomenclature();
                       setActiveTab("builder");
                     } catch (error) {
                       console.error("Failed to transition to builder:", error);
+                    } finally {
+                      setIsPreparingBuilder(false);
                     }
                   }}
-                  disabled={isHierarchyFetching}
+                  disabled={isHierarchyFetching || isPreparingBuilder}
                   className="h-9 min-w-25 px-4 rounded-[8px] border border-primary dark:border-[#5185F2] text-primary dark:text-primary hover:bg-primary/5 dark:hover:bg-[#5185F2]/5 transition-all font-medium text-sm shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed font-albert-sans"
                 >
-                  {isHierarchyFetching ? (
+                  {isHierarchyFetching || isPreparingBuilder ? (
                     <>
                       <Loader2 className="mr-2 size-4 animate-spin" />
-                      {t("actions.loading") || "Loading..."}
+                      {t("actions.loading")}
                     </>
                   ) : (
                     t("hierarchy.continueToBuilder")
@@ -511,15 +582,14 @@ export function OrganizationStructureForm({
         <OnboardingStepTabsContent value="builder">
           <HierarchyTreeBuilder
             hierarchy={hierarchy}
+            isLoading={isHierarchyFetching || isPreparingBuilder}
             levels={hierarchyLevels}
             nomenclature={nomenclature}
             onAddUnit={(levelIdx, parentId) => handleOpenAddSheet(levelIdx, parentId)}
             onEditUnit={(unitId) => {
               if (!unitId || unitId === hierarchy?.[0]?.id) return;
-              // Try form units first
               const idx = units.findIndex((u: any) => u.id === unitId);
               if (idx !== -1) { handleOpenEditSheet(idx, "edit"); return; }
-              // Fallback: find node in hierarchy tree
               const node = flattenHierarchyNodes(hierarchy || []).find((n: any) => n.id === unitId);
               if (node) {
                 const levelIdx = hierarchyLevels.findIndex((l: any) => l.type === node.type);
@@ -593,7 +663,6 @@ export function OrganizationStructureForm({
         }
         onAddChild={(parentUnit) => {
           const parentLevelIdx = hierarchyLevels.findIndex(l => l.type === parentUnit.type);
-          // Find the NEXT ACTIVE level below this one
           let childLevelIdx = -1;
           for (let i = parentLevelIdx + 1; i < hierarchyLevels.length; i++) {
             if (hierarchyLevels[i].isActive) {
@@ -642,15 +711,22 @@ export function OrganizationStructureForm({
       />
 
       <SimpleUnitModal 
+        key={
+          simpleModalConfig
+            ? `${simpleModalConfig.mode}-${simpleModalConfig.levelIdx}-${simpleModalConfig.parentId}-${simpleModalConfig.unitIdx ?? simpleModalConfig.unitId ?? "new"}`
+            : "closed"
+        }
         isOpen={isSimpleModalOpen}
-        onOpenChange={setIsSimpleModalOpen}
+        onOpenChange={(open) => {
+          setIsSimpleModalOpen(open);
+          if (!open) setSimpleModalConfig(null);
+        }}
         title={simpleModalConfig ? `${simpleModalConfig.mode === 'edit' ? 'Edit' : 'Add'} ${getLabel(hierarchyLevels[simpleModalConfig.levelIdx]?.type, simpleModalConfig.levelIdx)}` : "Unit"}
-        initialName={simpleModalConfig?.initialName}
+        initialName={simpleModalConfig?.mode === "edit" ? simpleModalConfig.initialName : ""}
         onSave={async (name) => {
           if (!simpleModalConfig) return;
           const type = hierarchyLevels[simpleModalConfig.levelIdx].type;
           
-          // Edit a unit that exists in hierarchy but not in form units array
           if (simpleModalConfig.mode === "edit" && simpleModalConfig.unitId && simpleModalConfig.unitIdx === undefined) {
              await handleSaveUnit(
                { name, type, parentId: simpleModalConfig.parentId },

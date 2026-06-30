@@ -2,7 +2,7 @@ export const BENEFIT_ENTITLEMENT_FIELDS_FRAGMENT = `
   fragment BenefitEntitlementFields on BenefitEntitlement {
     id
     employeeId
-    companyOuId
+    ouId
     name
     type
     valueDefinition
@@ -54,8 +54,8 @@ export const REMOVE_BENEFIT_ENTITLEMENT_MUTATION = `
 `;
 
 export const GET_BENEFIT_ENTITLEMENT_STATS_QUERY = `
-  query BenefitEntitlementStats($companyOuId: ID) {
-    benefitEntitlementStats(companyOuId: $companyOuId) {
+  query BenefitEntitlementStats($ouId: ID) {
+    benefitEntitlementStats(ouId: $ouId) {
       totalEntitlements
       activeEntitlements
       assignedToAll

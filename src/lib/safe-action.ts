@@ -13,7 +13,7 @@ export async function safeAction<T>(
     return { 
       success: false, 
       error: message,
-      code: error.code
+      code: error?.code ?? error?.errorCode,
     };
   }
 }

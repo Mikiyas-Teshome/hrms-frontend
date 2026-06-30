@@ -19,6 +19,7 @@ export const ASSIGN_EMPLOYEE_SHIFT_MUTATION = `
         startTime
         endTime
         type
+        overtimePayable
       }
     }
   }
@@ -40,6 +41,7 @@ export const CREATE_SHIFT_POLICY_ASSIGNMENT_MUTATION = `
         startTime
         endTime
         type
+        overtimePayable
       }
     }
   }
@@ -113,6 +115,7 @@ export const CREATE_SHIFT_TEMPLATE_MUTATION = `
       workingDays
       flexibleMinutes
       overtimeAllowed
+      overtimePayable
       type
       isActive
     }
@@ -131,6 +134,7 @@ export const UPDATE_SHIFT_TEMPLATE_MUTATION = `
       workingDays
       flexibleMinutes
       overtimeAllowed
+      overtimePayable
       type
       isActive
     }
@@ -281,6 +285,7 @@ export const GET_EMPLOYEE_SHIFTS_QUERY = `
         isActive
         workingDays
         overtimeAllowed
+        overtimePayable
       }
     }
   }
@@ -310,6 +315,7 @@ export const GET_SHIFT_TEMPLATES_QUERY = `
       endTime
       workingDays
       overtimeAllowed
+      overtimePayable
       breakDuration
     }
   }

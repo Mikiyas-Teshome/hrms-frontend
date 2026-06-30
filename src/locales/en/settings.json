@@ -8,6 +8,7 @@
     "appearanceSaved": "Appearance settings updated successfully.",
     "orgPreferencesSaved": "Organization preferences updated successfully.",
     "attendanceSaved": "Attendance and time settings updated successfully.",
+    "payrollSaved": "Payroll settings updated successfully.",
     "holidayAdded": "Holiday added successfully.",
     "holidayRemoved": "Holiday removed successfully."
   },
@@ -26,8 +27,8 @@
     "attendance": "Attendance & Time",
     "leave": "Leave Management",
     "payroll": "Payroll",
-    "notification": "Notification",
-    "security": "Security"
+    "security": "Security",
+    "compOff": "Comp-Off Policy"
   },
   "general": {
     "title": "General",
@@ -103,16 +104,36 @@
     "holidayCalendar": "Holiday calendar",
     "addCustomHoliday": "Add custom holiday",
     "noHolidays": "No holidays configured for this year.",
-    "timeTracking": "Time Tracking",
-    "timeTrackingUnavailable": "Copy coordinates and GPS restriction settings are not available yet.",
-    "copyCoords": "Copy co-ordinates in timelines",
-    "copyCoordsDesc": "Allow users to copy location coordinates from the timeline.",
-    "gpsRestriction": "GPS restriction (optional)",
-    "gpsRestrictionDesc": "Restrict users clock in and clock out based on their location."
+    "noUpcomingHijriHolidays": "No upcoming Hijri holidays remain this year.",
+    "standardHolidayReviewHint": "Uncheck holidays below to remove them when you save.",
+    "hijriHolidayReviewHint": "Review the holidays below. Selected holidays will be created when you save.",
+    "hijriHolidayAlreadySaved": "Already saved",
+    "hijriHolidaysLoadFailed": "Unable to load Hijri holidays. Please try again later.",
+    "hijriHolidays": {
+      "eidAlFitr1": "Eid Al-Fitr (Day 1)",
+      "eidAlFitr2": "Eid Al-Fitr (Day 2)",
+      "eidAlFitr3": "Eid Al-Fitr (Day 3)",
+      "arafatDay": "Arafat Day",
+      "eidAlAdha1": "Eid Al-Adha (Day 1)",
+      "eidAlAdha2": "Eid Al-Adha (Day 2)",
+      "eidAlAdha3": "Eid Al-Adha (Day 3)",
+      "eidAlAdha4": "Eid Al-Adha (Day 4)",
+      "islamicNewYear": "Islamic New Year",
+      "prophetBirthday": "Prophet Muhammad's Birthday"
+    },
+    "shiftManagementLink": "Shift management",
+    "shiftManagementLinkDesc": "Create and manage shift templates, schedules, and assignments."
   },
   "leave": {
     "title": "Leave Management",
-    "description": "Time-off policies and approval behavior.",
+    "description": "Manage leave policies and employee balances.",
+    "links": {
+      "intro": "Leave configuration is managed in the Leave module. Use the links below to update your organization setup.",
+      "policiesTitle": "Leave policies",
+      "policiesDesc": "Define entitlement rules, carry-over limits, and documentation requirements per policy.",
+      "balancesTitle": "Leave balances",
+      "balancesDesc": "Review and adjust employee leave balances."
+    },
     "leavePolicies": "Leave Policies",
     "yearStartDate": "Leave year start date",
     "carryUnused": "Carry unused leave",
@@ -133,7 +154,17 @@
   },
   "payroll": {
     "title": "Payroll",
-    "description": "Compensation and payment configuration.",
+    "description": "Payroll cycle, processing, and overtime configuration.",
+    "selectCompany": "Select company",
+    "loadingCompanies": "Loading companies...",
+    "selectCompanyFirst": "Please select a company first.",
+    "cycleSettings": "Payroll cycle",
+    "cycleType": "Payroll cycle",
+    "payDay": "Pay day of month",
+    "autoFinalize": "Auto-finalize payroll runs",
+    "autoFinalizeDesc": "Automatically finalize payroll runs after processing.",
+    "salaryStructuresLink": "Salary structures",
+    "salaryStructuresLinkDesc": "Manage salary structures, components, and overtime policy assignments.",
     "overtimeRules": "Overtime Rules",
     "standardOvertime": "Standard Overtime",
     "standardOvertimeDesc": "Weekdays & Regular hours",
@@ -141,22 +172,6 @@
     "weekendOvertimeDesc": "Saturdays and Sundays",
     "publicHoliday": "Public Holiday",
     "publicHolidayDesc": "Gazetted holidays"
-  },
-  "notification": {
-    "title": "Notification",
-    "description": "Notification and email configuration.",
-    "notifyMeBy": "Notify me by",
-    "email": "Email",
-    "push": "Push notifications",
-    "emailNotifications": "Email Notifications",
-    "communication": "Communication emails",
-    "communicationDesc": "Send notifications to device.",
-    "marketing": "Marketing emails",
-    "marketingDesc": "Receive emails about new products, features, and more.",
-    "social": "Social emails",
-    "socialDesc": "Receive emails for friend requests, follows, and more.",
-    "security": "Security emails",
-    "securityDesc": "Receive emails about your account activity and security."
   },
   "security": {
     "title": "Security",

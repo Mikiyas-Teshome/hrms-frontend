@@ -33,7 +33,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 interface EntitlementFormValues {
-  companyOuId: string;
+  ouId: string;
   name: string;
   type: EntitlementType;
   valueDefinition: EntitlementValueDefinition;
@@ -51,7 +51,7 @@ interface AddEntitlementSheetProps {
 }
 
 const defaultValues: EntitlementFormValues = {
-  companyOuId: '',
+  ouId: '',
   name: '',
   type: EntitlementType.ALLOWANCE,
   valueDefinition: EntitlementValueDefinition.FIXED_AMOUNT,
@@ -63,7 +63,7 @@ const defaultValues: EntitlementFormValues = {
 };
 
 const mapEntitlementToForm = (entitlement: BenefitEntitlement): EntitlementFormValues => ({
-  companyOuId: entitlement.companyOuId || '',
+  ouId: entitlement.ouId || '',
   name: entitlement.name,
   type: entitlement.type as EntitlementType,
   valueDefinition: entitlement.valueDefinition as EntitlementValueDefinition,
@@ -93,7 +93,7 @@ const AddEntitlementSheet = ({ open, onOpenChange, entitlement }: AddEntitlement
     defaultValues,
   });
 
-  const formCompanyOuId = watch('companyOuId');
+  const formCompanyOuId = watch('ouId');
   const formValueDefinition = watch('valueDefinition');
 
   useEffect(() => {
@@ -103,20 +103,20 @@ const AddEntitlementSheet = ({ open, onOpenChange, entitlement }: AddEntitlement
     } else {
       reset({
         ...defaultValues,
-        companyOuId: companiesData?.[0]?.id ?? '',
+        ouId: companiesData?.[0]?.id ?? '',
       });
     }
   }, [open, reset, companiesData, entitlement]);
 
   useEffect(() => {
     if (companiesData?.length && !formCompanyOuId && open && !entitlement) {
-      setValue('companyOuId', companiesData[0].id);
+      setValue('ouId', companiesData[0].id);
     }
   }, [companiesData, formCompanyOuId, setValue, open, entitlement]);
 
   const onSubmit = async (data: EntitlementFormValues) => {
     const payload = {
-      companyOuId: data.companyOuId,
+      ouId: data.ouId,
       name: data.name,
       type: data.type,
       valueDefinition: data.valueDefinition,
@@ -210,7 +210,6 @@ const AddEntitlementSheet = ({ open, onOpenChange, entitlement }: AddEntitlement
 
         <div className="flex-1 overflow-y-auto no-scrollbar -mx-10 px-10 py-6 bg-slate-50/50 dark:bg-zinc-950/30">
           <form id="add-entitlement-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Basic Info Card */}
             <div className="border border-slate-200/80 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20 shadow-sm shadow-slate-100/50 dark:shadow-none animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="bg-slate-50/80 dark:bg-zinc-900/60 border-b border-slate-200/60 dark:border-zinc-800 px-6 py-3.5">
                 <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
@@ -220,11 +219,11 @@ const AddEntitlementSheet = ({ open, onOpenChange, entitlement }: AddEntitlement
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-zinc-950/40">
                 <div className="col-span-1 md:col-span-2">
                   <FormSelect
-                    id="companyOuId"
+                    id="ouId"
                     label={t('setup.selectCompany', { defaultValue: 'Company' })}
                     placeholder={isLoadingCompanies ? t('setup.loadingCompanies', { defaultValue: 'Loading companies...' }) : t('setup.selectCompanyPlaceholder', { defaultValue: 'Select company' })}
                     control={control}
-                    name="companyOuId"
+                    name="ouId"
                     options={companyOptions}
                     t={t}
                     disabled={isLoadingCompanies}
@@ -255,7 +254,6 @@ const AddEntitlementSheet = ({ open, onOpenChange, entitlement }: AddEntitlement
               </div>
             </div>
 
-            {/* Entitlement Details Card */}
             <div className="border border-slate-200/80 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20 shadow-sm shadow-slate-100/50 dark:shadow-none animate-in fade-in slide-in-from-bottom-3 duration-300">
               <div className="bg-slate-50/80 dark:bg-zinc-900/60 border-b border-slate-200/60 dark:border-zinc-800 px-6 py-3.5">
                 <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">

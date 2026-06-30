@@ -1,23 +1,70 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchBankAccounts,
+  fetchMyBankAccounts,
   fetchBankAccount,
   createBankAccount,
   createMyBankAccount,
   updateBankAccount,
+  updateMyBankAccount,
   removeBankAccount,
 } from '../bank-account.actions';
 import {
+  BANK_ACCOUNTS_QUERY_KEY,
+  MY_BANK_ACCOUNTS_QUERY_KEY,
+} from '../bank-account.constants';
+import {
+  BankAccount,
   CreateBankAccountInput,
   CreateMyBankAccountInput,
   UpdateBankAccountInput,
 } from '../bank-account.types';
 
+const upsertBankAccountInCache = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  account: BankAccount,
+) => {
+  const merge = (current: BankAccount[] | undefined) => {
+    const list = current ?? [];
+    const index = list.findIndex((item) => item.id === account.id);
+    if (index === -1) {
+      return [account, ...list];
+    }
+    const next = [...list];
+    next[index] = account;
+    return next;
+  };
+
+  queryClient.setQueryData<BankAccount[]>(
+    [BANK_ACCOUNTS_QUERY_KEY, account.employeeId],
+    merge,
+  );
+  queryClient.setQueryData<BankAccount[]>([MY_BANK_ACCOUNTS_QUERY_KEY], merge);
+};
+
+const invalidateBankAccountQueries = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  employeeId?: string,
+) => {
+  queryClient.invalidateQueries({ queryKey: [MY_BANK_ACCOUNTS_QUERY_KEY] });
+  if (employeeId) {
+    queryClient.invalidateQueries({ queryKey: [BANK_ACCOUNTS_QUERY_KEY, employeeId] });
+  }
+};
+
 export const useBankAccounts = (employeeId: string, options?: { enabled?: boolean }) => {
   return useQuery({
-    queryKey: ['bank-accounts', employeeId],
+    queryKey: [BANK_ACCOUNTS_QUERY_KEY, employeeId],
     queryFn: () => fetchBankAccounts(employeeId),
     enabled: options?.enabled ?? !!employeeId,
+  });
+};
+
+export const useMyBankAccounts = (options?: { enabled?: boolean }) => {
+  return useQuery({
+    queryKey: [MY_BANK_ACCOUNTS_QUERY_KEY],
+    queryFn: () => fetchMyBankAccounts(),
+    enabled: options?.enabled ?? true,
   });
 };
 
@@ -38,7 +85,8 @@ export const useCreateMyBankAccount = () => {
       return result.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['bank-accounts', data.employeeId] });
+      upsertBankAccountInCache(queryClient, data);
+      invalidateBankAccountQueries(queryClient, data.employeeId);
     },
   });
 };
@@ -51,8 +99,9 @@ export const useCreateBankAccount = () => {
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['bank-accounts', variables.employeeId] });
+    onSuccess: (data, variables) => {
+      upsertBankAccountInCache(queryClient, data);
+      invalidateBankAccountQueries(queryClient, variables.employeeId);
     },
   });
 };
@@ -66,7 +115,24 @@ export const useUpdateBankAccount = () => {
       return result.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['bank-accounts', data.employeeId] });
+      upsertBankAccountInCache(queryClient, data);
+      invalidateBankAccountQueries(queryClient, data.employeeId);
+      queryClient.invalidateQueries({ queryKey: ['bank-account', data.id] });
+    },
+  });
+};
+
+export const useUpdateMyBankAccount = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, input }: { id: string; input: UpdateBankAccountInput }) => {
+      const result = await updateMyBankAccount(id, input);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: (data) => {
+      upsertBankAccountInCache(queryClient, data);
+      invalidateBankAccountQueries(queryClient, data.employeeId);
       queryClient.invalidateQueries({ queryKey: ['bank-account', data.id] });
     },
   });
@@ -81,7 +147,7 @@ export const useRemoveBankAccount = () => {
       return result.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['bank-accounts', data.employeeId] });
+      invalidateBankAccountQueries(queryClient, data.employeeId);
     },
   });
 };

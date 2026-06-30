@@ -58,7 +58,6 @@ export default function EditAttendanceModal({ isOpen, onClose, record }: EditAtt
 
     const status = watch('status');
 
-    // Sync state when modal opens/record changes
     useEffect(() => {
         if (record && isOpen) {
             setClockIn(formatForDateTimeLocal(record.clockIn));

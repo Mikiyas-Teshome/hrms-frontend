@@ -10,7 +10,7 @@ export default function EmployeeSuccessPage() {
   return (
     <main className="min-h-screen">
       <PublicHeader />
-      <div className="mt-10" suppressHydrationWarning>
+      <div className="flex min-h-[calc(100vh-48px)] items-center justify-center px-4" suppressHydrationWarning>
         <VerificationSuccess
           title={t("title")}
           subtitle={t("subtitle")}

@@ -12,6 +12,7 @@ import {
     GET_PERMISSIONS_QUERY,
     PROFILE_WITH_PERMISSION_SETS_QUERY
 } from './roles.queries';
+import { isVisibleRoleName } from './roles.constants';
 import { 
     Role, 
     CreateRoleInput, 
@@ -88,7 +89,7 @@ export async function fetchRoles(companyId?: string): Promise<Role[]> {
             GET_ROLES_QUERY,
             { companyId }
         );
-        return data.roles;
+        return data.roles.filter((role) => isVisibleRoleName(role.name));
     } catch (error) {
         console.error('Failed to fetch roles:', error);
         return [];

@@ -42,7 +42,6 @@ export default function ChangeStatusModal({ isOpen, onClose, record }: ChangeSta
     const status = watch('status');
     const [remarks, setRemarks] = useState('');
 
-    // Sync state when modal opens/record changes
     useEffect(() => {
         if (record && isOpen) {
             setValue('status', record.status);

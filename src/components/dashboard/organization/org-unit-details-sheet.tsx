@@ -29,7 +29,6 @@ const TYPE_LABELS: Record<OUType, string> = {
 export function OrgUnitDetailsSheet({ isOpen, onClose, unitId, type }: OrgUnitDetailsSheetProps) {
     const { data: unit, isLoading } = useOrganizationUnit(unitId || '');
 
-    // Helper to count children by type
     const countChildren = (targetUnit: OrganizationUnitType, childType: string) => {
         const count = (node: OrganizationUnitType): number => {
             let total = node.type === childType ? 1 : 0;
@@ -72,7 +71,6 @@ export function OrgUnitDetailsSheet({ isOpen, onClose, unitId, type }: OrgUnitDe
                         </div>
                     ) : (
                         <>
-                            {/* Unit Info Section */}
                             <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
                                 <div className="px-6 py-4 border-b border-border bg-card">
                                     <h3 className="text-sm font-semibold text-foreground">{unitLabel} info</h3>
@@ -113,7 +111,6 @@ export function OrgUnitDetailsSheet({ isOpen, onClose, unitId, type }: OrgUnitDe
                                 </div>
                             </div>
 
-                            {/* Unit Children Section */}
                             {(stats.divisions > 0 || stats.subDivisions > 0 || stats.departments > 0) && (
                                 <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
                                     <div className="px-6 py-4 border-b border-border bg-card">

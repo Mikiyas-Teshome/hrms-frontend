@@ -37,8 +37,9 @@ export function StatCard({
     if (isPlaceholder) {
         return (
             <button
+                type="button"
                 onClick={onAdd}
-                className="flex flex-col items-center justify-center p-4 min-h-35 h-full rounded-[14px] border-2 border-dashed border-blue-200 dark:border-slate-700 bg-blue-50/50 dark:bg-slate-800/50 hover:bg-blue-100/50 dark:hover:bg-slate-700/50 transition-colors group"
+                className="flex flex-col items-center justify-center p-4 min-h-35 h-full rounded-[14px] border-2 border-dashed border-blue-200 dark:border-slate-700 bg-blue-50/50 dark:bg-slate-800/50 hover:bg-blue-100/50 dark:hover:bg-slate-700/50 transition-colors group cursor-pointer"
             >
                 <div className="w-10 h-10 rounded-full border border-blue-200 dark:border-slate-700 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                     <Plus className="w-5 h-5 text-primary" />
@@ -53,17 +54,18 @@ export function StatCard({
             className={cn(
                 'relative flex flex-col justify-between p-[16px_24px] min-h-35 h-full bg-card text-card-foreground rounded-[14px] border border-border transition-all',
                 'shadow-[0px_1px_3px_rgba(0,0,0,0.1),0px_1px_2px_-1px_rgba(0,0,0,0.1)]',
-                isEditing && !isPlaceholder && 'border-solid shadow-none', // Remove dashed border for active cards
+                isEditing && !isPlaceholder && 'border-solid shadow-none',
             )}
         >
             {isEditing && !isPlaceholder && (
                 <button
+                    type="button"
                     onClick={(e) => {
                         e.stopPropagation();
                         onDelete?.();
                     }}
                     className={cn(
-                        'absolute -top-1.25 w-5 h-5 bg-[#EF4444] rounded-full border-[1.33px] border-background flex items-center justify-center shadow-[0px_4px_4px_rgba(0,0,0,0.08)] hover:bg-red-600 transition-colors z-10',
+                        'absolute -top-1.25 w-5 h-5 bg-[#EF4444] rounded-full border-[1.33px] border-background flex items-center justify-center shadow-[0px_4px_4px_rgba(0,0,0,0.08)] hover:bg-red-600 transition-colors z-10 cursor-pointer',
                         isRTL ? '-left-1.25' : '-right-1.25',
                     )}
                 >

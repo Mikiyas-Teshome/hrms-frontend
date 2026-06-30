@@ -3,7 +3,8 @@
   "subtitle": "Configure contract types, templates, and insurance coverage policies for your organization.",
   "insurancesTab": "Insurances Coverage",
   "contractsTab": "Contracts Templates",
-  "filterCompany": "Filter by Company",
+  "selectCompany": "Select company",
+  "selectCompanyPlaceholder": "Select company",
   "addInsuranceTitle": "Add Insurance Plan",
   "insuranceName": "Insurance Name",
   "providerName": "Insurance Provider",
@@ -45,6 +46,11 @@
   "noContractsDesc": "Create a contract template using the form on the left to include it here.",
   "actions": {
     "back": "Back",
-    "continue": "Continue to team setup"
+    "continue": "Continue to team setup",
+    "continueToContract": "Continue to contract",
+    "saveInsurance": "Save insurance",
+    "error": "Error",
+    "selectCompanyFirst": "Please select a company first.",
+    "contractTemplateRequired": "Create at least one contract template before continuing to team setup."
   }
 }

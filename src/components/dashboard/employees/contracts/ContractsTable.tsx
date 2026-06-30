@@ -18,11 +18,12 @@ import { usePermissions } from '@/features/auth/hooks/usePermissions';
 
 interface ContractsTableProps {
     data: ContractType[];
+    isLoading?: boolean;
     onEdit?: (item: ContractType) => void;
     onDelete?: (item: ContractType) => void;
 }
 
-export function ContractsTable({ data, onEdit, onDelete }: ContractsTableProps) {
+export function ContractsTable({ data, isLoading = false, onEdit, onDelete }: ContractsTableProps) {
     const { t } = useTranslation(['contracts', 'employees', 'dashboard']);
     const { hasPermission } = usePermissions();
     const canUpdateContracts = hasPermission('contracts:update');
@@ -48,6 +49,15 @@ export function ContractsTable({ data, onEdit, onDelete }: ContractsTableProps) 
     }) as 'all' | 'yes' | 'no';
 
     const columns: ColumnConfig<ContractType>[] = [
+        {
+            key: 'companyName',
+            label: t('company', { defaultValue: 'Company' }),
+            className: 'text-muted-foreground',
+            sortable: true,
+            render: (item) => (
+                <span className="text-foreground">{item.companyName || '—'}</span>
+            ),
+        },
         {
             key: 'name',
             label: t('contractType'),
@@ -182,6 +192,7 @@ export function ContractsTable({ data, onEdit, onDelete }: ContractsTableProps) 
         <UniversalDataTable
             data={paginatedData}
             columns={columns}
+            isLoading={isLoading}
             enableSelection={true}
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}

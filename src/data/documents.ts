@@ -2,6 +2,7 @@ import { CheckCircle2, XCircle, AlertTriangle, FileText, LayoutList, History, Lo
 
 export const documentStats = [
   {
+    key: "compliant",
     title: "Compliant employees",
     value: "25",
     icon: CheckCircle2,
@@ -10,6 +11,7 @@ export const documentStats = [
     bgColor: "rgba(34, 197, 94, 0.05)",
   },
   {
+    key: "missing",
     title: "Employee missing documents",
     value: "5",
     icon: XCircle,
@@ -18,6 +20,7 @@ export const documentStats = [
     bgColor: "rgba(239, 68, 68, 0.05)",
   },
   {
+    key: "expired",
     title: "Expired documents",
     value: "4",
     icon: AlertTriangle,
@@ -26,6 +29,7 @@ export const documentStats = [
     bgColor: "rgba(239, 68, 68, 0.05)",
   },
   {
+    key: "nearExpiry",
     title: "Expiry date near documents",
     value: "3",
     icon: AlertTriangle,
@@ -198,6 +202,7 @@ export const mockComplianceTracking = [
 
 export const categoryStats = [
   {
+    key: "total",
     title: "Total categories",
     value: "23",
     icon: LayoutList,
@@ -206,6 +211,7 @@ export const categoryStats = [
     bgColor: "rgba(40, 101, 227, 0.05)",
   },
   {
+    key: "required",
     title: "Required categories",
     value: "18",
     icon: Lock,
@@ -214,6 +220,7 @@ export const categoryStats = [
     bgColor: "rgba(217, 119, 6, 0.05)",
   },
   {
+    key: "expiryRequired",
     title: "Expiry date required",
     value: "6",
     icon: History,
@@ -222,6 +229,7 @@ export const categoryStats = [
     bgColor: "rgba(217, 119, 6, 0.05)",
   },
   {
+    key: "active",
     title: "Active categories",
     value: "22",
     icon: CheckCircle2,

@@ -20,25 +20,3 @@ export function clampOnboardingStep(step: number): number {
     }
     return Math.floor(step);
 }
-
-export function stepToSlug(step: number): OnboardingStepSlug {
-    const index = clampOnboardingStep(step) - 1;
-    return ONBOARDING_STEP_SLUGS[index];
-}
-
-export function slugToStep(slug: string): number | null {
-    const index = ONBOARDING_STEP_SLUGS.indexOf(slug as OnboardingStepSlug);
-    if (index === -1) {
-        return null;
-    }
-    return index + 1;
-}
-
-export function isOnboardingStepSlug(slug: string): slug is OnboardingStepSlug {
-    return ONBOARDING_STEP_SLUGS.includes(slug as OnboardingStepSlug);
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function getOnboardingPath(_step?: number): string {
-    return '/onboarding';
-}

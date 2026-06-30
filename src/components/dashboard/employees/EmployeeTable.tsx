@@ -9,7 +9,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Eye, Pencil, RefreshCw, Trash2, CircleCheck, CircleX, Shield, Calendar as CalendarIcon, ListFilter } from 'lucide-react';
+import { MoreVertical, Eye, Pencil, RefreshCw, Trash2, CircleCheck, CircleX, Shield, Calendar as CalendarIcon, ListFilter, Mail } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import { usePaginatedEmployees } from '@/features/employee/hooks/useEmployee';
@@ -19,10 +19,12 @@ import ConfirmationModal from '@/components/dashboard/shared/ConfirmationModal';
 import UpdatePermissionSheet from './UpdatePermissionSheet';
 import { AssignShiftModal } from '../organization/assign-shift-modal';
 import { useDeleteEmployee, useUpdateEmployeeStatus } from '@/features/employee/hooks/useEmployee';
+import { usePendingInvitations, useResendInvitation } from '@/features/auth/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Employee, EmployeeStatus as LegacyStatus } from '@/types/employee';
 import { EmployeeStatus } from '@/features/employee/employee.types';
 import EmployeeFilterSection from './EmployeeFilterSection';
+import { formatEmployeeRoleName } from '@/features/employee/employee-role-display.util';
 
 interface EmployeeTableProps {
     onImport?: () => void;
@@ -40,7 +42,7 @@ const mapEmployeeToLegacy = (emp: EmployeeResponse | null): Employee | null => {
         userId: emp.userId || undefined,
         name: `${emp.firstName} ${emp.lastName}`,
         department: emp.orgUnit?.orgUnitName || emp.departmentId || '',
-        role: emp.jobTitle || '', // Fallback to jobTitle if role is missing
+        role: emp.jobTitle || '',
         email: emp.email,
         status: emp.status as unknown as LegacyStatus,
     };
@@ -69,6 +71,8 @@ const EmployeeTable = ({ onImport, onExport, onEdit, ouIdFilter }: EmployeeTable
     const { toast } = useToast();
     const { mutate: deleteEmployee, isPending: isDeleting } = useDeleteEmployee();
     const { mutate: updateStatus } = useUpdateEmployeeStatus();
+    const { data: pendingInvitations = [] } = usePendingInvitations();
+    const { mutate: resendInvitation, isPending: isResendingInvitation } = useResendInvitation();
     const effectiveFilter = useMemo(
         () => ({
             ...activeFilters,
@@ -97,6 +101,37 @@ const EmployeeTable = ({ onImport, onExport, onEdit, ouIdFilter }: EmployeeTable
         setIsDeleteModalOpen(true);
     };
 
+    const handleReinvite = (employee: EmployeeResponse) => {
+        const invitation = pendingInvitations.find(
+            (item) => item.email.toLowerCase() === employee.email.toLowerCase(),
+        );
+
+        if (!invitation) {
+            toast({
+                title: t('reinviteError', 'Reinvite failed'),
+                description: t('reinviteNotFound', 'No pending invitation found for this employee.'),
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        resendInvitation(invitation.id, {
+            onSuccess: () => {
+                toast({
+                    title: t('reinviteSuccess', 'Invitation resent'),
+                    description: t('reinviteSuccessDesc', 'A new invitation email has been sent.'),
+                });
+            },
+            onError: (error: Error) => {
+                toast({
+                    title: t('reinviteError', 'Reinvite failed'),
+                    description: error.message || t('reinviteErrorDesc', 'Could not resend the invitation.'),
+                    variant: 'destructive',
+                });
+            },
+        });
+    };
+
     const handleConfirmDelete = () => {
         if (!employeeToDelete) return;
         deleteEmployee(employeeToDelete.id, {
@@ -104,7 +139,6 @@ const EmployeeTable = ({ onImport, onExport, onEdit, ouIdFilter }: EmployeeTable
                 toast({
                     title: t('deleteSuccess', 'Employee deleted'),
                     description: t('deleteSuccessDesc', 'The employee has been removed.'),
-                    variant: 'success',
                 });
                 setIsDeleteModalOpen(false);
                 setEmployeeToDelete(null);
@@ -137,6 +171,12 @@ const EmployeeTable = ({ onImport, onExport, onEdit, ouIdFilter }: EmployeeTable
             key: 'email',
             label: t('email'),
             sortable: true,
+        },
+        {
+            key: 'roleName',
+            label: t('role'),
+            className: 'text-muted-foreground',
+            render: (item) => formatEmployeeRoleName(item.roleName),
         },
         {
             key: 'departmentId',
@@ -188,6 +228,16 @@ const EmployeeTable = ({ onImport, onExport, onEdit, ouIdFilter }: EmployeeTable
                     <DropdownMenuItem onClick={() => router.push(`/dashboard/employees/${item.id}`)} className="flex items-center cursor-pointer gap-2">
                         <Eye className="w-4 h-4 text-muted-foreground" />
                         <span>{t('view')}</span>
+                    </DropdownMenuItem>
+                )}
+                {item.status.toLowerCase() === 'invited' && hasPermission('users:invite') && (
+                    <DropdownMenuItem
+                        onClick={() => handleReinvite(item)}
+                        disabled={isResendingInvitation}
+                        className="flex items-center cursor-pointer gap-2"
+                    >
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span>{t('reinvite', 'Reinvite')}</span>
                     </DropdownMenuItem>
                 )}
                 {hasPermission('employees:update') && (
@@ -339,11 +389,10 @@ const EmployeeTable = ({ onImport, onExport, onEdit, ouIdFilter }: EmployeeTable
                 }}
                 totalItems={employeesData?.metaData.total || 0}
                 renderRowActions={renderRowActions}
-                minWidth="1000px"
+                minWidth="1100px"
                 isLoading={isLoading}
             />
 
-            {/* Delete Confirmation Modal */}
             <ConfirmationModal
                 open={isDeleteModalOpen}
                 onOpenChange={setIsDeleteModalOpen}

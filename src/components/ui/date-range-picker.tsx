@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -16,15 +17,21 @@ interface DateRangePickerProps {
     className?: string;
 }
 
-const MONTHS = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
-];
-const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-function formatDate(date: Date | null): string {
+function formatDate(date: Date | null, locale: string): string {
     if (!date) return '';
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function getMonthLabel(year: number, month: number, locale: string): string {
+    return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(new Date(year, month, 1));
+}
+
+function getWeekdayLabels(locale: string): string[] {
+    const formatter = new Intl.DateTimeFormat(locale, { weekday: 'short' });
+    return Array.from({ length: 7 }, (_, index) =>
+        formatter.format(new Date(2024, 0, index)),
+    );
 }
 
 function getDaysInMonth(year: number, month: number) {
@@ -54,9 +61,11 @@ interface MonthCalendarProps {
     hovered: Date | null;
     onDayClick: (date: Date) => void;
     onDayHover: (date: Date) => void;
+    locale: string;
 }
 
-function MonthCalendar({ year, month, range, hovered, onDayClick, onDayHover }: MonthCalendarProps) {
+function MonthCalendar({ year, month, range, hovered, onDayClick, onDayHover, locale }: MonthCalendarProps) {
+    const dayLabels = useMemo(() => getWeekdayLabels(locale), [locale]);
     const daysInMonth = getDaysInMonth(year, month);
     const firstDay = getFirstDayOfMonth(year, month);
     const cells: (Date | null)[] = Array(firstDay).fill(null);
@@ -68,10 +77,10 @@ function MonthCalendar({ year, month, range, hovered, onDayClick, onDayHover }: 
     return (
         <div className="select-none w-[252px] shrink-0">
             <div className="text-center text-sm font-semibold mb-4 text-foreground">
-                {MONTHS[month]} {year}
+                {getMonthLabel(year, month, locale)}
             </div>
             <div className="grid grid-cols-7 gap-0 mb-1">
-                {DAYS.map((d) => (
+                {dayLabels.map((d) => (
                     <div key={d} className="text-center text-[12px] text-muted-foreground font-medium w-9 h-9 flex items-center justify-center">
                         {d}
                     </div>
@@ -98,9 +107,8 @@ function MonthCalendar({ year, month, range, hovered, onDayClick, onDayHover }: 
                                 inRange && 'bg-[#2865E3]/10 text-foreground',
                                 (isStart || isEnd) && 'bg-[#2865E3] text-white rounded-full z-10',
                                 isHovered && !range.from && 'bg-muted rounded-full',
-                                // Correcting the rounded corners for the range highlight
-                                isStart && range.to && 'rounded-l-full',
-                                isEnd && 'rounded-r-full',
+                                isStart && range.to && 'rounded-s-full',
+                                isEnd && 'rounded-e-full',
                                 inRange && !isStart && !isEnd && 'rounded-none'
                             )}
                         >
@@ -114,6 +122,9 @@ function MonthCalendar({ year, month, range, hovered, onDayClick, onDayHover }: 
 }
 
 export function DateRangePicker({ value, onChange, className }: DateRangePickerProps) {
+    const { t, i18n } = useTranslation('dashboard');
+    const locale = i18n.language === 'ar' ? 'ar-SA' : i18n.language;
+    const isRtl = i18n.dir() === 'rtl';
     const [open, setOpen] = useState(false);
     const [range, setRange] = useState<DateRange>(value || { from: null, to: null });
     const [hovered, setHovered] = useState<Date | null>(null);
@@ -170,43 +181,40 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
     };
 
     const label = range.from && range.to
-        ? `${formatDate(range.from)} – ${formatDate(range.to)}`
+        ? `${formatDate(range.from, locale)} – ${formatDate(range.to, locale)}`
         : range.from
-        ? `${formatDate(range.from)} – ...`
-        : 'Select date range';
+        ? `${formatDate(range.from, locale)} – ...`
+        : t('attendance.selectDateRange', 'Select date range');
 
     return (
-        <div ref={ref} className={cn('relative', className)}>
+        <div ref={ref} className={cn('relative w-fit max-w-full shrink-0', className)}>
             <Button
                 variant="outline"
-                className="h-9 w-[240px] gap-2 border-border shadow-xs rounded-lg px-3 py-2 justify-start font-medium text-sm leading-5 text-foreground bg-background hover:bg-muted/50 transition-all"
+                className="h-9 w-[240px] max-w-full gap-2 border-border shadow-xs rounded-lg px-3 py-2 justify-start font-medium text-sm leading-5 text-foreground bg-background hover:bg-muted/50 transition-all"
                 onClick={() => setOpen((o) => !o)}
             >
                 <CalendarIcon className="size-4 text-foreground shrink-0" strokeWidth={1.33} />
-                <span className="truncate flex-1 text-left">{label}</span>
+                <span className="truncate flex-1 text-start">{label}</span>
             </Button>
 
             {open && (
-                <div className="absolute right-0 top-[44px] z-50 bg-background text-foreground border border-border rounded-[16px] shadow-2xl p-6 flex flex-col sm:flex-row gap-8 animate-in fade-in zoom-in-95 duration-200">
-                    {/* Navigation Buttons Container */}
-                    <div className="absolute top-6 left-6 right-6 flex justify-between pointer-events-none">
+                <div className="absolute end-0 top-[calc(100%+8px)] z-50 bg-background text-foreground border border-border rounded-[16px] shadow-2xl p-6 flex flex-col sm:flex-row gap-8 animate-in fade-in zoom-in-95 duration-200 max-w-[min(calc(100vw-2rem),560px)] overflow-x-auto">
+                    <div className="absolute top-6 inset-x-6 flex justify-between pointer-events-none">
                         <button 
-                            onClick={prevMonth} 
+                            onClick={isRtl ? nextMonth : prevMonth} 
                             className="p-2 hover:bg-muted rounded-lg transition-colors pointer-events-auto"
                             type="button"
                         >
                             <ChevronLeft className="size-4" />
                         </button>
                         <button 
-                            onClick={nextMonth} 
+                            onClick={isRtl ? prevMonth : nextMonth} 
                             className="p-2 hover:bg-muted rounded-lg transition-colors pointer-events-auto"
                             type="button"
                         >
                             <ChevronRight className="size-4" />
                         </button>
                     </div>
-
-                    {/* Left month */}
                     <MonthCalendar
                         year={leftYear}
                         month={leftMonth}
@@ -214,9 +222,9 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
                         hovered={hovered}
                         onDayClick={handleDayClick}
                         onDayHover={setHovered}
+                        locale={locale}
                     />
 
-                    {/* Right month */}
                     <MonthCalendar
                         year={rightYear}
                         month={rightMonth}
@@ -224,6 +232,7 @@ export function DateRangePicker({ value, onChange, className }: DateRangePickerP
                         hovered={hovered}
                         onDayClick={handleDayClick}
                         onDayHover={setHovered}
+                        locale={locale}
                     />
                 </div>
             )}

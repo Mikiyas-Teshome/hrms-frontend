@@ -15,7 +15,8 @@
       "compliant": "متوافق",
       "nearExpiry": "قريب الانتهاء",
       "missing": "مفقود",
-      "expired": "منتهي"
+      "expired": "منتهي",
+      "rejected": "مرفوض"
     },
     "approval": {
       "pending": "قيد الانتظار",
@@ -24,10 +25,32 @@
     },
     "actions": {
       "view": "عرض",
+      "viewDocuments": "عرض المستندات",
       "edit": "تعديل",
       "download": "تنزيل",
       "delete": "حذف",
-      "confirmDelete": "هل تريد حذف هذا المستند؟"
+      "confirmDelete": "هل تريد حذف هذا المستند؟",
+      "deleteConfirmTitle": "حذف المستند",
+      "deleteConfirmMessage": "هل أنت متأكد أنك تريد حذف هذا المستند؟ لا يمكن التراجع عن هذا الإجراء."
+    },
+    "rejectModal": {
+      "title": "رفض المستند",
+      "message": "سيتم إخطار الموظف ويمكنه إعادة رفع المستند للموافقة.",
+      "messageWithName": "رفض \"{{name}}\"؟ سيتم إخطار الموظف ويمكنه إعادة رفع المستند للموافقة.",
+      "reasonLabel": "سبب الرفض (اختياري)",
+      "reasonPlaceholder": "أدخل سببًا للموظف...",
+      "confirm": "رفض"
+    },
+    "ownerPage": {
+      "title": "مستندات {{name}}",
+      "empty": "لا توجد مستندات لهذا الموظف.",
+      "back": "العودة إلى مستندات الموظفين",
+      "unnamedEmployee": "موظف"
+    },
+    "myDocuments": {
+      "title": "مستنداتي",
+      "empty": "لم تقم برفع أي مستندات بعد.",
+      "uploadDocument": "رفع مستند"
     },
     "modal": {
       "viewTitle": "عرض المستند",
@@ -41,6 +64,17 @@
         "compliance": "الامتثال",
         "approval": "الموافقة"
       }
+    },
+    "detail": {
+      "documentInfo": "معلومات المستند",
+      "file": "الملف",
+      "openFile": "فتح الملف في علامة تبويب جديدة",
+      "loadFileError": "تعذر تحميل الملف.",
+      "fullScreen": "عرض بملء الشاشة",
+      "exitFullScreen": "الخروج من ملء الشاشة",
+      "uploadedBy": "تم الرفع بواسطة",
+      "rejectedBanner": "تم رفض هذا المستند. ارفع ملفًا جديدًا واحفظ لإعادة الإرسال للموافقة.",
+      "rejectionReason": "سبب الرفض"
     },
     "filters": {
       "searchPlaceholder": "البحث عن الموظفين",
@@ -115,13 +149,23 @@
       "delete": "حذف",
       "confirmDelete": "هل تريد حذف هذه الفئة؟"
     },
+    "deleteConfirmTitle": "حذف فئة المستند",
+    "deleteConfirmMessage": "هل أنت متأكد أنك تريد حذف الفئة \"{{name}}\"؟ لا يمكن التراجع عن هذا الإجراء.",
+    "deleteSuccess": "تم حذف الفئة",
+    "deleteSuccessDesc": "تم حذف فئة المستند بنجاح.",
+    "deleteError": "فشل الحذف",
+    "deleteErrorDesc": "تعذر حذف فئة المستند.",
+    "deleteInUseError": "لا يمكن حذف هذه الفئة لأن هناك مستندات مرتبطة بها. احذف تلك المستندات أو أعد إسنادها أولاً.",
+    "statusUpdateSuccess": "تم تحديث الحالة",
+    "statusUpdateSuccessDesc": "{{name}} أصبحت الآن {{status}}.",
+    "statusUpdateError": "فشل تحديث الحالة",
     "status": {
       "active": "نشط",
       "inactive": "غير نشط"
     },
     "appliedTo": {
       "allEmployees": "كل الموظفين",
-      "departmentSpecific": "قسم محدد",
+      "departmentSpecific": "وحدات تنظيمية محددة",
       "foreignEmployees": "الموظفون الأجانب"
     },
     "filters": {
@@ -144,7 +188,8 @@
       "basicInfo": "معلومات أساسية",
       "requirementRules": "قواعد المتطلبات",
       "complianceBehavior": "سلوك الامتثال",
-      "validationRules": "قواعد التحقق"
+      "validationRules": "قواعد التحقق",
+      "organizationUnits": "الوحدات التنظيمية"
     },
     "fields": {
       "categoryName": "اسم الفئة",
@@ -158,12 +203,15 @@
       "affectsComplianceStatus": "يؤثر على حالة الامتثال",
       "criticalDocument": "مستند حرج",
       "allowedFileTypes": "أنواع الملفات المسموح بها",
-      "maxFileSize": "أقصى حجم ملف"
+      "maxFileSize": "أقصى حجم ملف",
+      "selectCompany": "اختر الشركة",
+      "selectOUs": "اختر الوحدات التنظيمية"
     },
     "placeholders": {
       "categoryName": "أدخل اسم الفئة",
       "description": "أضف وصفًا",
-      "maxFileSize": "0"
+      "maxFileSize": "0",
+      "selectCompany": "اختر الشركة"
     },
     "typeOptions": {
       "identification": "هوية",
@@ -172,7 +220,7 @@
     },
     "appliedToOptions": {
       "allEmployees": "كل الموظفين",
-      "specificDepartment": "قسم محدد",
+      "specificDepartment": "وحدات تنظيمية محددة",
       "foreignEmployees": "الموظفون الأجانب"
     },
     "expiryReminderOptions": {
@@ -197,8 +245,8 @@
       "mb": "ميغابايت"
     }
   },
-  "uploadDocumentModal": {
-    "title": "رفع مستند جديد",
+  "uploadEmployeeDocumentSheet": {
+    "title": "رفع مستند الموظف",
     "sections": {
       "documentInfo": "معلومات المستند"
     },
@@ -211,10 +259,12 @@
     "placeholders": {
       "selectEmployee": "اختر موظفًا",
       "searchEmployee": "ابحث عن موظف",
-      "selectCategory": "اختر فئة"
+      "selectCategory": "اختر فئة",
+      "selectEmployeeFirst": "اختر موظفًا أولاً"
     },
     "empty": {
-      "noEmployeeFound": "لم يتم العثور على موظف."
+      "noEmployeeFound": "لم يتم العثور على موظف.",
+      "noCategoryAvailable": "جميع الفئات لديها مستند بالفعل لهذا الموظف."
     },
     "file": {
       "noFileChosen": "لم يتم اختيار ملف",
@@ -223,6 +273,46 @@
     "actions": {
       "uploading": "جاري الرفع...",
       "uploadDocument": "رفع المستند"
+    },
+    "errors": {
+      "uploadFailed": "فشل رفع المستند. يرجى المحاولة مرة أخرى."
     }
+  },
+  "deleteModal": {
+    "employeeTitle": "حذف المستند",
+    "employeeMessage": "هل أنت متأكد من حذف هذا المستند؟ لا يمكن التراجع عن هذا الإجراء.",
+    "categoryTitle": "حذف الفئة",
+    "categoryMessage": "هل أنت متأكد من حذف فئة المستند هذه؟ لا يمكن التراجع عن هذا الإجراء.",
+    "confirm": "حذف"
+  },
+  "toasts": {
+    "errorTitle": "خطأ",
+    "successTitle": "نجاح",
+    "deleteSuccess": "تم الحذف بنجاح.",
+    "updateSuccess": "تم تحديث المستند بنجاح.",
+    "uploadSuccess": "تم رفع المستند بنجاح.",
+    "downloadError": "تعذر تنزيل المستند.",
+    "approvalApprovedSuccess": "تم اعتماد المستند بنجاح.",
+    "approvalRejectedSuccess": "تم رفض المستند بنجاح.",
+    "approvalError": "تعذر تحديث حالة اعتماد المستند.",
+    "replaceFileSuccess": "تم استبدال ملف المستند بنجاح.",
+    "replaceFileError": "تعذر استبدال ملف المستند.",
+    "statusChangeSuccess": "تم تحديث حالة الفئة بنجاح.",
+    "statusChangeError": "تعذر تحديث حالة الفئة.",
+    "categoryCreateSuccess": "تم إنشاء الفئة بنجاح.",
+    "categoryUpdateSuccess": "تم تحديث الفئة بنجاح."
+  },
+  "errors": {
+    "documentNotFound": "المستند غير موجود.",
+    "documentAccessDenied": "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
+    "categoryNotFound": "فئة المستند غير موجودة.",
+    "noFileUploaded": "يرجى اختيار ملف للرفع.",
+    "fileTypeNotAllowed": "نوع الملف غير مسموح به لهذه الفئة.",
+    "fileSizeExceeded": "حجم الملف يتجاوز الحد الأقصى المسموح به.",
+    "expiryRequired": "تاريخ الانتهاء مطلوب لهذه الفئة.",
+    "storageUnavailable": "تخزين المستندات غير متاح مؤقتًا. يرجى المحاولة لاحقًا.",
+    "unauthorized": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.",
+    "serviceUnavailable": "تعذر الاتصال بخدمة المستندات. يرجى المحاولة لاحقًا.",
+    "unexpected": "حدث خطأ ما. يرجى المحاولة مرة أخرى."
   }
 }

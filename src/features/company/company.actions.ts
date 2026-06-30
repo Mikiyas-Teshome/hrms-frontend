@@ -13,10 +13,12 @@ import {
     GET_COMPANIES_QUERY,
     GET_COMPANY_QUERY,
     GET_COMPANY_BY_SLUG_QUERY,
-    GET_COMPANY_SUBSCRIPTION_STATUS_QUERY
+    GET_COMPANY_SUBSCRIPTION_STATUS_QUERY,
+    COMPANY_FIREBASE_WEB_CONFIG_QUERY,
 } from './company.queries';
 import {
     BrandingInput,
+    CompanyFirebaseWebConfig,
     CompanyResponse,
     CreateCompanyInput,
     FirebaseConfigInput,
@@ -131,4 +133,17 @@ export async function getCompanySubscriptionStatus(id: string): Promise<Subscrip
         { id }
     );
     return data.companySubscriptionStatus;
+}
+
+export async function fetchCompanyFirebaseWebConfig(): Promise<CompanyFirebaseWebConfig | null> {
+    try {
+        const data = await gqlRequest<{ companyFirebaseWebConfig: CompanyFirebaseWebConfig }>(
+            GraphQLService.AUTH,
+            COMPANY_FIREBASE_WEB_CONFIG_QUERY,
+            {},
+        );
+        return data.companyFirebaseWebConfig;
+    } catch {
+        return null;
+    }
 }

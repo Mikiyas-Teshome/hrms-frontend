@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { X, Loader2, Info } from 'lucide-react';
-import PermissionGroup from './PermissionGroup';
+import PermissionGroup, { PERMISSION_SCOPE_DISPLAY_ORDER } from './PermissionGroup';
 import { RoleFormFields } from './RoleFormFields';
 import { Separator } from '@/components/ui/separator';
 import { useTranslation } from 'react-i18next';
@@ -35,9 +35,9 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { roleSchema, type RoleFormValues } from '../schemas/role.schema';
+import { roleSchema, type RoleFormValues } from '@/features/roles/schemas/role.schema';
 import { usePermissions } from '@/features/auth/hooks/usePermissions';
-import { filterGrantablePermissions } from '@/features/roles/grantable-permissions.util';
+import { filterGrantablePermissions, getAllowedGrantScopesForAction } from '@/features/roles/grantable-permissions.util';
 
 interface CreateRoleSheetProps {
     open: boolean;
@@ -67,7 +67,7 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
             description: '',
             permissions: [],
             scope: PermissionScope.COMPANY,
-            moduleScopes: {},
+            permissionScopes: {},
         },
     });
 
@@ -200,12 +200,12 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                     role.permissions?.map((p) => p.id) ||
                     [];
 
-                const moduleScopes: Record<string, PermissionScope> = {};
+                const permissionScopes: Record<string, PermissionScope> = {};
                 role.permissionGrants?.forEach((pg) => {
-                    const moduleId = pg.permission?.module || pg.permission?.action?.split(':')[0];
+                    const permissionId = pg.permissionId || pg.permission?.id;
                     const normalizedScope = normalizePermissionScope(pg.scope);
-                    if (moduleId && normalizedScope) {
-                        moduleScopes[moduleId.toLowerCase().replace(/\s/g, '')] = normalizedScope;
+                    if (permissionId && normalizedScope) {
+                        permissionScopes[permissionId] = normalizedScope;
                     }
                 });
 
@@ -216,7 +216,7 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                     scope:
                         normalizePermissionScope((role as { scope?: string }).scope) ||
                         callerMaxGrantScope,
-                    moduleScopes: moduleScopes,
+                    permissionScopes,
                 });
             } else {
                 form.reset({
@@ -224,7 +224,7 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                     description: '',
                     permissions: [],
                     scope: callerMaxGrantScope,
-                    moduleScopes: {},
+                    permissionScopes: {},
                 });
             }
         }
@@ -273,6 +273,34 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
         selectedPermissions.length === totalPermissions && totalPermissions > 0;
     const somePermissionsChecked = selectedPermissions.length > 0 && !allPermissionsChecked;
 
+    const resolveDefaultScopeForPermission = (permissionId: string): PermissionScope => {
+        const callerScope = resolveCallerScopeForPermission(permissionId);
+        return capPermissionScope(
+            form.getValues('scope') || callerMaxGrantScope,
+            callerScope ?? callerMaxGrantScope,
+        );
+    };
+
+    const ensurePermissionScopes = (permissionIds: string[]) => {
+        const currentScopes = form.getValues('permissionScopes') || {};
+        const nextScopes = { ...currentScopes };
+        let changed = false;
+
+        permissionIds.forEach((permissionId) => {
+            if (!nextScopes[permissionId]) {
+                nextScopes[permissionId] = resolveDefaultScopeForPermission(permissionId);
+                changed = true;
+            }
+        });
+
+        if (changed) {
+            form.setValue('permissionScopes', nextScopes, {
+                shouldDirty: true,
+                shouldValidate: true,
+            });
+        }
+    };
+
     const handleToggleModule = (moduleId: string, checked: boolean) => {
         const permModule = permissionModules.find((m) => m.id === moduleId);
         if (!permModule) return;
@@ -289,6 +317,7 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                     shouldDirty: true,
                 },
             );
+            ensurePermissionScopes(modulePermIds);
         } else {
             form.setValue(
                 'permissions',
@@ -305,6 +334,7 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                 shouldValidate: true,
                 shouldDirty: true,
             });
+            ensurePermissionScopes([id]);
         } else {
             form.setValue(
                 'permissions',
@@ -318,6 +348,7 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
         if (checked) {
             const allIds = permissionModules.flatMap((m) => m.permissions.map((p) => p.id));
             form.setValue('permissions', allIds, { shouldValidate: true, shouldDirty: true });
+            ensurePermissionScopes(allIds);
         } else {
             form.setValue('permissions', [], { shouldValidate: true, shouldDirty: true });
         }
@@ -332,18 +363,21 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
             const visiblePermissionGrants = data.permissions
                 .filter((permissionId) => grantablePermissionIds.has(permissionId))
                 .map((permissionId) => {
-                    const mod = permissionModules.find((m) =>
-                        m.permissions.some((p) => p.id === permissionId),
-                    );
-                    const requestedScope = mod
-                        ? data.moduleScopes?.[mod.id] || data.scope || callerMaxGrantScope
-                        : data.scope || callerMaxGrantScope;
-                    const callerScope = resolveCallerScopeForPermission(permissionId);
-                    const moduleMaxScope = mod ? resolveModuleMaxScope(mod.id) : callerMaxGrantScope;
-                    const scope = capPermissionScope(
-                        capPermissionScope(requestedScope, moduleMaxScope),
-                        callerScope,
-                    );
+                    const permission = permissionModules
+                        .flatMap((module) => module.permissions)
+                        .find((entry) => entry.id === permissionId);
+                    const requestedScope =
+                        data.permissionScopes?.[permissionId] ||
+                        data.scope ||
+                        callerMaxGrantScope;
+                    const callerScope = permission?.action
+                        ? getAllowedGrantScopesForAction(
+                              permissionsMap,
+                              permission.action,
+                              isSystemAdmin,
+                          ).at(-1) ?? callerMaxGrantScope
+                        : resolveCallerScopeForPermission(permissionId) ?? callerMaxGrantScope;
+                    const scope = capPermissionScope(requestedScope, callerScope);
                     return { permissionId, scope };
                 });
 
@@ -419,10 +453,8 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                             onSubmit={form.handleSubmit(onSubmit)}
                             className="space-y-8"
                         >
-                            {/* Role Info & Scope Fields */}
                             <RoleFormFields form={form} />
 
-                            {/* Manage Permissions Section */}
                             <section className="space-y-8">
                                 <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 flex gap-3">
                                     <div className="bg-blue-500/20 rounded-full h-fit p-1">
@@ -442,7 +474,6 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                                     </p>
                                 </div>
 
-                                {/* Select All Permissions Row */}
                                 <div className="flex items-center justify-between px-6 py-4 bg-muted/30 border border-border/80 rounded-[12px] shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_-1px_rgba(0,0,0,0.04)]">
                                     <div className="flex items-center gap-3">
                                         <Checkbox
@@ -471,7 +502,6 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                                     </span>
                                 </div>
 
-                                {/* Permission Modules List */}
                                 <div className="space-y-6">
                                     {permissionModules.map((permModule) => (
                                         <PermissionGroup
@@ -483,25 +513,43 @@ const CreateRoleSheet: React.FC<CreateRoleSheetProps> = ({
                                                 handleToggleModule(permModule.id, checked)
                                             }
                                             onTogglePermission={handleTogglePermission}
-                                            scope={capPermissionScope(
-                                                form.watch('moduleScopes')?.[permModule.id] ||
-                                                    form.watch('scope') ||
-                                                    callerMaxGrantScope,
+                                            permissionScopes={form.watch('permissionScopes') || {}}
+                                            defaultScope={capPermissionScope(
+                                                form.watch('scope') || callerMaxGrantScope,
                                                 resolveModuleMaxScope(permModule.id),
                                             )}
-                                            maxScope={resolveModuleMaxScope(permModule.id)}
-                                            onScopeChange={(scope) => {
-                                                const currentScopes =
-                                                    form.getValues('moduleScopes') || {};
-                                                const cappedScope = capPermissionScope(
-                                                    scope,
-                                                    resolveModuleMaxScope(permModule.id),
+                                            resolveAllowedScopes={(permissionId) => {
+                                                const permission = permModule.permissions.find(
+                                                    (entry) => entry.id === permissionId,
                                                 );
+                                                if (!permission?.action) {
+                                                    return [...PERMISSION_SCOPE_DISPLAY_ORDER];
+                                                }
+                                                return getAllowedGrantScopesForAction(
+                                                    permissionsMap,
+                                                    permission.action,
+                                                    isSystemAdmin,
+                                                );
+                                            }}
+                                            onPermissionScopeChange={(permissionId, scope) => {
+                                                const permission = permModule.permissions.find(
+                                                    (entry) => entry.id === permissionId,
+                                                );
+                                                const callerScope = permission?.action
+                                                    ? getAllowedGrantScopesForAction(
+                                                          permissionsMap,
+                                                          permission.action,
+                                                          isSystemAdmin,
+                                                      ).at(-1) ?? callerMaxGrantScope
+                                                    : callerMaxGrantScope;
+                                                const cappedScope = capPermissionScope(scope, callerScope);
+                                                const currentScopes =
+                                                    form.getValues('permissionScopes') || {};
                                                 form.setValue(
-                                                    'moduleScopes',
+                                                    'permissionScopes',
                                                     {
                                                         ...currentScopes,
-                                                        [permModule.id]: cappedScope,
+                                                        [permissionId]: cappedScope,
                                                     },
                                                     { shouldDirty: true, shouldValidate: true },
                                                 );

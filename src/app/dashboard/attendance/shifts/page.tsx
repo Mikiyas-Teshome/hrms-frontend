@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { shiftsStats } from '@/data/attendance';
+import { buildShiftStatCards } from '@/features/attendance/attendance-stat-cards.util';
 import StatCardsList from '@/components/dashboard/attendance/StatCardsList';
 import ShiftsTable from '@/components/dashboard/attendance/ShiftsTable';
 import { Plus } from 'lucide-react';
@@ -50,67 +50,49 @@ export default function ShiftsPage() {
         }
     }, [companiesData, profile, selectedCompanyId, form]);
 
-    const dynamicStats = shiftsStats.map(stat => {
-        let value = "0";
-        if (shiftStats) {
-            switch (stat.id) {
-                case 'shifts':
-                    value = shiftStats.totalShifts.toString();
-                    break;
-                case 'morning':
-                    value = shiftStats.morningEmployees.toString();
-                    break;
-                case 'evening':
-                    value = shiftStats.eveningEmployees.toString();
-                    break;
-                case 'night':
-                    value = shiftStats.nightEmployees.toString();
-                    break;
-            }
-        } else if (stat.id === 'shifts') {
-            value = shiftTemplates?.length?.toString() || '0';
-        }
-        return { ...stat, value };
-    });
+    const stats = useMemo(
+        () => buildShiftStatCards(shiftStats, shiftTemplates?.length, t),
+        [shiftStats, shiftTemplates?.length, t],
+    );
 
     return (
-                        <ProtectedRoute module="shifts">
-            <div className="flex flex-col gap-8">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-2xl text-foreground font-bold leading-8">
+        <ProtectedRoute module="shifts">
+            <div className="flex flex-col gap-8 w-full min-w-0">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between min-w-0">
+                    <h2 className="text-2xl text-foreground font-bold leading-8 shrink-0">
                         {t('attendance.shiftsTitle')}
                     </h2>
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full sm:w-auto min-w-0 sm:justify-end">
                         {!isOwnScopeOnly && (isSystemAdmin || isTenantSuperAdmin || hasScope('shifts', 'read', PermissionScope.ALL)) && (
                             <FormSelect
                                 id="company-selector"
-                                placeholder={isLoadingCompanies ? t("setup.loadingCompanies") : t("setup.selectCompanyPlaceholder")}
+                                placeholder={isLoadingCompanies ? t('setup.loadingCompanies') : t('setup.selectCompanyPlaceholder')}
                                 control={form.control}
                                 name="companyId"
                                 options={companiesData?.map((company) => ({ label: company.name, value: company.id })) || []}
                                 t={t}
-                                containerClassName="w-[200px]"
+                                containerClassName="w-full min-w-0 sm:w-[200px]"
                             />
                         )}
                         {!isOwnScopeOnly && hasPermission('shifts:create') && (
-                            <Button 
+                            <Button
                                 onClick={() => setIsSheetOpen(true)}
-                                className="h-9 gap-2 bg-primary hover:bg-primary/80 text-white rounded-[8px] px-4"
+                                className="h-9 gap-2 bg-primary hover:bg-primary/80 text-white rounded-[8px] px-4 w-full sm:w-auto shrink-0"
                             >
-                                <Plus className="size-4" />
-                                <span>{t('attendance.addShift')}</span>
+                                <Plus className="size-4 shrink-0" />
+                                <span className="truncate">{t('attendance.addShift')}</span>
                             </Button>
                         )}
                     </div>
                 </div>
 
-                {!isOwnScopeOnly && <StatCardsList stats={dynamicStats} isLoading={isLoadingStats} />}
+                {!isOwnScopeOnly && <StatCardsList stats={stats} isLoading={isLoadingStats} />}
 
                 <ShiftsTable companyId={selectedCompanyId} />
 
-                <ShiftSheet 
-                    open={isSheetOpen} 
-                    onOpenChange={setIsSheetOpen} 
+                <ShiftSheet
+                    open={isSheetOpen}
+                    onOpenChange={setIsSheetOpen}
                     defaultCompanyId={selectedCompanyId}
                 />
             </div>

@@ -9,7 +9,7 @@ export {
 export interface BenefitEntitlement {
   id: string;
   employeeId?: string;
-  companyOuId?: string;
+  ouId?: string;
   name: string;
   type: string;
   valueDefinition: string;
@@ -25,7 +25,7 @@ export interface BenefitEntitlement {
 
 export interface CreateBenefitEntitlementInput {
   employeeId?: string;
-  companyOuId?: string;
+  ouId?: string;
   name: string;
   type?: string;
   valueDefinition?: string;
@@ -39,7 +39,7 @@ export interface CreateBenefitEntitlementInput {
 
 export interface UpdateBenefitEntitlementInput {
   employeeId?: string;
-  companyOuId?: string;
+  ouId?: string;
   name?: string;
   type?: string;
   valueDefinition?: string;
@@ -57,7 +57,7 @@ export interface UpdateBenefitEntitlementStatusInput {
 
 export interface BenefitEntitlementFilterInput {
   employeeId?: string;
-  companyOuId?: string;
+  ouId?: string;
   status?: string;
   type?: string;
   assignment?: string;

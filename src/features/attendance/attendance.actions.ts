@@ -87,7 +87,6 @@ export async function createShiftPolicyAssignment(input: CreateShiftPolicyAssign
             CREATE_SHIFT_POLICY_ASSIGNMENT_MUTATION,
             { input }
         );
-        // We do not have a dedicated revalidatePath, but it could re-fetch org units if needed
         return data.createShiftPolicyAssignment;
     });
 }

@@ -4,6 +4,8 @@ import { gqlRequest, GraphQLService } from '@/lib/graphql-client';
 import { ActionResult, safeAction } from '@/lib/safe-action';
 import {
   GET_CONTRACTS_QUERY,
+  GET_CONTRACT_FOR_OU_QUERY,
+  GET_CONTRACTS_FOR_OU_QUERY,
   GET_CONTRACT_QUERY,
   CREATE_CONTRACT_MUTATION,
   UPDATE_CONTRACT_MUTATION,
@@ -18,7 +20,7 @@ import {
 } from './contracts.types';
 import { revalidatePath } from 'next/cache';
 
-export async function fetchContracts(filter: ContractFilterInput = {}): Promise<PaginatedContractResponse> {
+export async function fetchContracts(filter: ContractFilterInput): Promise<PaginatedContractResponse> {
   try {
     const data = await gqlRequest<{ contracts: PaginatedContractResponse }>(
       GraphQLService.CORE_HR,
@@ -37,6 +39,36 @@ export async function fetchContracts(filter: ContractFilterInput = {}): Promise<
         totalPages: 0,
       },
     };
+  }
+}
+
+export async function fetchContractForOrganizationUnit(
+  ouId: string,
+): Promise<Contract | null> {
+  try {
+    const data = await gqlRequest<{ contractForOrganizationUnit: Contract | null }>(
+      GraphQLService.CORE_HR,
+      GET_CONTRACT_FOR_OU_QUERY,
+      { ouId },
+    );
+    return data.contractForOrganizationUnit;
+  } catch (error) {
+    console.error('Failed to resolve contract for organization unit:', error);
+    return null;
+  }
+}
+
+export async function fetchContractsForOrganizationUnit(ouId: string): Promise<Contract[]> {
+  try {
+    const data = await gqlRequest<{ contractsForOrganizationUnit: Contract[] }>(
+      GraphQLService.CORE_HR,
+      GET_CONTRACTS_FOR_OU_QUERY,
+      { ouId },
+    );
+    return data.contractsForOrganizationUnit ?? [];
+  } catch (error) {
+    console.error('Failed to resolve contracts for organization unit:', error);
+    return [];
   }
 }
 

@@ -34,7 +34,6 @@ export default function EmployeeLifecycle() {
     const [columnPages, setColumnPages] = useState<Record<string, number>>(
         Object.fromEntries(KANBAN_COLUMNS_CONFIG.map(col => [col.id, 1]))
     );
-    // const { data: profile } = useProfile();
     const { data: employeesData, isLoading } = useEmployees();
 
     const employees = employeesData || [];
@@ -68,14 +67,12 @@ export default function EmployeeLifecycle() {
 
     return (
         <div className="flex flex-col gap-8 w-full animate-in fade-in duration-500">
-            {/* Header Section */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h1 className="text-2xl text-foreground font-bold leading-8 tracking-tight">
                     {t('employeeLifecycle')}
                 </h1>
             </div>
 
-            {/* Stats Section */}
             {isLoading ? (
                 <SummaryStatListSkeleton count={4} />
             ) : (
@@ -91,9 +88,7 @@ export default function EmployeeLifecycle() {
                 />
             )}
 
-            {/* Data Table / Board Interface block */}
             <div className="flex flex-col items-start gap-6 w-full min-w-[487px]">
-                {/* Filters Wrapper */}
                 <div className="flex flex-row justify-between items-center pb-4 w-full h-[52px]">
                     <div className="flex flex-row items-center gap-3 w-[300px]">
                         <div className="flex flex-row items-center px-3 py-1 gap-2 w-full h-9 bg-background border border-border shadow-sm rounded-lg">
@@ -109,7 +104,6 @@ export default function EmployeeLifecycle() {
                     </div>
                 </div>
 
-                {/* Columns Container */}
                 {isLoading ? (
                     <EmployeeLifecycleSkeleton />
                 ) : (
@@ -130,7 +124,6 @@ export default function EmployeeLifecycle() {
                                     key={col.id}
                                     className="flex flex-col flex-1 min-w-[240px] max-w-[300px] bg-card border border-border/80 shadow-sm rounded-xl overflow-hidden h-fit"
                                 >
-                                    {/* Column Header */}
                                     <div
                                         className="flex flex-row items-center px-6 h-[50px] bg-muted/50 shrink-0"
                                         style={{ borderTop: `4px solid ${col.color}` }}
@@ -143,7 +136,6 @@ export default function EmployeeLifecycle() {
                                         </span>
                                     </div>
 
-                                    {/* Pagination Row */}
                                     <div className="flex flex-row items-center justify-between px-4 py-2 border-b border-border/50 bg-background/50">
                                         <span className="text-xs text-muted-foreground font-sans tabular-nums">
                                             {rangeLabel}
@@ -171,7 +163,6 @@ export default function EmployeeLifecycle() {
                                         </div>
                                     </div>
 
-                                    {/* Column Items */}
                                     <div className="flex flex-col w-full max-h-[600px] overflow-y-auto no-scrollbar">
                                         {pageItems.map((item) => (
                                             <div

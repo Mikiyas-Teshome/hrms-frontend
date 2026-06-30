@@ -6,6 +6,8 @@
   "activeContracts": "العقود النشطة",
   "signedByEmployees": "موقع من قبل الموظفين",
   "renewableContracts": "عقود قابلة للتجديد",
+  "filterCompany": "تصفية حسب الشركة",
+  "company": "الشركة",
   "contractType": "نوع العقد",
   "duration": "المدة",
   "probation": "فترة التجربة",

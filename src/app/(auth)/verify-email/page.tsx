@@ -5,11 +5,11 @@ import { PublicHeader } from "@/components/common/public-header";
 
 export default function VerifyEmailPage() {
   return (
-    <main className="min-h-screen">
-      <PublicHeader />
-      <div className="mt-20">
-        <VerificationForm />
-      </div>
-    </main>
+      <main className="min-h-screen">
+          <PublicHeader />
+          <div className="flex min-h-[calc(100vh-48px)] items-center justify-center px-4">
+              <VerificationForm />
+          </div>
+      </main>
   );
 }

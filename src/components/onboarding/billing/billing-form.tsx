@@ -70,7 +70,6 @@ export function BillingForm() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
-                    {/* Left Column: Form */}
                     <div className="lg:col-span-8">
                         <RadioGroup
                             value={paymentMethod}
@@ -231,7 +230,6 @@ export function BillingForm() {
                         </div>
                     </div>
 
-                    {/* Right Column: Summary */}
                     <div className="lg:col-span-4 rtl:lg:order-first">
                         <Card className="sticky top-8 border-none bg-muted/30 shadow-none ring-1 ring-border">
                             <CardContent className="p-6">

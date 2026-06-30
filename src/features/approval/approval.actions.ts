@@ -14,7 +14,7 @@ import { revalidatePath } from 'next/cache';
 export async function fetchApprovalsByRequest(requestId: string): Promise<ApprovalResponse[]> {
   try {
     const data = await gqlRequest<{ approvalsByRequest: ApprovalResponse[] }>(
-      GraphQLService.CORE_HR,
+      GraphQLService.LEAVE,
       GET_APPROVALS_BY_REQUEST_QUERY,
       { requestId }
     );
@@ -27,7 +27,7 @@ export async function fetchApprovalsByRequest(requestId: string): Promise<Approv
 
 export async function actOnApproval(input: ApprovalActInput): Promise<ApprovalResponse> {
   const data = await gqlRequest<{ actOnApproval: ApprovalResponse }>(
-    GraphQLService.CORE_HR,
+    GraphQLService.LEAVE,
     ACT_ON_APPROVAL_MUTATION,
     { input }
   );

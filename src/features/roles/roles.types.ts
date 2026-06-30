@@ -1,4 +1,3 @@
-/** Mirrors the GraphQL JSON scalar returned by the backend for role permissions. */
 export type PermissionsMap = Record<string, Record<string, string>>;
  
 export enum PermissionScope {
@@ -56,7 +55,7 @@ export interface UpdateRoleInput {
 }
 
 export interface UpdateUserRoleInput {
-    role: string;
+    roleId: string;
 }
 
 export interface CreatePermissionInput {

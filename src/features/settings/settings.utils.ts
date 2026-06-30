@@ -85,7 +85,7 @@ export function emailsEqual(a?: string | null, b?: string | null): boolean {
 
 export function buildGeneralFormValues(
     company: CompanyResponse,
-    options: { currencyFallback: string; language: string; timezoneFallback: string },
+    options: { currencyFallback: string; timezoneFallback: string },
 ) {
     const { phoneCode, phone } = splitPhoneNumber(company.phone);
 
@@ -101,7 +101,6 @@ export function buildGeneralFormValues(
         postalCode: company.postalCode ?? '',
         country: company.country ?? '',
         currency: company.currency || options.currencyFallback,
-        language: options.language,
         timezone: company.timezone || options.timezoneFallback,
     };
 }

@@ -9,7 +9,8 @@
     "successMessage": "تم حفظ هيكل الرواتب بنجاح!",
     "error": "خطأ",
     "errorMessage": "فشل في حفظ هيكل الرواتب.",
-    "selectCompanyFirst": "يرجى اختيار شركة أولاً."
+    "selectCompanyFirst": "يرجى اختيار شركة أولاً.",
+    "salaryStructureRequired": "أنشئ هيكل راتب واحدًا على الأقل قبل حفظ إعدادات الرواتب."
   },
   "header": {
     "title": "إعداد هيكل الرواتب",
@@ -18,7 +19,8 @@
   "sections": {
     "payrollCycle": "دورة الرواتب والمعالجة",
     "payrollComponents": "مكونات الرواتب",
-    "configureStructure": "تكوين هيكل الرواتب حسب الشركة"
+    "configureStructure": "تكوين هيكل الرواتب حسب الشركة",
+    "defaultSalaryStructure": "هيكل الراتب الافتراضي (الموظفون الجدد)"
   },
   "cycles": {
     "monthly": "شهري",
@@ -29,13 +31,17 @@
     "weeklyDesc": "تتم المعالجة كل أسبوع."
   },
   "fields": {
+    "defaultStructureName": "اسم الهيكل",
+    "defaultStructureHint": "يُبنى من المكونات وقواعد العمل الإضافي أدناه. يُستخدم عند دعوة موظفين مع راتب أساسي.",
     "processingDay": "يوم المعالجة",
     "processingDayHint": "يتم معالجة المدفوعات عادةً في هذا اليوم من كل شهر.",
+    "processingDayMonthlyHint": "إذا لم يكن اليوم المختار موجوداً في الشهر (مثلاً اليوم ٣٠ في فبراير)، تتم معالجة الرواتب في آخر يوم من ذلك الشهر.",
     "processingDayWarning": "تغيير تاريخ المعالجة قد يؤثر على دورات الرواتب النشطة الحالية. يرجى التأكد من اكتمال جميع التعديلات اليدوية.",
     "processingDayOptions": {
       "25th": "٢٥ من الشهر",
       "last": "آخر يوم في الشهر",
-      "1st": "١ من الشهر"
+      "1st": "١ من الشهر",
+      "nth": "{{day}} من الشهر"
     }
   },
   "components": {
@@ -107,7 +113,7 @@
   },
   "actions": {
     "back": "رجوع",
-    "continue": "متابعة لإعداد الفريق",
+    "continue": "إعداد العقد",
     "finishSetup": "إنهاء الإعداد",
     "cancel": "إلغاء",
     "save": "حفظ التغييرات",

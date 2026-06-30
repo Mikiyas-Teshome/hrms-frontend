@@ -3,7 +3,8 @@
   "subtitle": "تهيئة أنواع العقود، النماذج، وسياسات التغطية التأمينية لمؤسستك.",
   "insurancesTab": "تغطية التأمينات",
   "contractsTab": "نماذج العقود",
-  "filterCompany": "تصفية حسب الشركة",
+  "selectCompany": "اختر الشركة",
+  "selectCompanyPlaceholder": "اختر الشركة",
   "addInsuranceTitle": "إضافة خطة تأمين",
   "insuranceName": "اسم التأمين",
   "providerName": "مزود التأمين",
@@ -45,6 +46,11 @@
   "noContractsDesc": "أنشئ نموذج عقد باستخدام النموذج الموجود على اليسار لإدراجه هنا.",
   "actions": {
     "back": "رجوع",
-    "continue": "متابعة لإعداد الفريق"
+    "continue": "متابعة لإعداد الفريق",
+    "continueToContract": "متابعة إلى العقد",
+    "saveInsurance": "حفظ التأمين",
+    "error": "خطأ",
+    "selectCompanyFirst": "يرجى اختيار شركة أولاً.",
+    "contractTemplateRequired": "أنشئ نموذج عقد واحدًا على الأقل قبل المتابعة إلى إعداد الفريق."
   }
 }

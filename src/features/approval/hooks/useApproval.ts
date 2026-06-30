@@ -21,8 +21,10 @@ export const useActOnApproval = () => {
     mutationFn: (input: ApprovalActInput) => actOnApproval(input),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['approvals', 'request', variables.requestId] });
-      // Depending on the domain logic, we might also want to invalidate leave-requests
-      queryClient.invalidateQueries({ queryKey: ['leave-requests'] }); 
+      queryClient.invalidateQueries({ queryKey: ['leave-request-review', variables.requestId] });
+      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['leave-request-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['leave-requests-paginated'] });
     },
   });
 };

@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import {
     Sheet,
     SheetContent,
@@ -16,19 +18,22 @@ import { Separator } from '@/components/ui/separator';
 import { useTranslation } from 'react-i18next';
 import { EmployeeFormFields } from './EmployeeFormFields';
 import { useInviteEmployee } from '@/features/employee/hooks/useEmployee';
+import { parseInviteSalary } from '@/features/employee/parse-invite-salary';
 import { useToast } from '@/hooks/use-toast';
 
 interface AddEmployeeFormValues {
     firstName: string;
     lastName: string;
     email: string;
+    companyOuId?: string;
     ouId?: string;
-    role?: string;
-    gccid?: string;
+    roleId?: string;
+    gccId?: string;
     employmentType?: string;
     contractId?: string;
     jobTitle?: string;
     salary?: string;
+    salaryStructureId?: string;
 }
 
 interface AddEmployeeSheetProps {
@@ -37,29 +42,60 @@ interface AddEmployeeSheetProps {
     onSuccess?: () => void;
 }
 
-const AddEmployeeSheet: React.FC<AddEmployeeSheetProps> = ({ 
-    open, 
-    onOpenChange, 
-    onSuccess
+const AddEmployeeSheet: React.FC<AddEmployeeSheetProps> = ({
+    open,
+    onOpenChange,
+    onSuccess,
 }) => {
     const { t, i18n } = useTranslation('employees');
     const { toast } = useToast();
     const isRtl = i18n.language === 'ar';
+    const [inviteReady, setInviteReady] = useState(false);
 
     const inviteMutation = useInviteEmployee();
-    
+
+    const inviteEmployeeSchema = useMemo(
+        () =>
+            z.object({
+                firstName: z.string().min(1, t('firstName')),
+                lastName: z.string().min(1, t('lastName')),
+                email: z.string().email(t('emailInvalid', 'Invalid email address')),
+                companyOuId: z.string().optional(),
+                ouId: z.string().optional(),
+                roleId: z.string().min(1, t('role')),
+                gccId: z.string().optional(),
+                employmentType: z.string().optional(),
+                contractId: z.string().min(1, t('contractRequired', 'Contract type is required')),
+                jobTitle: z.string().optional(),
+                salary: z
+                    .string()
+                    .min(1, t('salaryRequired', 'Salary is required'))
+                    .refine(
+                        (value) => parseInviteSalary(value) != null,
+                        t('salaryRequired', 'Salary is required'),
+                    ),
+                salaryStructureId: z
+                    .string()
+                    .min(1, t('salaryStructureRequired', 'Salary structure is required')),
+            }),
+        [t],
+    );
+
     const form = useForm<AddEmployeeFormValues>({
+        resolver: zodResolver(inviteEmployeeSchema) as never,
         defaultValues: {
             firstName: '',
             lastName: '',
             email: '',
+            companyOuId: '',
             ouId: '',
-            role: '',
-            gccid: '',
+            roleId: '',
+            gccId: '',
             employmentType: '',
             contractId: '',
             jobTitle: '',
             salary: '',
+            salaryStructureId: '',
         },
     });
 
@@ -69,44 +105,37 @@ const AddEmployeeSheet: React.FC<AddEmployeeSheetProps> = ({
                 firstName: '',
                 lastName: '',
                 email: '',
+                companyOuId: '',
                 ouId: '',
-                role: '',
-                gccid: '',
+                roleId: '',
+                gccId: '',
                 employmentType: '',
                 contractId: '',
                 jobTitle: '',
                 salary: '',
+                salaryStructureId: '',
             });
         }
     }, [open, form]);
 
     const onSubmit = async (data: AddEmployeeFormValues) => {
-        if (!data.firstName || !data.lastName || !data.email || !data.role) {
-            toast({
-                title: t('validationError', 'Validation Error'),
-                description: t('requiredFieldsDesc', 'First name, last name, email, and role are required.'),
-                variant: 'destructive',
-            });
-            return;
-        }
-
         try {
             await inviteMutation.mutateAsync({
                 firstName: data.firstName,
                 lastName: data.lastName,
                 email: data.email.toLowerCase(),
                 ouId: data.ouId || undefined,
-                roleId: data.role || undefined,
-                gccId: data.gccid || undefined,
+                roleId: data.roleId || undefined,
+                gccId: data.gccId || undefined,
                 employmentType: data.employmentType || undefined,
-                contractId: data.contractId || undefined,
+                contractId: data.contractId!,
                 jobTitle: data.jobTitle || undefined,
-                salary: data.salary ? Number(data.salary) : undefined,
+                salary: parseInviteSalary(data.salary),
+                salaryStructureId: data.salaryStructureId,
             });
             toast({
                 title: t('inviteSuccess', 'Invitation Sent'),
                 description: t('inviteSuccessDesc', 'Employee has been invited successfully.'),
-                variant: 'success',
             });
             onSuccess?.();
             onOpenChange(false);
@@ -147,7 +176,10 @@ const AddEmployeeSheet: React.FC<AddEmployeeSheetProps> = ({
                                 onSubmit={form.handleSubmit(onSubmit)}
                                 className="space-y-8"
                             >
-                                <EmployeeFormFields form={form} />
+                                <EmployeeFormFields
+                                    form={form}
+                                    onInviteReadyChange={setInviteReady}
+                                />
                             </form>
                         </Form>
                     </div>
@@ -163,7 +195,7 @@ const AddEmployeeSheet: React.FC<AddEmployeeSheetProps> = ({
                         <Button
                             form="add-employee-form"
                             type="submit"
-                            disabled={inviteMutation.isPending}
+                            disabled={inviteMutation.isPending || !inviteReady}
                             className="h-11 px-8 rounded-xl bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] gap-2"
                         >
                             {inviteMutation.isPending ? (

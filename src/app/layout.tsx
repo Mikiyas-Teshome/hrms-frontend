@@ -59,7 +59,7 @@ export default async function RootLayout({ children }: Props) {
             >
                 <ThemeProvider 
                     attribute="class" 
-                    defaultTheme="system" 
+                    defaultTheme="light" 
                     storageKey="hrms-ui-theme"
                     enableColorScheme={false}
                     disableTransitionOnChange

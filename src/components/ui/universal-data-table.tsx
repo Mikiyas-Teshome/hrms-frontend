@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useClientHydrated } from "@/hooks/use-client-hydrated"
 
 export interface ColumnConfig<T> {
   key: string
@@ -49,46 +50,30 @@ interface UniversalDataTableProps<T> {
   data: T[]
   columns: ColumnConfig<T>[]
   isLoading?: boolean
-  
-  // Selection
   enableSelection?: boolean
   selectedIds?: Set<string | number>
   onSelectionChange?: (selectedIds: Set<string | number>) => void
   getRowId?: (item: T) => string | number
-
-  // Search
   searchValue?: string
   onSearchChange?: (value: string) => void
   searchPlaceholder?: string
-
-  // Filter
   onFilterClick?: () => void
   renderCustomFilter?: React.ReactNode
   expandedFilters?: React.ReactNode
-
-  // Header Actions
   onImport?: () => void
   onExport?: () => void
   renderHeaderActions?: React.ReactNode
-
-  // Sorting
   sortColumn?: string
   sortDirection?: "asc" | "desc" | null
   onSort?: (column: string) => void
-
-  // Pagination
   currentPage: number
   totalPages: number
   pageSize: number
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
   totalItems?: number
-
-  // Row Actions
   renderRowActions?: (item: T) => React.ReactNode
   onRowClick?: (item: T) => void
-  
-  // Customization
   emptyMessage?: string
   minWidth?: string
   showSearch?: boolean
@@ -136,11 +121,18 @@ export function UniversalDataTable<T>({
   showFilter,
   showImport,
   showExport,
+  importText,
+  exportText,
   filterText,
   renderTableActions,
   renderFilterPanel,
 }: UniversalDataTableProps<T>) {
   const { t } = useTranslation("dashboard")
+  const hydrated = useClientHydrated()
+  const safeTotalPages = Math.max(1, totalPages ?? 1)
+  const safeCurrentPage = Math.min(Math.max(1, currentPage || 1), safeTotalPages)
+  const disablePreviousPage = hydrated && safeCurrentPage <= 1
+  const disableNextPage = hydrated && safeCurrentPage >= safeTotalPages
   const displaySearch = showSearch ?? (onSearchChange !== undefined || searchValue !== undefined)
   const displayFilter = showFilter ?? (onFilterClick !== undefined || renderCustomFilter !== undefined)
   const displayImport = showImport ?? onImport !== undefined
@@ -183,7 +175,6 @@ export function UniversalDataTable<T>({
 
   return (
     <div className="flex flex-col gap-4 w-full">
-      {/* Search and Header Actions */}
       {renderTableActions ? (
         renderTableActions()
       ) : showHeader ? (
@@ -209,7 +200,7 @@ export function UniversalDataTable<T>({
                   onClick={onFilterClick}
                 >
                   <Filter className="h-4 w-4" />
-                  <span>{filterText || 'Filter'}</span>
+                  <span>{filterText ?? t('attendance.filter', 'Filter')}</span>
                 </Button>
               )
             )}
@@ -220,25 +211,23 @@ export function UniversalDataTable<T>({
             {displayImport && onImport && (
               <Button variant="outline" className="h-10 gap-2 text-primary border-primary hover:bg-primary/5 px-4 rounded-lg" onClick={onImport}>
                 <FileInput className="h-4 w-4" strokeWidth={1.5} />
-                <span>Import</span>
+                <span>{importText ?? t('attendance.importBtn', 'Import')}</span>
               </Button>
             )}
             {displayExport && onExport && (
               <Button variant="outline" className="h-10 gap-2 text-primary border-primary hover:bg-primary/5 px-4 rounded-lg" onClick={onExport}>
                 <FileOutput className="h-4 w-4" strokeWidth={1.5} />
-                <span>Export</span>
+                <span>{exportText ?? t('attendance.exportBtn', 'Export')}</span>
               </Button>
             )}
           </div>
         </div>
       ) : null}
 
-      {/* Filter Panel */}
       {renderFilterPanel}
 
       {expandedFilters}
 
-      {/* Table Section */}
       <div className="rounded-[8px] border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden">
         <div className="overflow-x-auto">
           <div style={{ minWidth }}>
@@ -356,7 +345,6 @@ export function UniversalDataTable<T>({
         </div>
       </div>
 
-      {/* Pagination Footer */}
       <div className="flex flex-col lg:flex-row items-center justify-between gap-2 pt-4 pb-0 px-0 h-auto lg:h-13">
         <div className="text-sm text-muted-foreground font-normal order-2 lg:order-1 flex-1">
           {t("tableInfo.rowsSelected", { count: selectedIds.size, total: totalItems || data.length, defaultValue: `${selectedIds.size} of ${totalItems || data.length} row(s) selected.` })}
@@ -383,7 +371,7 @@ export function UniversalDataTable<T>({
           </div>
 
           <div className="flex items-center justify-center text-sm font-medium text-foreground min-w-20">
-            {t("tableInfo.pageOf", { current: currentPage, total: totalPages || 1, defaultValue: `Page ${currentPage} of ${totalPages || 1}` })}
+            {t("tableInfo.pageOf", { current: safeCurrentPage, total: safeTotalPages, defaultValue: `Page ${safeCurrentPage} of ${safeTotalPages}` })}
           </div>
 
           <div className="flex items-center gap-2">
@@ -392,7 +380,7 @@ export function UniversalDataTable<T>({
               size="icon"
               className="h-9 w-9 p-0 rounded-lg border-border bg-background text-foreground shadow-xs hover:bg-muted hover:text-foreground"
               onClick={() => onPageChange(1)}
-              disabled={currentPage === 1}
+              disabled={disablePreviousPage}
             >
               <ChevronsLeft className="h-4 w-4 text-foreground" strokeWidth={1.5} />
             </Button>
@@ -400,8 +388,8 @@ export function UniversalDataTable<T>({
               variant="outline"
               size="icon"
               className="h-9 w-9 p-0 rounded-lg border-border bg-background text-foreground shadow-xs hover:bg-muted hover:text-foreground"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
+              onClick={() => onPageChange(safeCurrentPage - 1)}
+              disabled={disablePreviousPage}
             >
               <ChevronLeft className="h-4 w-4 text-foreground" strokeWidth={1.5} />
             </Button>
@@ -409,8 +397,8 @@ export function UniversalDataTable<T>({
               variant="outline"
               size="icon"
               className="h-9 w-9 p-0 rounded-lg border-border bg-background text-foreground shadow-xs hover:bg-muted hover:text-foreground"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
+              onClick={() => onPageChange(safeCurrentPage + 1)}
+              disabled={disableNextPage}
             >
               <ChevronRight className="h-4 w-4 text-foreground" strokeWidth={1.5} />
             </Button>
@@ -418,8 +406,8 @@ export function UniversalDataTable<T>({
               variant="outline"
               size="icon"
               className="h-9 w-9 p-0 rounded-lg border-border bg-background text-foreground shadow-xs hover:bg-muted hover:text-foreground"
-              onClick={() => onPageChange(totalPages)}
-              disabled={currentPage === totalPages}
+              onClick={() => onPageChange(safeTotalPages)}
+              disabled={disableNextPage}
             >
               <ChevronsRight className="h-4 w-4 text-foreground" strokeWidth={1.5} />
             </Button>

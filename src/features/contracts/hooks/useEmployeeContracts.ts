@@ -63,7 +63,7 @@ const invalidateEmployeeContractQueries = (queryClient: ReturnType<typeof useQue
   queryClient.invalidateQueries({ queryKey: ['employee-contracts'] });
   queryClient.invalidateQueries({ queryKey: ['employee-contract'] });
   queryClient.invalidateQueries({ queryKey: ['employee'] });
-  queryClient.invalidateQueries({ queryKey: ['employee', 'profile'] });
+  queryClient.invalidateQueries({ queryKey: ['myEmployee'] });
 };
 
 export const useAssignEmployeeContract = () => {

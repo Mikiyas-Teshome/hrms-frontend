@@ -67,6 +67,19 @@ export const UPDATE_COMPANY_FIREBASE_MUTATION = `
   }
 `;
 
+export const COMPANY_FIREBASE_WEB_CONFIG_QUERY = `
+  query CompanyFirebaseWebConfig {
+    companyFirebaseWebConfig {
+      configured
+      firebaseApiKey
+      firebaseAppId
+      firebaseProjectId
+      firebaseMessagingSenderId
+      firebaseVapidKey
+    }
+  }
+`;
+
 export const UPDATE_COMPANY_SMTP_MUTATION = `
   mutation UpdateCompanySmtp($id: String!, $input: SmtpConfigInput!) {
     updateCompanySmtp(id: $id, input: $input) {

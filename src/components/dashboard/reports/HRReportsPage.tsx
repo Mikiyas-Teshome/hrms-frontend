@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { MoreVertical, Users, UserPlus } from 'lucide-react';
-// No mock data imports needed
 import SummaryStatList from '@/components/dashboard/shared/SummaryStatList';
 import { SummaryStatListSkeleton } from '@/components/common/SummaryStatSkeleton';
 import { UniversalDataTable, ColumnConfig } from '@/components/ui/universal-data-table';
@@ -26,6 +25,7 @@ import {
 } from '@/components/ui/chart';
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Bar, BarChart } from 'recharts';
 import { Input } from '@/components/ui/input';
+import { FormSelect } from '@/components/ui/FormSelect';
 import {
     Select,
     SelectContent,
@@ -34,14 +34,36 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useEmployeeSalaryHistory } from '@/features/payroll/hooks/usePayroll';
-import { useEmployeeTransferHistory } from '@/features/employee/hooks/useEmployee';
 import { useAuditLogs } from '@/features/audit/hooks/useAudit';
 import { useProfile } from '@/features/auth/hooks/useAuth';
+import { usePermissions } from '@/features/auth/hooks/usePermissions';
 import { useEmployees } from '@/features/employee/hooks/useEmployee';
-import { useHrReport, useHrReportFilterOptions } from '@/features/reports/reports.hooks';
+import { useOrganizationHierarchy } from '@/features/organization/hooks/useOrganization';
+import {
+    useExportHrReport,
+    useHrReport,
+    useHrReportFilterOptions,
+    useHrReportSalaryHistory,
+    useHrReportTransferHistory,
+} from '@/features/reports/reports.hooks';
+import { filterByDateRange, buildOuNameMap } from '@/features/reports/reports.utils';
+import { HrReportFiltersInput } from '@/features/reports/reports.types';
+import { useLeaveCompanyOuId } from '@/features/leave/hooks/useLeaveCompanyOuId';
+import { useToast } from '@/hooks/use-toast';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ExportButton } from './ExportButton';
+
+const sanitizeOuId = (value: string): string | undefined =>
+    value === 'all' || !value ? undefined : value;
+
+const EMPLOYEE_REQUIRED_MESSAGE =
+    'Select an employee from the filter bar to view records for this tab.';
+
+const SORTABLE_COLUMNS: Record<string, HrReportFiltersInput['sortBy']> = {
+    firstName: 'firstName',
+    jobTitle: 'jobTitle',
+    status: 'status',
+};
 
 const headcountConfig = {
     headcount: {
@@ -67,43 +89,206 @@ const attendanceConfig = {
 
 const HRReportsPage = () => {
     const { t } = useTranslation(['dashboard']);
+    const { toast } = useToast();
     const [searchValue, setSearchValue] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [sortBy, setSortBy] = useState<HrReportFiltersInput['sortBy']>('updatedAt');
+    const [sortOrder, setSortOrder] = useState<HrReportFiltersInput['sortOrder']>('desc');
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('all');
     const [dateFrom, setDateFrom] = useState<string>(
         format(startOfMonth(new Date()), 'yyyy-MM-dd'),
     );
     const [dateTo, setDateTo] = useState<string>(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
-    const [companyOuId] = useState<string>('');
-    const [divisionOuId, setDivisionOuId] = useState<string>('');
-    const [subDivisionOuId, setSubDivisionOuId] = useState<string>('');
-    const [employeeType] = useState<any>('ALL');
+    const [divisionOuId, setDivisionOuId] = useState<string>('all');
+    const [subDivisionOuId, setSubDivisionOuId] = useState<string>('all');
+    const [appliedFilters, setAppliedFilters] = useState({
+        dateFrom: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+        dateTo: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+        divisionOuId: 'all',
+        subDivisionOuId: 'all',
+    });
 
+    const { canSelectTenantCompany, roleName } = usePermissions();
+    const requiresCompanyOuForReport = roleName === 'SYSTEM_ADMIN';
+
+    const { canSelectCompany, companyOuId, derivedCompanyOuId, companyForm, companiesData, isLoadingCompanies } =
+        useLeaveCompanyOuId();
+    const [trackedCompanyOuId, setTrackedCompanyOuId] = useState<string | undefined>(undefined);
+
+    if (companyOuId !== trackedCompanyOuId) {
+        setTrackedCompanyOuId(companyOuId);
+        setDivisionOuId('all');
+        setSubDivisionOuId('all');
+        setAppliedFilters((prev) => ({
+            ...prev,
+            divisionOuId: 'all',
+            subDivisionOuId: 'all',
+        }));
+    }
+
+    const effectiveCompanyOuId = companyOuId || derivedCompanyOuId || undefined;
     const { data: profile } = useProfile();
     const { data: employees = [] } = useEmployees();
-    const { data: filterOptions } = useHrReportFilterOptions();
+    const { data: hierarchy = [] } = useOrganizationHierarchy();
+    const { data: filterOptions } = useHrReportFilterOptions(effectiveCompanyOuId);
+    const exportHrReportMutation = useExportHrReport();
 
-    const { data: reportData, isLoading: isLoadingReport } = useHrReport({
-        dateFrom: new Date(dateFrom).toISOString(),
-        dateTo: new Date(dateTo).toISOString(),
-        companyOuId: companyOuId || undefined,
-        divisionOuId: divisionOuId || undefined,
-        subDivisionOuId: subDivisionOuId || undefined,
-        employeeType,
-        page: currentPage,
-        limit: pageSize,
-        search: searchValue || undefined,
-    });
+    const ouNameById = useMemo(() => buildOuNameMap(hierarchy), [hierarchy]);
 
-    const { data: salaryHistory = [], isLoading: isLoadingSalary } = useEmployeeSalaryHistory(
-        selectedEmployeeId === 'all' ? '' : selectedEmployeeId,
+    const reportFilters: HrReportFiltersInput = useMemo(
+        () => ({
+            dateFrom: new Date(appliedFilters.dateFrom).toISOString(),
+            dateTo: new Date(appliedFilters.dateTo).toISOString(),
+            companyOuId: canSelectTenantCompany ? effectiveCompanyOuId : undefined,
+            divisionOuId: sanitizeOuId(appliedFilters.divisionOuId),
+            subDivisionOuId: sanitizeOuId(appliedFilters.subDivisionOuId),
+            employeeType: 'all',
+            page: currentPage,
+            limit: pageSize,
+            search: searchValue || undefined,
+            sortBy,
+            sortOrder,
+        }),
+        [
+            appliedFilters,
+            canSelectTenantCompany,
+            effectiveCompanyOuId,
+            currentPage,
+            pageSize,
+            searchValue,
+            sortBy,
+            sortOrder,
+        ],
     );
+
+    const { data: reportData, isLoading: isLoadingReport, isError: isReportError } = useHrReport(
+        reportFilters,
+        !requiresCompanyOuForReport || !!effectiveCompanyOuId,
+    );
+
+    useEffect(() => {
+        if (!isReportError) return;
+        toast({
+            variant: 'destructive',
+            title: 'Failed to load HR report',
+            description: 'Could not fetch report data. Try applying filters again.',
+        });
+    }, [isReportError, toast]);
+
+    const activeEmployeeId = selectedEmployeeId === 'all' ? '' : selectedEmployeeId;
+
+    const { data: salaryHistory = [], isLoading: isLoadingSalary } =
+        useHrReportSalaryHistory(activeEmployeeId);
     const { data: transferHistory = [], isLoading: isLoadingTransfers } =
-        useEmployeeTransferHistory(selectedEmployeeId === 'all' ? '' : selectedEmployeeId);
+        useHrReportTransferHistory(activeEmployeeId);
     const { data: auditLogs = [], isLoading: isLoadingAudit } = useAuditLogs({
         companyId: profile?.companyId,
+        entityId: activeEmployeeId || undefined,
+        entityType: activeEmployeeId ? 'Employee' : undefined,
     });
+
+    const filteredSalaryHistory = useMemo(
+        () =>
+            filterByDateRange(
+                salaryHistory,
+                (item) => item.effectiveDate,
+                appliedFilters.dateFrom,
+                appliedFilters.dateTo,
+            ),
+        [salaryHistory, appliedFilters.dateFrom, appliedFilters.dateTo],
+    );
+
+    const filteredTransferHistory = useMemo(
+        () =>
+            filterByDateRange(
+                transferHistory,
+                (item) => item.transferDate,
+                appliedFilters.dateFrom,
+                appliedFilters.dateTo,
+            ),
+        [transferHistory, appliedFilters.dateFrom, appliedFilters.dateTo],
+    );
+
+    const filteredAuditLogs = useMemo(
+        () =>
+            filterByDateRange(
+                auditLogs,
+                (item) => item.createdAt,
+                appliedFilters.dateFrom,
+                appliedFilters.dateTo,
+            ),
+        [auditLogs, appliedFilters.dateFrom, appliedFilters.dateTo],
+    );
+
+    const handleSort = (column: string) => {
+        const field = SORTABLE_COLUMNS[column];
+        if (!field) return;
+        if (sortBy === field) {
+            setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortBy(field);
+            setSortOrder('desc');
+        }
+        setCurrentPage(1);
+    };
+
+    const handleServerExport = async (format: 'csv' | 'pdf' | 'xlsx') => {
+        try {
+            const result = await exportHrReportMutation.mutateAsync({
+                format,
+                filters: {
+                    ...reportFilters,
+                    page: 1,
+                    limit: 10000,
+                },
+            });
+            const binary = atob(result.content);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i += 1) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: result.mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = result.fileName;
+            link.click();
+            URL.revokeObjectURL(url);
+            toast({
+                title: 'Export successful',
+                description: `${result.fileName} has been downloaded.`,
+            });
+        } catch {
+            toast({
+                variant: 'destructive',
+                title: 'Export failed',
+                description: 'Unable to export the full HR report.',
+            });
+        }
+    };
+
+    const cascadedDivisions = useMemo(() => {
+        if (!filterOptions?.divisions) return [];
+        if (!canSelectCompany || !companyOuId) return filterOptions.divisions;
+        return filterOptions.divisions.filter((division) => division.parentId === companyOuId);
+    }, [filterOptions, canSelectCompany, companyOuId]);
+
+    const cascadedSubDivisions = useMemo(() => {
+        if (!filterOptions?.subDivisions) return [];
+        if (divisionOuId !== 'all') {
+            return filterOptions.subDivisions.filter(
+                (subDivision) => subDivision.parentId === divisionOuId,
+            );
+        }
+        if (canSelectCompany && companyOuId) {
+            const divisionIds = new Set(cascadedDivisions.map((division) => division.id));
+            return filterOptions.subDivisions.filter(
+                (subDivision) => subDivision.parentId && divisionIds.has(subDivision.parentId),
+            );
+        }
+        return filterOptions.subDivisions;
+    }, [filterOptions, divisionOuId, canSelectCompany, companyOuId, cascadedDivisions]);
 
     const columns: ColumnConfig<any>[] = [
         {
@@ -122,32 +307,46 @@ const HRReportsPage = () => {
             sortable: true,
         },
         {
+            key: 'departmentName',
+            label: 'Department',
+            render: (item) => <span>{item.departmentName || '—'}</span>,
+        },
+        {
             key: 'businessEmail',
             label: 'Email',
             sortable: true,
         },
         {
+            key: 'attendance',
+            label: 'Attendance',
+            sortable: true,
+            render: (item) => <span>{item.attendance ?? 0}%</span>,
+        },
+        {
             key: 'status',
             label: 'Status',
-            render: (item) => (
+            render: (item) => {
+                const isActive = String(item.status).toLowerCase() === 'active';
+                return (
                 <Badge
                     variant="outline"
                     className={
-                        item.status === 'ACTIVE'
+                        isActive
                             ? 'bg-green-500/10 text-green-600 border-green-500/20'
                             : 'bg-red-500/10 text-red-600 border-red-500/20'
                     }
                 >
                     <div
                         className={
-                            item.status === 'ACTIVE'
+                            isActive
                                 ? 'w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5'
                                 : 'w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5'
                         }
                     />
                     {item.status}
                 </Badge>
-            ),
+                );
+            },
         },
     ];
 
@@ -177,8 +376,16 @@ const HRReportsPage = () => {
             label: 'Transfer Date',
             render: (item) => format(new Date(item.transferDate), 'PPP'),
         },
-        { key: 'fromDepartmentId', label: 'From Dept' },
-        { key: 'toDepartmentId', label: 'To Dept' },
+        {
+            key: 'fromDepartmentId',
+            label: 'From Dept',
+            render: (item) => ouNameById.get(item.fromDepartmentId) || item.fromDepartmentId,
+        },
+        {
+            key: 'toDepartmentId',
+            label: 'To Dept',
+            render: (item) => ouNameById.get(item.toDepartmentId) || item.toDepartmentId,
+        },
         { key: 'reason', label: 'Reason' },
         { key: 'processedBy', label: 'Processed By' },
     ];
@@ -204,7 +411,9 @@ const HRReportsPage = () => {
             { header: 'First Name', key: 'firstName' },
             { header: 'Last Name', key: 'lastName' },
             { header: 'Job Title', key: 'jobTitle' },
+            { header: 'Department', key: 'departmentName' },
             { header: 'Email', key: 'businessEmail' },
+            { header: 'Attendance', key: 'attendance' },
             { header: 'Status', key: 'status' },
         ],
         salaryHistory: [
@@ -232,8 +441,8 @@ const HRReportsPage = () => {
                 key: 'transferDate',
                 render: (item: any) => format(new Date(item.transferDate), 'PPP'),
             },
-            { header: 'From Dept', key: 'fromDepartmentId' },
-            { header: 'To Dept', key: 'toDepartmentId' },
+            { header: 'From Dept', key: 'fromDepartmentId', render: (item: any) => ouNameById.get(item.fromDepartmentId) || item.fromDepartmentId },
+            { header: 'To Dept', key: 'toDepartmentId', render: (item: any) => ouNameById.get(item.toDepartmentId) || item.toDepartmentId },
             { header: 'Reason', key: 'reason' },
             { header: 'Processed By', key: 'processedBy' },
         ],
@@ -273,9 +482,8 @@ const HRReportsPage = () => {
                 </h1>
             </div>
 
-            {/* Filters */}
             <Card className="border border-border shadow-sm p-4 bg-card">
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
                     <div className="flex flex-col gap-2">
                         <label className="text-xs font-semibold text-muted-foreground uppercase">
                             From
@@ -298,17 +506,46 @@ const HRReportsPage = () => {
                             className="h-10"
                         />
                     </div>
+                    {canSelectCompany && (
+                        <div className="flex flex-col gap-2">
+                            <label className="text-xs font-semibold text-muted-foreground uppercase">
+                                Company
+                            </label>
+                            <FormSelect<{ companyId: string }>
+                                id="hr-report-company"
+                                placeholder={
+                                    isLoadingCompanies ? 'Loading companies...' : 'Select company'
+                                }
+                                control={companyForm.control}
+                                name="companyId"
+                                t={t}
+                                options={
+                                    companiesData?.map((company) => ({
+                                        label: company.name,
+                                        value: company.id,
+                                    })) || []
+                                }
+                                containerClassName="w-full"
+                            />
+                        </div>
+                    )}
                     <div className="flex flex-col gap-2">
                         <label className="text-xs font-semibold text-muted-foreground uppercase">
                             Division
                         </label>
-                        <Select value={divisionOuId} onValueChange={setDivisionOuId}>
+                        <Select
+                            value={divisionOuId}
+                            onValueChange={(val) => {
+                                setDivisionOuId(val);
+                                setSubDivisionOuId('all');
+                            }}
+                        >
                             <SelectTrigger className="h-10">
                                 <SelectValue placeholder="Select division" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All divisions</SelectItem>
-                                {filterOptions?.divisions?.map((div) => (
+                                {cascadedDivisions.map((div) => (
                                     <SelectItem key={div.id} value={div.id}>
                                         {div.name}
                                     </SelectItem>
@@ -326,7 +563,7 @@ const HRReportsPage = () => {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All sub-divisions</SelectItem>
-                                {filterOptions?.subDivisions?.map((sub) => (
+                                {cascadedSubDivisions.map((sub) => (
                                     <SelectItem key={sub.id} value={sub.id}>
                                         {sub.name}
                                     </SelectItem>
@@ -357,14 +594,38 @@ const HRReportsPage = () => {
                             variant="outline"
                             className="h-10 flex-1"
                             onClick={() => {
+                                const defaultFrom = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+                                const defaultTo = format(endOfMonth(new Date()), 'yyyy-MM-dd');
                                 setSelectedEmployeeId('all');
-                                setDivisionOuId('');
-                                setSubDivisionOuId('');
+                                setDivisionOuId('all');
+                                setSubDivisionOuId('all');
+                                setDateFrom(defaultFrom);
+                                setDateTo(defaultTo);
+                                setAppliedFilters({
+                                    dateFrom: defaultFrom,
+                                    dateTo: defaultTo,
+                                    divisionOuId: 'all',
+                                    subDivisionOuId: 'all',
+                                });
+                                setCurrentPage(1);
                             }}
                         >
                             Reset
                         </Button>
-                        <Button className="h-10 flex-1 bg-primary">Apply</Button>
+                        <Button
+                            className="h-10 flex-1 bg-primary"
+                            onClick={() => {
+                                setAppliedFilters({
+                                    dateFrom,
+                                    dateTo,
+                                    divisionOuId,
+                                    subDivisionOuId,
+                                });
+                                setCurrentPage(1);
+                            }}
+                        >
+                            Apply
+                        </Button>
                     </div>
                 </div>
             </Card>
@@ -556,7 +817,9 @@ const HRReportsPage = () => {
                             searchValue={searchValue}
                             onSearchChange={setSearchValue}
                             searchPlaceholder="Search for employees"
-                            showFilter
+                            sortColumn={sortBy}
+                            sortDirection={sortOrder ?? null}
+                            onSort={handleSort}
                             currentPage={currentPage}
                             totalPages={reportData?.pagination.totalPages || 1}
                             pageSize={pageSize}
@@ -569,6 +832,7 @@ const HRReportsPage = () => {
                                     data={reportData?.rows || []}
                                     columns={exportColumns.overview}
                                     filename="HR_Overview_Report"
+                                    onServerExport={handleServerExport}
                                 />
                             }
                             totalItems={reportData?.pagination.total || 0}
@@ -578,10 +842,13 @@ const HRReportsPage = () => {
 
                 <TabsContent value="salary-history">
                     <UniversalDataTable
-                        data={salaryHistory}
+                        data={filteredSalaryHistory}
                         columns={salaryHistoryColumns}
                         isLoading={isLoadingSalary}
                         searchPlaceholder="Search salary changes"
+                        emptyMessage={
+                            activeEmployeeId ? 'No salary changes in the selected date range.' : EMPLOYEE_REQUIRED_MESSAGE
+                        }
                         currentPage={1}
                         totalPages={1}
                         pageSize={10}
@@ -589,21 +856,26 @@ const HRReportsPage = () => {
                         onPageSizeChange={() => {}}
                         renderHeaderActions={
                             <ExportButton
-                                data={salaryHistory}
+                                data={filteredSalaryHistory}
                                 columns={exportColumns.salaryHistory}
                                 filename="Salary_History_Report"
                             />
                         }
-                        totalItems={salaryHistory.length}
+                        totalItems={filteredSalaryHistory.length}
                     />
                 </TabsContent>
 
                 <TabsContent value="transfer-history">
                     <UniversalDataTable
-                        data={transferHistory}
+                        data={filteredTransferHistory}
                         columns={transferHistoryColumns}
                         isLoading={isLoadingTransfers}
                         searchPlaceholder="Search transfer records"
+                        emptyMessage={
+                            activeEmployeeId
+                                ? 'No transfer records in the selected date range.'
+                                : EMPLOYEE_REQUIRED_MESSAGE
+                        }
                         currentPage={1}
                         totalPages={1}
                         pageSize={10}
@@ -611,21 +883,26 @@ const HRReportsPage = () => {
                         onPageSizeChange={() => {}}
                         renderHeaderActions={
                             <ExportButton
-                                data={transferHistory}
+                                data={filteredTransferHistory}
                                 columns={exportColumns.transferHistory}
                                 filename="Transfer_History_Report"
                             />
                         }
-                        totalItems={transferHistory.length}
+                        totalItems={filteredTransferHistory.length}
                     />
                 </TabsContent>
 
                 <TabsContent value="audit-logs">
                     <UniversalDataTable
-                        data={auditLogs}
+                        data={filteredAuditLogs}
                         columns={auditLogColumns}
                         isLoading={isLoadingAudit}
                         searchPlaceholder="Search audit logs"
+                        emptyMessage={
+                            activeEmployeeId
+                                ? 'No audit logs in the selected date range.'
+                                : 'Select an employee to filter audit logs, or apply filters to narrow the date range.'
+                        }
                         currentPage={1}
                         totalPages={1}
                         pageSize={10}
@@ -633,12 +910,12 @@ const HRReportsPage = () => {
                         onPageSizeChange={() => {}}
                         renderHeaderActions={
                             <ExportButton
-                                data={auditLogs}
+                                data={filteredAuditLogs}
                                 columns={exportColumns.auditLogs}
                                 filename="Audit_Logs_Report"
                             />
                         }
-                        totalItems={auditLogs.length}
+                        totalItems={filteredAuditLogs.length}
                     />
                 </TabsContent>
             </Tabs>

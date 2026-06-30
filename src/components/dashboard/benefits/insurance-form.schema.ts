@@ -1,22 +1,27 @@
 import * as z from 'zod';
 import {
   InsuranceCoverageType,
-  InsuranceAssignment,
   InsuranceRenewalType,
   InsuranceIncludedService,
   DependentRelationship,
   EmploymentType,
 } from '@/features/insurance/insurance.types';
 
+export const MIN_TENURE_MONTH_OPTIONS = [
+  { label: 'No minimum', value: '0' },
+  { label: '3 months', value: '3' },
+  { label: '6 months', value: '6' },
+  { label: '12 months', value: '12' },
+] as const;
+
 export const insuranceFormSchema = z.object({
-  companyOuId: z.string().min(1, 'Company is required'),
+  ouId: z.string().min(1, 'Company is required'),
   insuranceName: z.string().min(1, 'Insurance name is required'),
   providerName: z.string().min(1, 'Provider name is required'),
   policyNumber: z.string().min(1, 'Policy number is required'),
   cardId: z.string().optional(),
   coverageType: z.nativeEnum(InsuranceCoverageType),
   coverageAmount: z.coerce.number().min(0).optional(),
-  assignment: z.nativeEnum(InsuranceAssignment),
   renewalType: z.nativeEnum(InsuranceRenewalType),
   hasDependentsCoverage: z.boolean().default(false),
   maxDependents: z.coerce.number().min(0).optional(),
@@ -34,18 +39,19 @@ export const insuranceFormSchema = z.object({
 export type InsuranceFormValues = z.infer<typeof insuranceFormSchema>;
 
 export const defaultInsuranceFormValues: InsuranceFormValues = {
-  companyOuId: '',
+  ouId: '',
   insuranceName: '',
   providerName: '',
   policyNumber: '',
   coverageType: InsuranceCoverageType.HEALTH,
-  assignment: InsuranceAssignment.ALL_EMPLOYEES,
   renewalType: InsuranceRenewalType.YEARLY,
   hasDependentsCoverage: false,
   allowedDependents: [],
   includedServices: [],
   employerContribution: 100,
   employeeContribution: 0,
+  employmentType: EmploymentType.full_time,
+  minTenureMonths: 0,
   status: 'active',
   startDate: '',
   endDate: '',

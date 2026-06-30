@@ -38,9 +38,14 @@ const AUTH_ERROR_PATTERNS = [
     'invalid token',
     'token expired',
     'jwt expired',
+    'token_stale',
+    'permissions have changed',
 ];
 
-const isAuthError = (status: number, message?: string): boolean => {
+const isAuthError = (status: number, message?: string, code?: string): boolean => {
+    if (code === 'TOKEN_STALE') {
+        return true;
+    }
     if (status === 401 || status === 403) {
         return true;
     }
@@ -97,30 +102,47 @@ const clearAuthCookies = (
     cookieStore.delete('hrms.refreshToken');
 };
 
-const extractErrorMessage = (error: ClientError): string | undefined => {
+const extractGraphQLError = (error: ClientError): { message?: string; code?: string } => {
     const errors = error.response.errors as
         | Array<{
               message?: string;
-              extensions?: { originalError?: { message?: string | string[] } };
+              extensions?: {
+                  code?: string;
+                  originalError?: { message?: string | string[] };
+              };
           }>
         | undefined;
 
-    if (errors?.[0]) {
-        const firstError = errors[0];
-        const originalMsg = firstError.extensions?.originalError?.message;
-
-        if (originalMsg) {
-            return Array.isArray(originalMsg) ? originalMsg.join('; ') : originalMsg;
-        }
-        return firstError.message;
+    if (!errors?.[0]) {
+        return {};
     }
 
-    return undefined;
+    const firstError = errors[0];
+    const code = firstError.extensions?.code;
+    const originalMsg = firstError.extensions?.originalError?.message;
+
+    if (originalMsg) {
+        return {
+            message: Array.isArray(originalMsg) ? originalMsg.join('; ') : originalMsg,
+            code: typeof code === 'string' ? code : undefined,
+        };
+    }
+
+    const message = firstError.message;
+    if (message && !/^[A-Z0-9_]{3,}$/.test(message)) {
+        return {
+            message,
+            code: typeof code === 'string' ? code : undefined,
+        };
+    }
+
+    if (typeof code === 'string' && code !== 'INTERNAL_SERVER_ERROR') {
+        return { message: code, code };
+    }
+
+    return { message: message ?? code, code: typeof code === 'string' ? code : undefined };
 };
 
-/**
- * Attempts to refresh the access token using the stored refresh token cookie.
- */
 async function attemptTokenRefresh(mutableCookies = true): Promise<string> {
     const cookieStore = await cookies();
     const refreshToken = cookieStore.get('hrms.refreshToken')?.value;
@@ -188,9 +210,8 @@ export async function gqlRequest<T, V extends object = object>(
         } catch (error) {
         if (error instanceof ClientError) {
             const status = error.response.status;
-            const errorMessage = extractErrorMessage(error);
-            if (isAuthError(status, errorMessage)) {
-                // Attempt silent token refresh then retry once
+            const { message: errorMessage, code: errorCode } = extractGraphQLError(error);
+            if (isAuthError(status, errorMessage, errorCode)) {
                 try {
                     token = await attemptTokenRefresh(mutableCookies);
                     const data = await buildClient(url, token).request<T>(document, sanitize(variables));
@@ -203,7 +224,13 @@ export async function gqlRequest<T, V extends object = object>(
                 }
             }
 
-            throw new Error(errorMessage || `Request failed with status ${status}`);
+            const graphqlError = new Error(errorMessage || `Request failed with status ${status}`) as Error & {
+                code?: string;
+            };
+            if (errorCode) {
+                graphqlError.code = errorCode;
+            }
+            throw graphqlError;
         }
 
         throw new Error('Failed to connect to the server.');

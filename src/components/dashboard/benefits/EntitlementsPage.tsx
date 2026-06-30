@@ -76,7 +76,7 @@ const EntitlementsPage = () => {
 
   const form = useForm({
     defaultValues: {
-      companyId: '',
+      ouId: '',
     },
   });
   const filterForm = useForm({
@@ -87,16 +87,16 @@ const EntitlementsPage = () => {
     },
   });
 
-  const selectedCompanyId = useWatch({
+  const selectedOuId = useWatch({
     control: form.control,
-    name: 'companyId',
+    name: 'ouId',
   });
 
   const { companies: companiesData, isLoading: isLoadingCompanies } = useCompanyOptions();
 
   useEffect(() => {
-    if (companiesData?.length && !form.getValues('companyId')) {
-      form.setValue('companyId', companiesData[0].id);
+    if (companiesData?.length && !form.getValues('ouId')) {
+      form.setValue('ouId', companiesData[0].id);
     }
   }, [companiesData, form]);
 
@@ -104,7 +104,7 @@ const EntitlementsPage = () => {
     page: currentPage,
     limit: pageSize,
     search: debouncedSearch || undefined,
-    companyOuId: selectedCompanyId || undefined,
+    ouId: selectedOuId || undefined,
     sortBy: mapEntitlementSortBy(sortColumn) ?? 'createdAt',
     sortOrder: sortDirection === 'asc' ? 'ASC' : 'DESC',
     status: appliedFilters.status,
@@ -120,7 +120,7 @@ const EntitlementsPage = () => {
     return () => clearTimeout(timer);
   }, [searchValue]);
 
-  const { data: statsData } = useBenefitEntitlementStats(selectedCompanyId || undefined);
+  const { data: statsData } = useBenefitEntitlementStats(selectedOuId || undefined);
 
   const deleteMutation = useDeleteBenefitEntitlement();
   const updateStatusMutation = useUpdateBenefitEntitlementStatus();
@@ -401,7 +401,7 @@ const EntitlementsPage = () => {
                 : 'Filter by Company'
             }
             control={form.control}
-            name="companyId"
+            name="ouId"
             options={
               companiesData?.map((company) => ({ label: company.name, value: company.id })) || []
             }

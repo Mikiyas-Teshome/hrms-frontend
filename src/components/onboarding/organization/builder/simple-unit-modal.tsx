@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,13 +27,12 @@ export function SimpleUnitModal({
   initialName = "",
   onSave,
 }: SimpleUnitModalProps) {
-  const [name, setName] = useState(initialName);
+  const [name, setName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sync name when modal opens or initialName changes
   useEffect(() => {
     if (isOpen) {
-      setName(initialName);
+      setName(initialName ?? "");
     }
   }, [isOpen, initialName]);
 
@@ -41,7 +40,8 @@ export function SimpleUnitModal({
     if (!name.trim()) return;
     setIsSaving(true);
     try {
-      await onSave(name);
+      await onSave(name.trim());
+      setName("");
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to save unit:", error);
@@ -52,7 +52,7 @@ export function SimpleUnitModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-106.25">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>

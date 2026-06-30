@@ -23,6 +23,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FormSelect } from '@/components/ui/FormSelect';
+import { usePermissions } from '@/features/auth/hooks/usePermissions';
+import { useToast } from '@/hooks/use-toast';
+import { resolveDocumentError } from '@/features/documents/resolve-document-error';
 
 interface UploadDocumentModalProps {
   open: boolean;
@@ -36,6 +39,13 @@ interface UploadDocumentFormValues {
 
 const UploadDocumentModal = ({ open, onOpenChange, onUploaded }: UploadDocumentModalProps) => {
   const { t } = useTranslation('document');
+  const { hasPermission, hasScope, isSystemAdmin } = usePermissions();
+  const canCreateDocument = hasPermission('documents:create');
+  const canUploadForOthers =
+    isSystemAdmin ||
+    hasScope('documents', 'create', 'company') ||
+    hasScope('documents', 'create', 'department') ||
+    hasScope('documents', 'create', 'all');
   const { control, setValue } = useForm<UploadDocumentFormValues>({
     defaultValues: {
       categoryId: '',
@@ -44,7 +54,7 @@ const UploadDocumentModal = ({ open, onOpenChange, onUploaded }: UploadDocumentM
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [fileName, setFileName] = useState(t('uploadDocumentModal.file.noFileChosen'));
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   const [employees, setEmployees] = useState<EmployeeDirectoryEntry[]>([]);
   const [categories, setCategories] = useState<DocumentCategory[]>([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
@@ -113,16 +123,27 @@ const UploadDocumentModal = ({ open, onOpenChange, onUploaded }: UploadDocumentM
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError(null);
+    if (!canCreateDocument) {
+      return;
+    }
     const form = event.currentTarget;
     const formData = new FormData(form);
 
     startTransition(async () => {
       const result = await uploadEmployeeDocument(formData);
       if (!result.success) {
-        setError(result.error);
+        toast({
+          title: t('toasts.errorTitle'),
+          description: resolveDocumentError(result.error, t),
+          variant: 'destructive',
+        });
         return;
       }
+      toast({
+        title: t('toasts.successTitle'),
+        description: t('toasts.uploadSuccess'),
+        variant: 'success',
+      });
       form.reset();
       setFileName(t('uploadDocumentModal.file.noFileChosen'));
       setSelectedEmployeeId('');
@@ -146,7 +167,8 @@ const UploadDocumentModal = ({ open, onOpenChange, onUploaded }: UploadDocumentM
               <h3 className="text-sm font-semibold text-foreground tracking-tight">
                 {t('uploadDocumentModal.sections.documentInfo')}
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className={cn('grid gap-4', canUploadForOthers ? 'grid-cols-2' : 'grid-cols-1')}>
+                {canUploadForOthers && (
                 <div className="flex flex-col gap-2">
                   <Label className="text-sm font-medium">{t('uploadDocumentModal.fields.employee')}</Label>
                   <input type="hidden" name="ownerId" value={selectedEmployeeId} />
@@ -200,6 +222,7 @@ const UploadDocumentModal = ({ open, onOpenChange, onUploaded }: UploadDocumentM
                     </PopoverContent>
                   </Popover>
                 </div>
+                )}
                 <input type="hidden" name="categoryId" value={selectedCategoryId} />
                 <FormSelect
                   id="category"
@@ -249,7 +272,6 @@ const UploadDocumentModal = ({ open, onOpenChange, onUploaded }: UploadDocumentM
                   </div>
                 </div>
               </div>
-              {error ? <p className="text-sm text-red-600">{error}</p> : null}
             </div>
           </div>
 

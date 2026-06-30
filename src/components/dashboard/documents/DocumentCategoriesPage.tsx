@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
-import { Plus, MoreVertical, Eye, Edit, Trash2, RotateCcw } from 'lucide-react';
+import { Plus, MoreVertical, Trash2, RotateCcw, ListFilter, Pencil } from 'lucide-react';
 import { categoryStats } from '@/data/documents';
 import SummaryStatList from '@/components/dashboard/shared/SummaryStatList';
+import { SummaryStatListSkeleton } from '@/components/common/SummaryStatSkeleton';
 import { UniversalDataTable, ColumnConfig } from '@/components/ui/universal-data-table';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -15,62 +15,124 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { FormSelect } from '@/components/ui/FormSelect';
 import AddCategorySheet from './AddCategorySheet';
+import DocumentCategoryFilterSection from './DocumentCategoryFilterSection';
+import { cn } from '@/lib/utils';
 import {
-    fetchDocumentCategoryStatus,
-    fetchDocumentCategoriesPaged,
-    updateDocumentCategory,
-    deleteDocumentCategory,
-} from '@/features/documents/documents.actions';
+    useDeleteDocumentCategory,
+    useDocumentCategoriesPaged,
+    useDocumentCategoryStats,
+    useUpdateDocumentCategory,
+} from '@/features/documents/hooks/useDocumentCategories';
 import {
     DocumentCategory,
     DocumentCategoryAppliedTo,
-    DocumentCategoryStats,
     DocumentCategoryFilterInput,
+    DocumentCategorySortBy,
+    DocumentCategorySortOrder,
 } from '@/features/documents/documents.types';
+import { usePermissions } from '@/features/auth/hooks/usePermissions';
+import ConfirmationModal from '@/components/dashboard/shared/ConfirmationModal';
+import { useToast } from '@/hooks/use-toast';
 
-type CategoryFilterForm = {
-    status: string;
-    appliedTo: string;
-    required: string;
-    expiryRequired: string;
+const defaultFilters: DocumentCategoryFilterInput = {};
+
+const mapColumnToSortBy = (column: string): DocumentCategorySortBy | null => {
+    if (column === 'categoryName') return DocumentCategorySortBy.NAME;
+    if (column === 'type') return DocumentCategorySortBy.TYPE;
+    if (column === 'required') return DocumentCategorySortBy.REQUIRED;
+    if (column === 'expiryDateRequired') return DocumentCategorySortBy.EXPIRY_REQUIRED;
+    if (column === 'appliedTo') return DocumentCategorySortBy.APPLIED_TO;
+    if (column === 'status') return DocumentCategorySortBy.STATUS;
+    return null;
+};
+
+const resolveDeleteCategoryError = (
+    t: (key: string, options?: { ns?: string }) => string,
+    error?: string,
+    code?: string,
+): string => {
+    const token = code || error || '';
+    if (token === 'DOCUMENT_CATEGORY_IN_USE' || token === 'FOREIGN_KEY_VIOLATION') {
+        return t('documentCategories.deleteInUseError', { ns: 'document' });
+    }
+    if (error && !/^[A-Z0-9_]{3,}$/.test(error)) {
+        return error;
+    }
+    return t('documentCategories.deleteErrorDesc', { ns: 'document' });
 };
 
 const DocumentCategoriesPage = () => {
     const { t } = useTranslation(['dashboard', 'document']);
+    const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+    const canCreateCategory = hasPermission('document_categories:create');
+    const canUpdateCategory = hasPermission('document_categories:update');
+    const canDeleteCategory = hasPermission('document_categories:delete');
     const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
-    const [searchValue, setSearchValue] = useState("");
+    const [searchValue, setSearchValue] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-    const [categories, setCategories] = useState<DocumentCategory[]>([]);
-    const [totalItems, setTotalItems] = useState(0);
-    const [stats, setStats] = useState<DocumentCategoryStats>({
+    const [showFilters, setShowFilters] = useState(false);
+    const [activeFilters, setActiveFilters] = useState<DocumentCategoryFilterInput>(defaultFilters);
+    const [sortColumn, setSortColumn] = useState<string>('categoryName');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [editingCategory, setEditingCategory] = useState<DocumentCategory | null>(null);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [categoryToDelete, setCategoryToDelete] = useState<DocumentCategory | null>(null);
+
+    const updateCategoryMutation = useUpdateDocumentCategory();
+    const deleteCategoryMutation = useDeleteDocumentCategory();
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchValue.trim());
+            setCurrentPage(1);
+        }, 350);
+
+        return () => clearTimeout(timer);
+    }, [searchValue]);
+
+    const effectiveFilter = useMemo(
+        () => ({
+            ...activeFilters,
+            search: debouncedSearch || undefined,
+            sortBy: mapColumnToSortBy(sortColumn) ?? DocumentCategorySortBy.NAME,
+            sortOrder: (sortDirection === 'asc' ? 'ASC' : 'DESC') as DocumentCategorySortOrder,
+        }),
+        [activeFilters, debouncedSearch, sortColumn, sortDirection],
+    );
+
+    const listParams = useMemo(
+        () => ({
+            page: currentPage,
+            size: pageSize,
+            filter: effectiveFilter,
+        }),
+        [currentPage, pageSize, effectiveFilter],
+    );
+
+    const statsQuery = useDocumentCategoryStats();
+    const listQuery = useDocumentCategoriesPaged(listParams);
+
+    const categories = useMemo(() => listQuery.data?.data ?? [], [listQuery.data?.data]);
+    const totalItems = listQuery.data?.metaData.total ?? 0;
+    const totalPages = listQuery.data?.metaData.totalPages ?? 0;
+    const stats = statsQuery.data ?? {
         total: 0,
         required: 0,
         expiryRequired: 0,
         active: 0,
-    });
-    const [isLoading, setIsLoading] = useState(true);
-    const [filtersOpen, setFiltersOpen] = useState(false);
-    const [filterStatus, setFilterStatus] = useState('');
-    const [filterAppliedTo, setFilterAppliedTo] = useState<DocumentCategoryAppliedTo | ''>('');
-    const [filterRequired, setFilterRequired] = useState<string>('');
-    const [filterExpiryRequired, setFilterExpiryRequired] = useState<string>('');
-    const [editingCategory, setEditingCategory] = useState<DocumentCategory | null>(null);
-    const filterForm = useForm<CategoryFilterForm>({
-        defaultValues: {
-            status: '__all__',
-            appliedTo: '__all__',
-            required: '__all__',
-            expiryRequired: '__all__',
-        },
-    });
+    };
 
-    const allStatusValue = '__all__';
-    const allAppliedToValue = '__all__';
-    const allRequiredValue = '__all__';
-    const allExpiryValue = '__all__';
+    const activeFilterCount = useMemo(
+        () =>
+            Object.entries(activeFilters).filter(
+                ([key, value]) => key !== 'search' && value !== undefined && value !== '',
+            ).length,
+        [activeFilters],
+    );
 
     const columns: ColumnConfig<any>[] = [
         {
@@ -119,82 +181,19 @@ const DocumentCategoriesPage = () => {
         }
     ];
 
-    const renderRowActions = (item: { id: string }) => (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                    <MoreVertical className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem
-                    className="gap-2 cursor-pointer"
-                    onClick={() => {
-                        const category = categories.find((entry) => entry.id === item.id);
-                        if (!category) {
-                            return;
-                        }
-                        setEditingCategory(category);
-                        setIsAddSheetOpen(true);
-                    }}
-                >
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                    <span>{t('documentCategories.actions.view', { ns: 'document' })}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    className="gap-2 cursor-pointer"
-                    onClick={() => {
-                        const category = categories.find((entry) => entry.id === item.id);
-                        if (!category) {
-                            return;
-                        }
-                        setEditingCategory(category);
-                        setIsAddSheetOpen(true);
-                    }}
-                >
-                    <Edit className="h-4 w-4 text-muted-foreground" />
-                    <span>{t('documentCategories.actions.edit', { ns: 'document' })}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    className="gap-2 cursor-pointer"
-                    onClick={async () => {
-                        const category = categories.find((entry) => entry.id === item.id);
-                        if (!category) {
-                            return;
-                        }
-                        const nextStatus = category.status === 'active' ? 'inactive' : 'active';
-                        const result = await updateDocumentCategory(category.id, { status: nextStatus });
-                        if (!result.success) {
-                            console.error(result.error);
-                            return;
-                        }
-                        await loadCategories();
-                    }}
-                >
-                    <RotateCcw className="h-4 w-4 text-muted-foreground" />
-                    <span>{t('documentCategories.actions.changeStatus', { ns: 'document' })}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    className="gap-2 cursor-pointer text-destructive focus:text-destructive"
-                    onClick={async () => {
-                        const confirmed = window.confirm(t('documentCategories.actions.confirmDelete', { ns: 'document' }));
-                        if (!confirmed) {
-                            return;
-                        }
-                        const result = await deleteDocumentCategory(item.id);
-                        if (!result.success) {
-                            console.error(result.error);
-                            return;
-                        }
-                        await loadCategories();
-                    }}
-                >
-                    <Trash2 className="h-4 w-4" />
-                    <span>{t('documentCategories.actions.delete', { ns: 'document' })}</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
+    const typeLabel = useCallback((value?: string | null) => {
+        const normalized = (value ?? '').trim().toLowerCase();
+        if (normalized === 'employment') {
+            return t('addCategorySheet.typeOptions.employment', { ns: 'document' });
+        }
+        if (normalized === 'educational') {
+            return t('addCategorySheet.typeOptions.educational', { ns: 'document' });
+        }
+        if (normalized === 'identification') {
+            return t('addCategorySheet.typeOptions.identification', { ns: 'document' });
+        }
+        return value ?? '-';
+    }, [t]);
 
     const appliedToLabel = useCallback((value: DocumentCategoryAppliedTo) => {
         switch (value) {
@@ -213,7 +212,7 @@ const DocumentCategoriesPage = () => {
             categories.map((category) => ({
                 id: category.id,
                 categoryName: category.name,
-                type: category.type ?? '-',
+                type: typeLabel(category.type),
                 required: category.required
                     ? t('documentCategories.filters.yes', { ns: 'document' })
                     : t('documentCategories.filters.no', { ns: 'document' }),
@@ -223,71 +222,159 @@ const DocumentCategoriesPage = () => {
                 appliedTo: appliedToLabel(category.appliedTo),
                 status: category.status,
             })),
-        [categories, t, appliedToLabel],
+        [categories, t, appliedToLabel, typeLabel],
     );
 
-    const buildFilters = useCallback((): DocumentCategoryFilterInput | undefined => {
-        const trimmedSearch = searchValue.trim();
-        const filter: DocumentCategoryFilterInput = {
-            ...(trimmedSearch ? { search: trimmedSearch } : {}),
-            ...(filterStatus ? { status: filterStatus } : {}),
-            ...(filterAppliedTo ? { appliedTo: filterAppliedTo } : {}),
-            ...(filterRequired ? { required: filterRequired === 'true' } : {}),
-            ...(filterExpiryRequired ? { expiryRequired: filterExpiryRequired === 'true' } : {}),
-        };
-        return Object.keys(filter).length ? filter : undefined;
-    }, [searchValue, filterStatus, filterAppliedTo, filterRequired, filterExpiryRequired]);
-
-    const loadCategories = useCallback(async () => {
-        setIsLoading(true);
-        const offset = Math.max(0, (currentPage - 1) * pageSize);
-        const filter = buildFilters();
-        const result = await fetchDocumentCategoriesPaged({
-            limit: pageSize,
-            offset,
-            filter,
-        });
-        setCategories(result.data || []);
-        setTotalItems(result.pagination?.total ?? 0);
-        setIsLoading(false);
-    }, [buildFilters, currentPage, pageSize]);
-
-    useEffect(() => {
-        let isMounted = true;
-        const load = async () => {
-            const [statusResult] = await Promise.all([
-                fetchDocumentCategoryStatus(),
-            ]);
-            if (!isMounted) {
-                return;
-            }
-            setStats(statusResult);
-        };
-        load();
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
-    useEffect(() => {
-        loadCategories();
-    }, [loadCategories]);
-
-    const refreshCategories = async () => {
-        await Promise.all([loadCategories(), fetchDocumentCategoryStatus().then(setStats)]);
+    const handleStatusChange = (category: DocumentCategory) => {
+        const nextStatus = category.status === 'active' ? 'inactive' : 'active';
+        updateCategoryMutation.mutate(
+            {
+                id: category.id,
+                input: { status: nextStatus },
+                listParams,
+                previous: category,
+            },
+            {
+                onSuccess: () => {
+                    toast({
+                        title: t('documentCategories.statusUpdateSuccess', { ns: 'document' }),
+                        description: t('documentCategories.statusUpdateSuccessDesc', {
+                            ns: 'document',
+                            name: category.name,
+                            status: t(`documentCategories.status.${nextStatus}`, { ns: 'document' }),
+                        }),
+                    });
+                },
+                onError: (error) => {
+                    toast({
+                        title: t('documentCategories.statusUpdateError', { ns: 'document' }),
+                        description: error.message,
+                        variant: 'destructive',
+                    });
+                },
+            },
+        );
     };
 
-    const clearFilters = () => {
-        setFilterStatus('');
-        setFilterAppliedTo('');
-        setFilterRequired('');
-        setFilterExpiryRequired('');
-        filterForm.setValue('status', allStatusValue);
-        filterForm.setValue('appliedTo', allAppliedToValue);
-        filterForm.setValue('required', allRequiredValue);
-        filterForm.setValue('expiryRequired', allExpiryValue);
+    const handleApplyFilters = (filters: DocumentCategoryFilterInput) => {
+        setActiveFilters(filters);
         setCurrentPage(1);
     };
+
+    const handleResetFilters = () => {
+        setSearchValue('');
+        setDebouncedSearch('');
+        setActiveFilters(defaultFilters);
+        setCurrentPage(1);
+    };
+
+    const handleSort = (column: string) => {
+        if (!mapColumnToSortBy(column)) {
+            return;
+        }
+        if (sortColumn === column) {
+            setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+        setCurrentPage(1);
+    };
+
+    const handleDeleteClick = (category: DocumentCategory) => {
+        setCategoryToDelete(category);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!categoryToDelete?.id) {
+            return;
+        }
+
+        deleteCategoryMutation.mutate(
+            {
+                id: categoryToDelete.id,
+                deleted: categoryToDelete,
+                listParams,
+            },
+            {
+                onSuccess: () => {
+                    setIsDeleteModalOpen(false);
+                    setCategoryToDelete(null);
+                    toast({
+                        title: t('documentCategories.deleteSuccess', { ns: 'document' }),
+                        description: t('documentCategories.deleteSuccessDesc', { ns: 'document' }),
+                        variant: 'success',
+                    });
+                },
+                onError: (error) => {
+                    toast({
+                        title: t('documentCategories.deleteError', { ns: 'document' }),
+                        description: resolveDeleteCategoryError(t, error.message),
+                        variant: 'destructive',
+                    });
+                },
+            },
+        );
+    };
+
+    const renderRowActions = (item: { id: string }) => (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                    <MoreVertical className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+                {canUpdateCategory && (
+                    <DropdownMenuItem
+                        className="gap-2 cursor-pointer"
+                        onClick={() => {
+                            const category = categories.find((entry) => entry.id === item.id);
+                            if (!category) {
+                                return;
+                            }
+                            setEditingCategory(category);
+                            setIsAddSheetOpen(true);
+                        }}
+                    >
+                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                        <span>{t('documentCategories.actions.edit', { ns: 'document' })}</span>
+                    </DropdownMenuItem>
+                )}
+                {canUpdateCategory && (
+                    <DropdownMenuItem
+                        className="gap-2 cursor-pointer"
+                        onClick={() => {
+                            const category = categories.find((entry) => entry.id === item.id);
+                            if (!category) {
+                                return;
+                            }
+                            handleStatusChange(category);
+                        }}
+                    >
+                    <RotateCcw className="h-4 w-4 text-muted-foreground" />
+                    <span>{t('documentCategories.actions.changeStatus', { ns: 'document' })}</span>
+                    </DropdownMenuItem>
+                )}
+                {canDeleteCategory && (
+                    <DropdownMenuItem
+                        className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                        onClick={() => {
+                            const category = categories.find((entry) => entry.id === item.id);
+                            if (!category) {
+                                return;
+                            }
+                            handleDeleteClick(category);
+                        }}
+                    >
+                    <Trash2 className="h-4 w-4" />
+                    <span>{t('documentCategories.actions.delete', { ns: 'document' })}</span>
+                    </DropdownMenuItem>
+                )}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
 
     return (
         <div className="flex flex-col gap-8 w-full animate-in fade-in duration-500">
@@ -300,45 +387,67 @@ const DocumentCategoriesPage = () => {
                         setEditingCategory(null);
                     }
                 }}
-                onCreated={refreshCategories}
+                listParams={listParams}
                 category={editingCategory}
                 mode={editingCategory ? 'edit' : 'create'}
+            />
+
+            <ConfirmationModal
+                open={isDeleteModalOpen}
+                onOpenChange={(open) => {
+                    setIsDeleteModalOpen(open);
+                    if (!open) {
+                        setCategoryToDelete(null);
+                    }
+                }}
+                title={t('documentCategories.deleteConfirmTitle', { ns: 'document' })}
+                message={t('documentCategories.deleteConfirmMessage', {
+                    ns: 'document',
+                    name: categoryToDelete?.name ?? '',
+                })}
+                confirmLabel={t('documentCategories.actions.delete', { ns: 'document' })}
+                onConfirm={handleConfirmDelete}
+                isLoading={deleteCategoryMutation.isPending}
             />
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h1 className="text-2xl text-foreground font-bold leading-8 tracking-tight">
                     {t('documentData.documentCategories.title')}
                 </h1>
-                <Button
-                    onClick={() => setIsAddSheetOpen(true)}
-                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 h-9 rounded-lg transition-all active:scale-95"
-                >
-                    <Plus className="h-4 w-4" />
-                    <span>{t('documentData.documentCategories.addCategory')}</span>
-                </Button>
+                {canCreateCategory && (
+                    <Button
+                        onClick={() => setIsAddSheetOpen(true)}
+                        className="flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-white transition-all hover:bg-primary/90 active:scale-95 sm:w-auto"
+                    >
+                        <Plus className="h-4 w-4" />
+                        <span className="truncate">{t('documentData.documentCategories.addCategory')}</span>
+                    </Button>
+                )}
             </div>
 
-            <SummaryStatList
-                stats={categoryStats.map((stat) => ({
-                    title: t(`documentData.documentCategories.stats.${
-                        stat.title === 'Total categories' ? 'total' : 
-                        stat.title === 'Required categories' ? 'required' : 
-                        stat.title === 'Expiry date required' ? 'expiryRequired' : 'active'
-                    }`),
-                    value:
-                        stat.title === 'Total categories'
-                            ? stats.total
-                            : stat.title === 'Required categories'
-                              ? stats.required
-                              : stat.title === 'Expiry date required'
-                                ? stats.expiryRequired
-                                : stats.active,
-                    icon: stat.icon,
-                    iconBgColor: stat.bgColor,
-                    iconColor: stat.color,
-                    borderColor: stat.borderColor,
-                }))}
-            />
+            {statsQuery.isLoading ? (
+                <SummaryStatListSkeleton count={4} />
+            ) : (
+                <SummaryStatList
+                    stats={categoryStats.map((stat) => {
+                        const values: Record<string, number> = {
+                            total: stats.total,
+                            required: stats.required,
+                            expiryRequired: stats.expiryRequired,
+                            active: stats.active,
+                        };
+
+                        return {
+                            title: t(`documentData.documentCategories.stats.${stat.key}`),
+                            value: values[stat.key] ?? 0,
+                            icon: stat.icon,
+                            iconBgColor: stat.bgColor,
+                            iconColor: stat.color,
+                            borderColor: stat.borderColor,
+                        };
+                    })}
+                />
+            )}
 
             <div className="w-full">
                 <UniversalDataTable
@@ -346,115 +455,46 @@ const DocumentCategoriesPage = () => {
                     columns={columns}
                     enableSelection
                     searchValue={searchValue}
-                    onSearchChange={(value) => {
-                        setSearchValue(value);
-                        setCurrentPage(1);
-                    }}
+                    onSearchChange={setSearchValue}
                     searchPlaceholder={t('documentCategories.filters.searchPlaceholder', { ns: 'document' })}
-                    showFilter
-                    onFilterClick={() => setFiltersOpen((prev) => !prev)}
-                    renderFilterPanel={
-                        filtersOpen ? (
-                            <div className="rounded-[8px] border border-border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                    <div className="flex flex-col gap-2">
-                                        <FormSelect
-                                            id="category-filter-status"
-                                            label={t('documentCategories.filters.status', { ns: 'document' })}
-                                            placeholder={t('documentCategories.filters.allStatuses', { ns: 'document' })}
-                                            control={filterForm.control}
-                                            name="status"
-                                            options={[
-                                                { label: t('documentCategories.filters.allStatuses', { ns: 'document' }), value: allStatusValue },
-                                                { label: t('documentCategories.status.active', { ns: 'document' }), value: 'active' },
-                                                { label: t('documentCategories.status.inactive', { ns: 'document' }), value: 'inactive' },
-                                            ]}
-                                            t={t}
-                                            onChange={(value) => {
-                                                setFilterStatus(value === allStatusValue ? '' : value);
-                                                setCurrentPage(1);
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <FormSelect
-                                            id="category-filter-applied-to"
-                                            label={t('documentCategories.filters.appliedTo', { ns: 'document' })}
-                                            placeholder={t('documentCategories.appliedTo.allEmployees', { ns: 'document' })}
-                                            control={filterForm.control}
-                                            name="appliedTo"
-                                            options={[
-                                                { label: t('documentCategories.appliedTo.allEmployees', { ns: 'document' }), value: allAppliedToValue },
-                                                { label: t('documentCategories.appliedTo.allEmployees', { ns: 'document' }), value: DocumentCategoryAppliedTo.ALL_EMPLOYEES },
-                                                { label: t('documentCategories.appliedTo.departmentSpecific', { ns: 'document' }), value: DocumentCategoryAppliedTo.DEPARTMENT_SPECIFIC },
-                                                { label: t('documentCategories.appliedTo.foreignEmployees', { ns: 'document' }), value: DocumentCategoryAppliedTo.FOREIGN_EMPLOYEE },
-                                            ]}
-                                            t={t}
-                                            onChange={(value) => {
-                                                setFilterAppliedTo(
-                                                    value === allAppliedToValue
-                                                        ? ''
-                                                        : (value as DocumentCategoryAppliedTo),
-                                                );
-                                                setCurrentPage(1);
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <FormSelect
-                                            id="category-filter-required"
-                                            label={t('documentCategories.filters.required', { ns: 'document' })}
-                                            placeholder={t('common.all', { ns: 'document' })}
-                                            control={filterForm.control}
-                                            name="required"
-                                            options={[
-                                                { label: t('common.all', { ns: 'document' }), value: allRequiredValue },
-                                                { label: t('documentCategories.filters.yes', { ns: 'document' }), value: 'true' },
-                                                { label: t('documentCategories.filters.no', { ns: 'document' }), value: 'false' },
-                                            ]}
-                                            t={t}
-                                            onChange={(value) => {
-                                                setFilterRequired(value === allRequiredValue ? '' : value);
-                                                setCurrentPage(1);
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <FormSelect
-                                            id="category-filter-expiry"
-                                            label={t('documentCategories.filters.expiryRequired', { ns: 'document' })}
-                                            placeholder={t('common.all', { ns: 'document' })}
-                                            control={filterForm.control}
-                                            name="expiryRequired"
-                                            options={[
-                                                { label: t('common.all', { ns: 'document' }), value: allExpiryValue },
-                                                { label: t('documentCategories.filters.yes', { ns: 'document' }), value: 'true' },
-                                                { label: t('documentCategories.filters.no', { ns: 'document' }), value: 'false' },
-                                            ]}
-                                            t={t}
-                                            onChange={(value) => {
-                                                setFilterExpiryRequired(value === allExpiryValue ? '' : value);
-                                                setCurrentPage(1);
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="flex items-end">
-                                        <Button variant="outline" className="h-10" onClick={clearFilters}>
-                                            {t('common.clearFilters', { ns: 'document' })}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : null
-                    }
+                    renderCustomFilter={(
+                        <Button
+                            variant="outline"
+                            size="default"
+                            className={cn('h-10 gap-2 border-input', showFilters && 'bg-black/5 dark:bg-white/5')}
+                            onClick={() => setShowFilters((prev) => !prev)}
+                        >
+                            <ListFilter className="h-4 w-4" />
+                            <span>{t('attendance.filter', { ns: 'dashboard', defaultValue: 'Filter' })}</span>
+                            {activeFilterCount > 0 ? (
+                                <span className="ml-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-white font-semibold">
+                                    {activeFilterCount}
+                                </span>
+                            ) : null}
+                        </Button>
+                    )}
+                    renderFilterPanel={(
+                        <DocumentCategoryFilterSection
+                            isVisible={showFilters}
+                            onApply={handleApplyFilters}
+                            onReset={handleResetFilters}
+                            initialFilters={activeFilters}
+                        />
+                    )}
+                    sortColumn={sortColumn}
+                    sortDirection={sortDirection}
+                    onSort={handleSort}
                     currentPage={currentPage}
-                    totalPages={Math.max(1, Math.ceil(totalItems / pageSize))}
+                    totalPages={Math.max(1, totalPages)}
                     pageSize={pageSize}
                     onPageChange={setCurrentPage}
-                    onPageSizeChange={setPageSize}
+                    onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        setCurrentPage(1);
+                    }}
                     renderRowActions={renderRowActions}
                     totalItems={totalItems}
-                    isLoading={isLoading}
+                    isLoading={listQuery.isLoading}
                 />
             </div>
         </div>

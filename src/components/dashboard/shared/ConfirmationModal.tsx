@@ -46,7 +46,6 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             <DialogContent 
                 className="max-w-122 w-[96%] p-0 overflow-hidden bg-card border border-border shadow-2xl rounded-[12px] [&>button]:hidden"
             >
-                {/* Header */}
                 <DialogHeader className="bg-card-header-background h-12.5 px-6 flex flex-row items-center justify-between space-y-0 shrink-0 border-b border-border/50">
                     <DialogTitle className="text-sm font-semibold text-foreground leading-none">
                         {title}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { UniversalDataTable, ColumnConfig } from '@/components/ui/universal-data-table';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -19,12 +19,14 @@ import ConfirmationModal from '@/components/dashboard/shared/ConfirmationModal';
 import { usePermissions } from '@/features/auth/hooks/usePermissions';
 import { usePaginatedAttendanceRecords, useUpdateOvertimeStatus } from '@/features/attendance/hooks/useAttendance';
 import { format } from 'date-fns';
-import { formatMinutesToHr } from '@/lib/date-utils';
+import { formatDateString, formatMinutesToHr } from '@/lib/date-utils';
 import { exportReport } from '@/lib/export-utils';
 import { fetchAllPaginatedAttendance } from '@/lib/fetch-all-paginated-attendance';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const OVERTIME_STATUS_OPTIONS = ['PENDING', 'APPROVED', 'REJECTED', 'PAID'] as const;
 
 const statusVariants: Record<string, string> = {
     APPROVED: 'bg-emerald-50 text-emerald-600 border-emerald-100',
@@ -38,7 +40,8 @@ interface OvertimeTableProps {
 }
 
 const OvertimeTable = ({ dateRange }: OvertimeTableProps) => {
-    const { t } = useTranslation('dashboard');
+    const { t, i18n } = useTranslation('dashboard');
+    const dateLocale = i18n.language === 'ar' ? 'ar-SA' : i18n.language;
     const { toast } = useToast();
     const { hasPermission, hasScope } = usePermissions();
     const isOwnScopeOnly =
@@ -63,25 +66,43 @@ const OvertimeTable = ({ dateRange }: OvertimeTableProps) => {
 
     const { mutate: updateStatus, isPending: isUpdatingStatus } = useUpdateOvertimeStatus();
 
+    const timeUnits = useMemo(
+        () => ({
+            hours: t('attendance.timeUnits.hours', 'h'),
+            minutes: t('attendance.timeUnits.minutes', 'm'),
+        }),
+        [t],
+    );
+
+    const formatDuration = useCallback(
+        (minutes: number) => formatMinutesToHr(minutes, timeUnits),
+        [timeUnits],
+    );
+
+    const getOvertimeStatusLabel = useCallback(
+        (status: string) => t(`attendance.overtimeStatusLabels.${status}`, status),
+        [t],
+    );
+
+    const getShiftTypeLabel = useCallback(
+        (shiftType?: string | null) => {
+            if (!shiftType) return '-';
+            return t(`attendance.shiftTypes.${shiftType}`, shiftType);
+        },
+        [t],
+    );
+
+    const unknownEmployeeLabel = t('attendance.unknownEmployee', 'Unknown');
+
     const dateRangeFromISO = dateRange?.from?.toISOString();
     const dateRangeToISO = dateRange?.to?.toISOString();
 
-    // Reset to page 1 whenever the date range changes
-    useEffect(() => {
+    const dateRangeKey = `${dateRangeFromISO ?? ''}_${dateRangeToISO ?? ''}`;
+    const [lastDateRangeKey, setLastDateRangeKey] = useState(dateRangeKey);
+    if (lastDateRangeKey !== dateRangeKey) {
+        setLastDateRangeKey(dateRangeKey);
         setPage(1);
-    }, [dateRangeFromISO, dateRangeToISO]);
-
-    useEffect(() => {
-        const delayDebounceFn = setTimeout(() => {
-            setActiveFilters((prev) => ({
-                ...prev,
-                search: searchQuery.trim() || undefined,
-            }));
-            setPage(1);
-        }, 400);
-
-        return () => clearTimeout(delayDebounceFn);
-    }, [searchQuery]);
+    }
 
     const activeCount =
         Object.values(activeFilters).filter((v) => v !== undefined && v !== 'all').length +
@@ -144,27 +165,28 @@ const OvertimeTable = ({ dateRange }: OvertimeTableProps) => {
                     {
                         header: t('attendance.employee', 'Employee'),
                         key: 'employeeName',
-                        render: (item: AttendanceRecord) => item.employeeName || 'Unknown',
+                        render: (item: AttendanceRecord) => item.employeeName || unknownEmployeeLabel,
                     },
                     {
                         header: t('attendance.date', 'Date'),
                         key: 'date',
-                        render: (item: AttendanceRecord) => format(new Date(item.date), 'MM/dd/yyyy'),
+                        render: (item: AttendanceRecord) => formatDateString(item.date, dateLocale),
                     },
                     {
                         header: t('attendance.overtimeHours', 'Hours'),
                         key: 'overtimeMinutes',
-                        render: (item: AttendanceRecord) => formatMinutesToHr(item.overtimeMinutes),
+                        render: (item: AttendanceRecord) => formatDuration(item.overtimeMinutes),
                     },
                     {
                         header: t('attendance.shiftType', 'Type'),
                         key: 'shiftType',
-                        render: (item: AttendanceRecord) => item.shiftType || '-',
+                        render: (item: AttendanceRecord) => getShiftTypeLabel(item.shiftType),
                     },
                     {
                         header: t('attendance.status', 'Status'),
                         key: 'overtimeStatus',
-                        render: (item: AttendanceRecord) => item.overtimeStatus || 'PENDING',
+                        render: (item: AttendanceRecord) =>
+                            getOvertimeStatusLabel(item.overtimeStatus || 'PENDING'),
                     },
                 ],
                 data: allRecords,
@@ -173,7 +195,10 @@ const OvertimeTable = ({ dateRange }: OvertimeTableProps) => {
 
             toast({
                 title: t('attendance.exportSuccess', 'Export complete'),
-                description: `Exported ${allRecords.length} overtime records.`,
+                description: t('attendance.exportOvertimeSuccessDesc', {
+                    count: allRecords.length,
+                    defaultValue: `Exported ${allRecords.length} overtime records.`,
+                }),
                 variant: 'success',
             });
         } catch (error: unknown) {
@@ -213,7 +238,7 @@ const OvertimeTable = ({ dateRange }: OvertimeTableProps) => {
             onClick={() => setShowFilters((v) => !v)}
         >
             <ListFilter className="h-4 w-4" />
-            <span>Filter</span>
+            <span>{t('attendance.filter', 'Filter')}</span>
             {activeCount > 0 && (
                 <span className="ml-1 flex size-4 items-center justify-center rounded-full bg-brand-600 text-[10px] text-white font-semibold">
                     {activeCount}
@@ -236,7 +261,6 @@ const OvertimeTable = ({ dateRange }: OvertimeTableProps) => {
         const canApprove = hasPermission('overtime:approve');
         const canCreate = hasPermission('overtime:create');
 
-        // Show actions if user can approve (manage) or is the one who created it (simplified check for now)
         if (!canApprove && !canCreate) return null;
 
         return (
@@ -248,21 +272,21 @@ const OvertimeTable = ({ dateRange }: OvertimeTableProps) => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44 rounded-xl shadow-lg">
                     <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => console.log('View', item.id)}>
-                        <Eye className="h-4 w-4 text-muted-foreground" /><span>View</span>
+                        <Eye className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.actions.view', 'View')}</span>
                     </DropdownMenuItem>
                     {canApprove && (
                         <>
                             <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => console.log('Edit', item.id)}>
-                                <Pencil className="h-4 w-4 text-muted-foreground" /><span>Edit</span>
+                                <Pencil className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.actions.edit', 'Edit')}</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => handleChangeStatusClick(item)}>
-                                <RefreshCw className="h-4 w-4 text-muted-foreground" /><span>Change status</span>
+                                <RefreshCw className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.actions.changeStatus', 'Change status')}</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem
                                 className="gap-3 cursor-pointer py-2.5 text-destructive focus:text-destructive"
                                 onClick={() => handleDeleteClick(item)}
                             >
-                                <Trash2 className="h-4 w-4" /><span>Delete</span>
+                                <Trash2 className="h-4 w-4" /><span>{t('attendance.actions.delete', 'Delete')}</span>
                             </DropdownMenuItem>
                         </>
                     )}
@@ -271,64 +295,74 @@ const OvertimeTable = ({ dateRange }: OvertimeTableProps) => {
         );
     };
 
-    const columns: ColumnConfig<AttendanceRecord>[] = [
+    const columns: ColumnConfig<AttendanceRecord>[] = useMemo(() => [
         {
             key: 'employeeName',
-            label: 'Employee',
+            label: t('attendance.employee', 'Employee'),
             render: (item) => (
                 <div className="flex items-center gap-3">
                     <div className="size-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold uppercase shrink-0">
                         {item.employeeName?.charAt(0) || '?'}
                     </div>
-                    <span className="font-medium">{item.employeeName || 'Unknown'}</span>
+                    <span className="font-medium">{item.employeeName || unknownEmployeeLabel}</span>
                 </div>
             ),
         },
-        { 
-            key: 'date', 
-            label: 'Date',
-            render: (item) => format(new Date(item.date), 'MM/dd/yyyy')
+        {
+            key: 'date',
+            label: t('attendance.date', 'Date'),
+            render: (item) => formatDateString(item.date, dateLocale),
         },
-        { 
-            key: 'overtimeMinutes', 
-            label: 'Hours',
-            render: (item) => formatMinutesToHr(item.overtimeMinutes)
+        {
+            key: 'overtimeMinutes',
+            label: t('attendance.overtimeHours', 'Hours'),
+            render: (item) => formatDuration(item.overtimeMinutes),
         },
-        { 
-            key: 'shiftType', 
-            label: 'Type',
-            render: (item) => item.shiftType || '-'
+        {
+            key: 'shiftType',
+            label: t('attendance.shiftType', 'Type'),
+            render: (item) => getShiftTypeLabel(item.shiftType),
         },
         {
             key: 'status',
-            label: 'Status',
-            render: (item) => (
-                <Badge
-                    variant="outline"
-                    className={cn(
-                        'rounded-full font-medium px-2.5 py-0.5 whitespace-nowrap',
-                        statusVariants[item.overtimeStatus || 'PENDING'] || statusVariants['PENDING']
-                    )}
-                >
-                    <div className="size-1.5 rounded-full mr-1.5 bg-current" />
-                    {item.overtimeStatus || 'PENDING'}
-                </Badge>
-            ),
+            label: t('attendance.status', 'Status'),
+            render: (item) => {
+                const status = item.overtimeStatus || 'PENDING';
+                return (
+                    <Badge
+                        variant="outline"
+                        className={cn(
+                            'rounded-full font-medium px-2.5 py-0.5 whitespace-nowrap',
+                            statusVariants[status] || statusVariants['PENDING']
+                        )}
+                    >
+                        <div className="size-1.5 rounded-full me-1.5 bg-current" />
+                        {getOvertimeStatusLabel(status)}
+                    </Badge>
+                );
+            },
         },
-    ];
+    ], [t, dateLocale, formatDuration, getOvertimeStatusLabel, getShiftTypeLabel, unknownEmployeeLabel]);
 
     return (
         <div className="flex flex-col gap-4">
             <UniversalDataTable
                 data={records}
-                columns={columns}
+                columns={isOwnScopeOnly ? columns.filter((c) => c.key !== 'employeeName') : columns}
                 enableSelection
                 selectedIds={selectedIds}
                 onSelectionChange={setSelectedIds}
                 showSearch={!isOwnScopeOnly}
                 searchValue={searchQuery}
-                onSearchChange={setSearchQuery}
-                searchPlaceholder="Search for employees"
+                onSearchChange={(value) => {
+                    setSearchQuery(value);
+                    setActiveFilters((prev) => ({
+                        ...prev,
+                        search: value.trim() || undefined,
+                    }));
+                    setPage(1);
+                }}
+                searchPlaceholder={t('attendance.searchPlaceholder')}
                 renderCustomFilter={isOwnScopeOnly ? undefined : filterButton}
                 renderFilterPanel={isOwnScopeOnly ? undefined : filterPanel}
                 showExport={canExport}
@@ -350,7 +384,9 @@ const OvertimeTable = ({ dateRange }: OvertimeTableProps) => {
                 open={isDeleteModalOpen}
                 onOpenChange={setIsDeleteModalOpen}
                 title={t('attendance.deleteOvertimeTitle', 'Delete Overtime Record')}
-                message={t('attendance.deleteOvertimeMessage', { name: recordToDelete?.employeeName || 'Unknown' })}
+                message={t('attendance.deleteOvertimeMessage', {
+                    name: recordToDelete?.employeeName || unknownEmployeeLabel,
+                })}
                 onConfirm={handleConfirmDelete}
                 confirmLabel={t('attendance.delete', 'Delete')}
                 cancelLabel={t('attendance.cancel', 'Cancel')}
@@ -360,27 +396,30 @@ const OvertimeTable = ({ dateRange }: OvertimeTableProps) => {
             <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
                 <DialogContent className="sm:max-w-106.25">
                     <DialogHeader>
-                        <DialogTitle>Change Overtime Status</DialogTitle>
+                        <DialogTitle>{t('attendance.changeOvertimeStatusTitle', 'Change overtime status')}</DialogTitle>
                     </DialogHeader>
                     <div className="py-4">
                         <Select value={newStatus} onValueChange={setNewStatus}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a status" />
+                                <SelectValue placeholder={t('attendance.selectStatus', 'Select a status')} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="PENDING">Pending</SelectItem>
-                                <SelectItem value="APPROVED">Approved</SelectItem>
-                                <SelectItem value="REJECTED">Rejected</SelectItem>
-                                <SelectItem value="PAID">Paid</SelectItem>
+                                {OVERTIME_STATUS_OPTIONS.map((status) => (
+                                    <SelectItem key={status} value={status}>
+                                        {getOvertimeStatusLabel(status)}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsStatusModalOpen(false)}>
-                            Cancel
+                            {t('attendance.cancel', 'Cancel')}
                         </Button>
                         <Button onClick={handleConfirmStatusChange} disabled={isUpdatingStatus}>
-                            {isUpdatingStatus ? 'Updating...' : 'Save changes'}
+                            {isUpdatingStatus
+                                ? t('attendance.saving', 'Saving...')
+                                : t('attendance.saveChanges', 'Save changes')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

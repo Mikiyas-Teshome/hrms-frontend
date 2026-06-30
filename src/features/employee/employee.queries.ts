@@ -8,7 +8,10 @@ export const EMPLOYEE_FIELDS_FRAGMENT = `
     currency
     dateOfBirth
     departmentId
+    companyOuId
     email
+    emergencyContactName
+    emergencyContactPhone
     emergencyContactRelationship
     employeeNumber
     employmentType
@@ -23,6 +26,7 @@ export const EMPLOYEE_FIELDS_FRAGMENT = `
     homeState
     id
     userId
+    avatarUrl
     activeEmployeeContractId
     jobTitle
     lastName
@@ -37,6 +41,69 @@ export const EMPLOYEE_FIELDS_FRAGMENT = `
     postalCode
     previousCompanyId
     previousEmployeeId
+    payrollContractStatus
+    salary
+    state
+    status
+    terminationDate
+    transferDate
+    updatedAt
+    visaExpiry
+    visaNumber
+    workPermitExpiry
+    workPermitNumber
+    orgUnit {
+      orgUnitId
+      orgUnitName
+    }
+    roleName
+  }
+`;
+
+export const MY_EMPLOYEE_PROFILE_FIELDS_FRAGMENT = `
+  fragment MyEmployeeProfileFields on EmployeeResponse {
+    address
+    businessEmail
+    city
+    country
+    createdAt
+    currency
+    dateOfBirth
+    departmentId
+    companyOuId
+    email
+    emergencyContactName
+    emergencyContactPhone
+    emergencyContactRelationship
+    employeeNumber
+    employmentType
+    firstName
+    gender
+    hireDate
+    homeAddress
+    homeCity
+    homeCountry
+    homePhone
+    homePostalCode
+    homeState
+    id
+    userId
+    avatarUrl
+    activeEmployeeContractId
+    jobTitle
+    lastName
+    managerId
+    middleName
+    nationalId
+    nationality
+    passportExpiry
+    passportNumber
+    personalEmail
+    phoneNumber
+    postalCode
+    previousCompanyId
+    previousEmployeeId
+    payrollContractStatus
     salary
     state
     status
@@ -66,10 +133,10 @@ export const CREATE_EMPLOYEE_MUTATION = `
 export const UPDATE_MY_EMPLOYEE_PROFILE_MUTATION = `
   mutation UpdateMyEmployeeProfile($input: UpdateMyEmployeeProfileInput!) {
     updateMyEmployeeProfile(input: $input) {
-      ...EmployeeFields
+      ...MyEmployeeProfileFields
     }
   }
-  ${EMPLOYEE_FIELDS_FRAGMENT}
+  ${MY_EMPLOYEE_PROFILE_FIELDS_FRAGMENT}
 `;
 
 export const UPDATE_EMPLOYEE_MUTATION = `
@@ -140,10 +207,10 @@ export const GET_EMPLOYEE_DIRECTORY_QUERY = `
 export const GET_MY_EMPLOYEE_PROFILE_QUERY = `
   query GetMyEmployeeProfile {
     myEmployeeProfile {
-      ...EmployeeFields
+      ...MyEmployeeProfileFields
     }
   }
-  ${EMPLOYEE_FIELDS_FRAGMENT}
+  ${MY_EMPLOYEE_PROFILE_FIELDS_FRAGMENT}
 `;
 
 export const INITIATE_TRANSFER_MUTATION = `

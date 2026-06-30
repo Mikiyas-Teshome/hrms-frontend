@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { CirclePlus, Loader2, X, ImageIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { uploadLogo } from '@/features/documents/documents.actions';
+import { useSecureMediaUrl } from '@/features/documents/hooks/useSecureMediaUrl';
 
 interface UploadBoxProps {
     onUploadSuccess?: (url: string) => void;
@@ -30,31 +31,35 @@ export function UploadBox({
 }: UploadBoxProps) {
     const { t } = useTranslation('companyProfile');
     const inputRef = useRef<HTMLInputElement>(null);
-    const ownedBlobUrlRef = useRef<string | null>(null);
 
-    const [preview, setPreview] = useState<string | null>(initialUrl ?? null);
-    const [fileName, setFileName] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectionBaseUrl, setSelectionBaseUrl] = useState<string | null>(initialUrl ?? null);
     const [isUploadingInternal, setIsUploadingInternal] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const isUploading = isUploadingExternal || isUploadingInternal;
 
-    const revokeOwnedBlob = () => {
-        if (ownedBlobUrlRef.current) {
-            URL.revokeObjectURL(ownedBlobUrlRef.current);
-            ownedBlobUrlRef.current = null;
-        }
-    };
+    const normalizedInitialUrl = initialUrl ?? null;
+    const { resolvedUrl: secureInitialUrl, isLoading: isSecureInitialLoading } =
+        useSecureMediaUrl(normalizedInitialUrl);
+    const isSelectionStale =
+        selectedFile !== null && selectionBaseUrl !== normalizedInitialUrl;
+    const effectiveFile = isSelectionStale ? null : selectedFile;
+    const fileName = effectiveFile?.name ?? null;
+    const objectUrl = useMemo(
+        () => (effectiveFile ? URL.createObjectURL(effectiveFile) : null),
+        [effectiveFile],
+    );
+    const preview = objectUrl ?? secureInitialUrl;
+    const isCircular = Boolean(className?.includes('rounded-full'));
 
     useEffect(() => {
-        revokeOwnedBlob();
-        setPreview(initialUrl ?? null);
-        if (!initialUrl) {
-            setFileName(null);
-        }
-    }, [initialUrl]);
-
-    useEffect(() => () => revokeOwnedBlob(), []);
+        return () => {
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
+        };
+    }, [objectUrl]);
 
     const triggerPicker = () => {
         if (!isUploading) inputRef.current?.click();
@@ -62,9 +67,8 @@ export function UploadBox({
 
     const clearSelection = (e: React.MouseEvent) => {
         e.stopPropagation();
-        revokeOwnedBlob();
-        setPreview(null);
-        setFileName(null);
+        setSelectionBaseUrl(normalizedInitialUrl);
+        setSelectedFile(null);
         setError(null);
         if (inputRef.current) inputRef.current.value = '';
         onClear?.();
@@ -91,11 +95,8 @@ export function UploadBox({
             return;
         }
 
-        revokeOwnedBlob();
-        const objectUrl = URL.createObjectURL(file);
-        ownedBlobUrlRef.current = objectUrl;
-        setPreview(objectUrl);
-        setFileName(file.name);
+        setSelectionBaseUrl(normalizedInitialUrl);
+        setSelectedFile(file);
         setError(null);
 
         if (deferUpload) {
@@ -115,6 +116,8 @@ export function UploadBox({
                 throw new Error(result.error ?? 'Upload failed — no URL returned.');
             }
 
+            setSelectionBaseUrl(result.url);
+            setSelectedFile(null);
             onUploadSuccess?.(result.url);
         } catch (err: unknown) {
             const msg =
@@ -142,7 +145,7 @@ export function UploadBox({
                 onClick={triggerPicker}
                 onKeyDown={(e) => e.key === 'Enter' && triggerPicker()}
                 className={cn(
-                    'relative flex min-h-29.5 w-full cursor-pointer flex-col items-center justify-center gap-3',
+                    'relative flex min-h-29.5 w-full cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden',
                     'rounded-xl border border-dashed border-border bg-background',
                     'transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     isUploading && 'cursor-wait opacity-70 pointer-events-none',
@@ -152,19 +155,33 @@ export function UploadBox({
             >
                 {preview ? (
                     <>
-                        <Image
-                            src={preview}
-                            width={64}
-                            height={64}
-                            alt=""
-                            className="h-16 w-16 rounded-lg object-contain"
-                        />
-                        <p className="max-w-40 truncate text-center text-[11px] text-muted-foreground">
-                            {fileName}
-                        </p>
+                        {isCircular ? (
+                            <Image
+                                src={preview}
+                                alt=""
+                                fill
+                                unoptimized
+                                sizes="200px"
+                                className="rounded-full object-cover"
+                            />
+                        ) : (
+                            <Image
+                                src={preview}
+                                alt=""
+                                width={64}
+                                height={64}
+                                unoptimized
+                                className="h-16 w-16 rounded-lg object-contain"
+                            />
+                        )}
+                        {!isCircular && fileName ? (
+                            <p className="max-w-40 truncate text-center text-[11px] text-muted-foreground">
+                                {fileName}
+                            </p>
+                        ) : null}
 
                         {isUploading && (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-background/80 backdrop-blur-sm">
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-[inherit] bg-background/80 backdrop-blur-sm">
                                 <Loader2 className="size-5 animate-spin text-primary" />
                                 <span className="text-xs font-medium text-primary">Uploading…</span>
                             </div>
@@ -175,17 +192,17 @@ export function UploadBox({
                                 type="button"
                                 onClick={clearSelection}
                                 className={cn(
-                                    'absolute right-2 top-2 flex size-6 items-center justify-center rounded-full',
+                                    'absolute right-2 top-2 z-10 flex size-6 items-center justify-center rounded-full',
                                     'bg-muted/80 text-muted-foreground shadow-sm',
                                     'transition hover:bg-destructive hover:text-destructive-foreground',
                                 )}
-                                aria-label="Remove logo"
+                                aria-label="Remove image"
                             >
                                 <X className="size-3.5" />
                             </button>
                         )}
                     </>
-                ) : isUploading ? (
+                ) : isUploading || isSecureInitialLoading ? (
                     <Loader2 className="size-5 animate-spin text-primary" />
                 ) : (
                     <>

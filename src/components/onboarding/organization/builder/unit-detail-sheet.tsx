@@ -16,7 +16,6 @@ interface UnitDetailSheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   unitId: string;
-  /** Flat list of all units for resolving full parent breadcrumbs */
   allUnits?: { id: string; name: string; parentId?: string | null }[];
   onAddChild?: (parentUnit: OrganizationUnitType) => void;
   childLabel?: string;
@@ -82,7 +81,6 @@ export function UnitDetailSheet({
       depth++;
     }
     
-    // Attempt adding root "Group Name" if available from units array implicitly
     if (parentId === "root") {
       const rootUnit = allUnits.find(u => u.id === "root");
       if (rootUnit) {
@@ -95,7 +93,6 @@ export function UnitDetailSheet({
 
   const breadcrumb = getBreadcrumb();
   
-  // Also calculate direct parent name for the generic "Parent" core field table
   const parentName = unit?.parentId && unit.parentId !== "root"
     ? allUnits.find((u) => u.id === unit.parentId)?.name ?? "—"
     : allUnits.find((u) => u.id === "root")?.name ?? "—";
@@ -107,7 +104,7 @@ export function UnitDetailSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-[640px] p-0 flex flex-col h-full border-l border-border/50 overflow-hidden">
+      <SheetContent className="w-full max-w-full sm:max-w-[640px] p-0 flex flex-col h-full border-l border-border/50 overflow-hidden">
         <SheetHeader className="p-6 flex flex-row items-center justify-between border-b border-border/30 shrink-0">
           <SheetTitle className="text-2xl font-bold text-foreground leading-tight capitalize">
             {getTitle()}
@@ -125,7 +122,6 @@ export function UnitDetailSheet({
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6 space-y-6 pb-24">
-            {/* ── Details card ── */}
             <div className="rounded-xl border border-border/60 overflow-hidden">
               <div className="bg-muted/40 px-4 py-3 border-b border-border/30">
                 <span className="text-sm font-semibold text-foreground">
@@ -133,7 +129,6 @@ export function UnitDetailSheet({
                 </span>
               </div>
               <div className="p-4 space-y-3">
-                {/* Hierarchy breadcrumb */}
                 {breadcrumb.length > 0 && (
                   <div className="flex flex-col gap-1 rounded-xl border border-border/60 bg-background p-4">
                     <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
@@ -159,12 +154,10 @@ export function UnitDetailSheet({
                   </div>
                 )}
 
-                {/* Core fields grid */}
                 <div className="grid grid-cols-2 gap-3">
                   <FieldCell label={`${unit.displayLabel ?? unit.type} name`} value={unit.name} />
                   <FieldCell label="Parent" value={parentName !== "—" ? parentName : undefined} />
 
-                  {/* Company-specific fields from companyProfile */}
                   {unit.companyProfile && (
                     <>
                       <FieldCell label="Legal name" value={unit.companyProfile.legalName ?? undefined} />
@@ -181,7 +174,6 @@ export function UnitDetailSheet({
                     </>
                   )}
 
-                  {/* Generic for non-company */}
                   {!unit.companyProfile && (
                     <div className="col-span-2 py-4 text-center text-muted-foreground text-xs italic">
                       No additional profile details available.
@@ -191,7 +183,6 @@ export function UnitDetailSheet({
               </div>
             </div>
 
-            {/* ── Children card ── */}
             <div className="rounded-xl border border-border/60 overflow-hidden">
               <div className="bg-muted/40 px-4 py-3 border-b border-border/30 flex items-center justify-between">
                 <span className="text-sm font-semibold text-foreground">Children</span>
@@ -236,7 +227,6 @@ export function UnitDetailSheet({
           </div>
         )}
 
-        {/* Footer */}
         <div className="p-6 border-t border-border/30 bg-background flex justify-end shrink-0">
           <Button
             variant="outline"

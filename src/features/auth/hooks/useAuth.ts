@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import { AUTH_PROFILE_QUERY_KEY } from '@/features/auth/auth-session.constants';
-import { readAuthSessionCache } from '@/features/auth/auth-session-cache.util';
+import { MY_EMPLOYEE_QUERY_KEY } from '@/features/employee/employee.constants';
+import { readAuthSessionCache, writeAuthSessionCache } from '@/features/auth/auth-session-cache.util';
+import type { UserResponse } from '@/features/auth/auth.types';
+import { mergeAuthProfileUpdate } from '@/features/auth/utils/merge-auth-profile-update.util';
 import { 
     loginUser, 
     loginWith2FA, 
@@ -31,6 +35,7 @@ import {
     updateTenantProfile,
     updateUserOnboardingComplete,
     updateUserOnboardingStep,
+    updateDashboardPreferences,
     resendFreeOnboardingOtp
 } from '../auth.actions';
 import { 
@@ -46,8 +51,16 @@ import {
     UpdateCompanyInput,
     UpdateOnboardingCompleteInput,
     UpdateOnboardingStepInput,
+    UpdateDashboardPreferencesInput,
     ResendFreeOnboardingOtpInput
 } from '../auth.types';
+
+function cacheAuthProfileUpdate(queryClient: QueryClient, user: UserResponse): void {
+    const previous = queryClient.getQueryData<UserResponse>(AUTH_PROFILE_QUERY_KEY);
+    const merged = mergeAuthProfileUpdate(previous, user);
+    queryClient.setQueryData(AUTH_PROFILE_QUERY_KEY, merged);
+    writeAuthSessionCache(merged);
+}
 
 export const useLogin = () => {
     return useMutation({
@@ -123,8 +136,6 @@ export const useLogout = () => {
             }
             queryClient.cancelQueries({ queryKey: AUTH_PROFILE_QUERY_KEY });
             queryClient.clear();
-            // Re-set auth query to null (not pending) so isInitializing stays false
-            // and reloadSession() starts a fresh, undeduped request after next login
             queryClient.setQueryData(AUTH_PROFILE_QUERY_KEY, null);
         }
     });
@@ -142,10 +153,8 @@ export const useLogoutAll = () => {
                 localStorage.clear();
                 sessionStorage.clear();
             }
-            // Cancel any in-flight profile fetches to prevent dedup race on re-login
             queryClient.cancelQueries({ queryKey: AUTH_PROFILE_QUERY_KEY });
             queryClient.clear();
-            // Re-set auth query to null (not pending) so isInitializing stays false
             queryClient.setQueryData(AUTH_PROFILE_QUERY_KEY, null);
         }
     });
@@ -320,11 +329,20 @@ export const useUpdateProfile = () => {
 };
 
 export const useUpdateAvatar = () => {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async (avatarUrl: string) => {
             const result = await updateAvatar(avatarUrl);
             if (!result.success) throw new Error(result.error);
             return result.data;
+        },
+        onSuccess: (_data, avatarUrl) => {
+            queryClient.setQueryData<UserResponse | undefined>(AUTH_PROFILE_QUERY_KEY, (current) =>
+                current ? { ...current, avatarUrl } : current,
+            );
+            queryClient.invalidateQueries({ queryKey: MY_EMPLOYEE_QUERY_KEY });
+            queryClient.invalidateQueries({ queryKey: ['employees'] });
+            queryClient.invalidateQueries({ queryKey: ['employee'] });
         },
     });
 };
@@ -352,6 +370,20 @@ export const useUpdateTenantProfile = () => {
     });
 };
 
+export const useUpdateDashboardPreferences = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (input: UpdateDashboardPreferencesInput) => {
+            const result = await updateDashboardPreferences(input);
+            if (!result.success) throw new Error(result.error);
+            return result.data;
+        },
+        onSuccess: (user: UserResponse) => {
+            cacheAuthProfileUpdate(queryClient, user);
+        },
+    });
+};
+
 export const useUpdateOnboardingComplete = () => {
     const queryClient = useQueryClient();
     return useMutation({
@@ -360,8 +392,9 @@ export const useUpdateOnboardingComplete = () => {
             if (!result.success) throw new Error(result.error);
             return result.data;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['auth', 'profile'] });
+        onSuccess: (user: UserResponse) => {
+            cacheAuthProfileUpdate(queryClient, user);
+            queryClient.invalidateQueries({ queryKey: MY_EMPLOYEE_QUERY_KEY });
         },
     });
 };
@@ -374,8 +407,8 @@ export const useUpdateOnboardingStep = () => {
             if (!result.success) throw new Error(result.error);
             return result.data;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['auth', 'profile'] });
+        onSuccess: (user: UserResponse) => {
+            cacheAuthProfileUpdate(queryClient, user);
         },
     });
 };

@@ -99,8 +99,6 @@ export const useUpdateOrganizationNomenclature = () => {
     });
 };
 
-// Query Hooks
-
 export const useOrganizationHierarchy = (options: {
     limit?: number;
     maxDepth?: number;

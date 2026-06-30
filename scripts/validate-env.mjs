@@ -12,6 +12,10 @@ const envSchema = z.object({
   NOTIFICATION_SERVICE_URL: z.string().url().optional(),
   AUDIT_LOG_SERVICE_URL: z.string().url().optional(),
   DOCUMENT_SERVICE_URL: z.string().url().optional(),
+  DOCUMENT_FILE_API_BASE_URL: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().url().optional(),
+  ),
   REPORTING_SERVICE_URL: z.string().url().optional(),
   API_GATEWAY_URL: z.string().url().optional(),
   NEXT_PUBLIC_API_GATEWAY_URL: z.string().url().optional(),

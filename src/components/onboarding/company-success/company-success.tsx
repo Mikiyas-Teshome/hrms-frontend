@@ -11,11 +11,9 @@ export function CompanySuccess() {
 
     return (
         <div className="flex flex-1 flex-col bg-background p-4 sm:p-6 lg:p-8">
-            {/* Main Content */}
             <div className="flex flex-1 items-center justify-center">
                 <div className="w-full max-w-358 overflow-hidden bg-background p-8 sm:p-12 ">
                     <div className="flex flex-col items-center justify-between gap-16 lg:flex-row lg:gap-32 rtl:flex-row-reverse">
-                        {/* Illustration */}
                         <div className="flex flex-1 items-center justify-center w-full max-w-100">
                             <div className="relative flex size-64 items-center justify-center rounded-2xl bg-background sm:size-80 lg:size-100">
                                 <Castle
@@ -25,7 +23,6 @@ export function CompanySuccess() {
                             </div>
                         </div>
 
-                        {/* Content */}
                         <div className="flex flex-1 flex-col items-center text-center lg:items-center lg:text-center rtl:lg:items-center rtl:lg:text-center">
                             <div className="w-full max-w-97.5 flex flex-col items-center text-center lg:items-center lg:text-center rtl:lg:items-center rtl:lg:text-center">
                                 <h1 className="mb-6 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-3xl">

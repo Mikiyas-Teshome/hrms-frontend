@@ -36,7 +36,6 @@ export function DashboardOrganizationHierarchy() {
     const { toast } = useToast();
     const [activeTab, setActiveTab] = useState('hierarchy');
 
-    // Sheet state
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [sheetConfig, setSheetConfig] = useState<{
         mode: 'add' | 'edit';
@@ -46,7 +45,6 @@ export function DashboardOrganizationHierarchy() {
         defaultParentId?: string;
     } | null>(null);
 
-    // Simple Modal State
     const [isSimpleModalOpen, setIsSimpleModalOpen] = useState(false);
     const [simpleModalConfig, setSimpleModalConfig] = useState<{
         mode: 'add' | 'edit';
@@ -57,14 +55,12 @@ export function DashboardOrganizationHierarchy() {
         initialName?: string;
     } | null>(null);
 
-    // Delete Modal
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleteUnitId, setDeleteUnitId] = useState<string | null>(null);
 
     const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
     const [viewUnitId, setViewUnitId] = useState<string | null>(null);
 
-    // Backend
     const createOUMutation = useCreateOrganizationUnit();
     const updateOUMutation = useUpdateOrganizationUnit();
     const deactivateOUMutation = useDeactivateOrganizationUnit();
@@ -80,10 +76,8 @@ export function DashboardOrganizationHierarchy() {
     const {
         register,
         control,
-        // handleSubmit: _handleSubmit,
         setValue,
         watch,
-        // formState: { isSubmitting: _isSubmitting },
     } = useForm<OrgStructureValues>({
         resolver: zodResolver(orgStructureSchema),
         defaultValues: emptyOrgStructureValues,
@@ -98,7 +92,6 @@ export function DashboardOrganizationHierarchy() {
     const hierarchyLevels = useWatch({ control, name: 'hierarchyLevels' });
     const units = useWatch({ control, name: 'units' }) || [];
 
-    // Sync nomenclature labels
     useEffect(() => {
         if (nomenclature && nomenclature.length > 0) {
             const groupNom = nomenclature.find((n) => n.type === 'GROUP');
@@ -328,10 +321,8 @@ export function DashboardOrganizationHierarchy() {
 
     return (
         <div className="space-y-6">
-            {/* Stats from hierarchy endpoint */}
             <OrgHierarchyStats />
 
-            {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full gap-4">
                 <div className="flex">
                     <TabsList className="h-9 w-full max-w-[400px] bg-secondary p-0.75 rounded-[10px] border-none">
@@ -350,7 +341,6 @@ export function DashboardOrganizationHierarchy() {
                     </TabsList>
                 </div>
 
-                {/* Hierarchy Tab */}
                 <TabsContent value="hierarchy" className="space-y-6 focus-visible:outline-none">
                     <Card className="rounded-[12px] border border-border/80 dark:border-[rgba(0,0,0,0.24)] bg-card dark:bg-[#1D1D1D] shadow-none overflow-hidden">
                         <CardHeader className="bg-muted/40 dark:bg-[rgba(10,10,10,0.5)] px-6 py-4 dark:py-[18px] border-b border-border/40 dark:border-border/10">
@@ -428,7 +418,6 @@ export function DashboardOrganizationHierarchy() {
                     </Card>
                 </TabsContent>
 
-                {/* Builder Tab */}
                 <TabsContent value="builder" className="space-y-6 focus-visible:outline-none">
                     <HierarchyTreeBuilder
                         hierarchy={hierarchy}
@@ -483,7 +472,6 @@ export function DashboardOrganizationHierarchy() {
                 </TabsContent>
             </Tabs>
 
-            {/* Sheets & Modals */}
             <UnitDetailSheet
                 isOpen={isDetailSheetOpen}
                 onOpenChange={setIsDetailSheetOpen}

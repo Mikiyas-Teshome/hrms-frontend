@@ -10,7 +10,6 @@ interface I18nProviderProps {
 }
 
 export function I18nProvider({ children, initialLanguage }: I18nProviderProps) {
-  // Sync initial language if provided (only once)
   const [synced, setSynced] = useState(false);
 
   if (!synced && initialLanguage && i18n.language !== initialLanguage) {
@@ -19,7 +18,6 @@ export function I18nProvider({ children, initialLanguage }: I18nProviderProps) {
   } 
 
   useEffect(() => {
-    // On mount, apply direction based on current language
     const currentLang = i18n.language;
     document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = currentLang;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { UniversalDataTable, ColumnConfig } from '@/components/ui/universal-data-table';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -29,12 +29,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ShiftSheet } from './ShiftSheet';
 import { useToast } from '@/hooks/use-toast';
 
+const WEEK_DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
+
 interface ShiftsTableProps {
     companyId?: string;
 }
 
 const ShiftsTable = ({ companyId }: ShiftsTableProps) => {
-    const { t } = useTranslation('dashboard');
+    const { t, i18n } = useTranslation('dashboard');
+    const dateLocale = i18n.language === 'ar' ? 'ar-SA' : i18n.language;
     const { hasPermission, hasScope } = usePermissions();
     const { user } = useAuth();
     const isOwnScopeOnly =
@@ -62,6 +65,19 @@ const ShiftsTable = ({ companyId }: ShiftsTableProps) => {
 
     const [isShiftSheetOpen, setIsShiftSheetOpen] = useState(false);
     const [shiftToEdit, setShiftToEdit] = useState<ShiftTemplate | null>(null);
+
+    const getDayLabel = useCallback(
+        (dayIndex: number) => t(`attendance.days.${WEEK_DAY_KEYS[dayIndex]}`, WEEK_DAY_KEYS[dayIndex]),
+        [t],
+    );
+
+    const getShiftTypeLabel = useCallback(
+        (shiftType?: string | null) => {
+            if (!shiftType) return '-';
+            return t(`attendance.shiftTypes.${shiftType}`, shiftType);
+        },
+        [t],
+    );
 
     const handleEditClick = (shift: ShiftTemplate) => {
         setShiftToEdit(shift);
@@ -100,82 +116,82 @@ const ShiftsTable = ({ companyId }: ShiftsTableProps) => {
         }
     };
 
-    const columns: ColumnConfig<ShiftTemplate>[] = [
-        { 
-            key: 'name', 
-            label: t('attendance.shiftName', 'Shift name'), 
-            className: 'font-medium' 
+    const columns: ColumnConfig<ShiftTemplate>[] = useMemo(() => [
+        {
+            key: 'name',
+            label: t('attendance.shiftName', 'Shift name'),
+            className: 'font-medium',
         },
-        { 
-            key: 'startTime', 
+        {
+            key: 'startTime',
             label: t('attendance.startTime', 'Start time'),
             render: (item) => (
                 <div className="flex items-center gap-2">
                     <Clock className="size-3.5 text-muted-foreground" />
-                    <span>{formatTime(item.startTime)}</span>
+                    <span>{formatTime(item.startTime, dateLocale)}</span>
                 </div>
-            )
+            ),
         },
-        { 
-            key: 'endTime', 
+        {
+            key: 'endTime',
             label: t('attendance.endTime', 'End time'),
             render: (item) => (
                 <div className="flex items-center gap-2">
                     <Clock className="size-3.5 text-muted-foreground" />
-                    <span>{formatTime(item.endTime)}</span>
+                    <span>{formatTime(item.endTime, dateLocale)}</span>
                 </div>
-            )
+            ),
         },
-        { 
-            key: 'breakDuration', 
+        {
+            key: 'breakDuration',
             label: t('attendance.breakTime', 'Break (min)'),
-            render: (item) => `${item.breakDuration} min`
+            render: (item) => `${item.breakDuration} ${t('attendance.minutesLabel', 'min')}`,
         },
-        { 
-            key: 'workingDays', 
-            label: t('attendance.workingDays', 'Working Days'),
+        {
+            key: 'workingDays',
+            label: t('attendance.workingDays', 'Working days'),
             render: (item) => (
                 <div className="flex items-center gap-2">
                     <CalendarDays className="size-3.5 text-muted-foreground" />
-                    <span className="text-sm">{getWorkingDaysString(item.workingDays)}</span>
+                    <span className="text-sm">{getWorkingDaysString(item.workingDays, getDayLabel)}</span>
                 </div>
-            )
+            ),
         },
-        { 
-            key: 'overtimeAllowed', 
+        {
+            key: 'overtimeAllowed',
             label: t('attendance.overtime', 'Overtime'),
             render: (item) => (
                 <Badge variant={item.overtimeAllowed ? 'default' : 'outline'}>
-                    {item.overtimeAllowed ? t('attendance.allowed', 'Allowed') : t('attendance.notAllowed', 'Not Allowed')}
+                    {item.overtimeAllowed ? t('attendance.allowed', 'Allowed') : t('attendance.notAllowed', 'Not allowed')}
                 </Badge>
-            )
+            ),
         },
-        { 
-            key: 'type', 
-            label: t('attendance.shiftType', 'Shift Type'),
+        {
+            key: 'type',
+            label: t('attendance.shiftType', 'Shift type'),
             render: (item) => (
                 <Badge variant="outline">
-                    {item.type}
+                    {getShiftTypeLabel(item.type)}
                 </Badge>
-            )
+            ),
         },
         {
             key: 'isActive',
             label: t('attendance.status', 'Status'),
             render: (item) => (
-                <Badge 
-                    variant="outline" 
+                <Badge
+                    variant="outline"
                     className={cn(
-                        "rounded-full font-medium px-2.5 py-0.5",
-                        item.isActive ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
+                        'rounded-full font-medium px-2.5 py-0.5',
+                        item.isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'
                     )}
                 >
-                    <div className={cn("size-1.5 rounded-full mr-1.5 bg-current", item.isActive ? "bg-emerald-600" : "bg-rose-600")} />
+                    <div className={cn('size-1.5 rounded-full me-1.5 bg-current', item.isActive ? 'bg-emerald-600' : 'bg-rose-600')} />
                     {item.isActive ? t('attendance.active', 'Active') : t('attendance.inactive', 'Inactive')}
                 </Badge>
             ),
         },
-    ];
+    ], [t, dateLocale, getDayLabel, getShiftTypeLabel]);
 
     const renderRowActions = (item: ShiftTemplate) => {
         const canUpdate = hasPermission('shifts:update');
@@ -194,24 +210,24 @@ const ShiftsTable = ({ companyId }: ShiftsTableProps) => {
                     {canUpdate && (
                         <>
                             <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => handleEditClick(item)}>
-                                <Pencil className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.edit', 'Edit')}</span>
+                                <Pencil className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.actions.edit', 'Edit')}</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
-                                className="gap-3 cursor-pointer py-2.5" 
+                            <DropdownMenuItem
+                                className="gap-3 cursor-pointer py-2.5"
                                 onClick={() => handleToggleStatus(item.id)}
                                 disabled={togglingId === item.id}
                             >
-                                <RefreshCw className={cn("h-4 w-4 text-muted-foreground", togglingId === item.id && "animate-spin")} />
-                                <span>{t('attendance.changeStatus', 'Change status')}</span>
+                                <RefreshCw className={cn('h-4 w-4 text-muted-foreground', togglingId === item.id && 'animate-spin')} />
+                                <span>{t('attendance.actions.changeStatus', 'Change status')}</span>
                             </DropdownMenuItem>
                         </>
                     )}
                     {canDelete && (
-                        <DropdownMenuItem 
-                            className="gap-3 cursor-pointer py-2.5 text-destructive focus:text-destructive" 
+                        <DropdownMenuItem
+                            className="gap-3 cursor-pointer py-2.5 text-destructive focus:text-destructive"
                             onClick={() => handleDeleteClick(item)}
                         >
-                            <Trash2 className="h-4 w-4" /><span>{t('attendance.delete', 'Delete')}</span>
+                            <Trash2 className="h-4 w-4" /><span>{t('attendance.actions.delete', 'Delete')}</span>
                         </DropdownMenuItem>
                     )}
                 </DropdownMenuContent>
@@ -220,46 +236,46 @@ const ShiftsTable = ({ companyId }: ShiftsTableProps) => {
     };
 
     return (
-    <div className="flex flex-col gap-4">
-        <UniversalDataTable
-          data={data}
-          columns={columns}
-          enableSelection={!isOwnScopeOnly}
-          selectedIds={selectedIds}
-          onSelectionChange={setSelectedIds}
-          showSearch={false}
-          isLoading={isLoading}
-          showImport={!isOwnScopeOnly && hasPermission('shifts:create')}
-          showExport={!isOwnScopeOnly && hasPermission('shifts:read')}
-          importText={t('attendance.importBtn', 'Import')}
-          exportText={t('attendance.exportBtn', 'Export')}
-          currentPage={1}
-          totalPages={1}
-          pageSize={10}
-          onPageChange={() => {}}
-          onPageSizeChange={() => {}}
-          renderRowActions={isOwnScopeOnly ? undefined : renderRowActions}
-        />
+        <div className="flex flex-col gap-4">
+            <UniversalDataTable
+                data={data}
+                columns={columns}
+                enableSelection={!isOwnScopeOnly}
+                selectedIds={selectedIds}
+                onSelectionChange={setSelectedIds}
+                showSearch={false}
+                isLoading={isLoading}
+                showImport={!isOwnScopeOnly && hasPermission('shifts:create')}
+                showExport={!isOwnScopeOnly && hasPermission('shifts:read')}
+                importText={t('attendance.importBtn', 'Import')}
+                exportText={t('attendance.exportBtn', 'Export')}
+                currentPage={1}
+                totalPages={1}
+                pageSize={10}
+                onPageChange={() => {}}
+                onPageSizeChange={() => {}}
+                renderRowActions={isOwnScopeOnly ? undefined : renderRowActions}
+            />
 
-        <ShiftSheet
-            open={isShiftSheetOpen}
-            onOpenChange={setIsShiftSheetOpen}
-            shiftToEdit={shiftToEdit}
-            defaultCompanyId={companyId}
-        />
+            <ShiftSheet
+                open={isShiftSheetOpen}
+                onOpenChange={setIsShiftSheetOpen}
+                shiftToEdit={shiftToEdit}
+                defaultCompanyId={companyId}
+            />
 
-        <ConfirmationModal
-            open={isDeleteModalOpen}
-            onOpenChange={setIsDeleteModalOpen}
-            title={t('attendance.deleteShiftTitle', 'Delete Shift')}
-            message={t('attendance.deleteShiftMessage', { name: shiftToDelete?.name || '' })}
-            onConfirm={handleConfirmDelete}
-            confirmLabel={t('attendance.delete', 'Delete')}
-            cancelLabel={t('attendance.cancel', 'Cancel')}
-            variant="danger"
-        />
-    </div>
-  );
+            <ConfirmationModal
+                open={isDeleteModalOpen}
+                onOpenChange={setIsDeleteModalOpen}
+                title={t('attendance.deleteShiftTitle', 'Delete Shift')}
+                message={t('attendance.deleteShiftMessage', { name: shiftToDelete?.name || '' })}
+                onConfirm={handleConfirmDelete}
+                confirmLabel={t('attendance.delete', 'Delete')}
+                cancelLabel={t('attendance.cancel', 'Cancel')}
+                variant="danger"
+            />
+        </div>
+    );
 };
 
 export default ShiftsTable;

@@ -33,8 +33,8 @@ import { usePermissions } from '@/features/auth/hooks/usePermissions';
 import { useCompanyOptions } from '@/features/organization/hooks/useOrganization';
 import { useInsurances } from '@/features/insurance/hooks/useInsurance';
 import { useDocumentCategories } from '@/features/documents/hooks/useDocumentCategories';
-import { uploadDocumentAndGetUrl } from '@/features/documents/documents.actions';
-import { useAuth } from '@/contexts/AuthContext';
+import { uploadLogo } from '@/features/documents/documents.actions';
+import { ContractDocumentPreviewButton } from '@/components/dashboard/contracts/ContractDocumentPreviewButton';
 import { useToast } from '@/hooks/use-toast';
 import { EMPLOYMENT_TYPE_OPTIONS, CONTRACT_TYPE_OPTIONS } from '@/features/employee/employee.types';
 
@@ -79,6 +79,7 @@ interface AddContractSheetProps {
     onOpenChange: (open: boolean) => void;
     onSubmit: (data: ContractTypeValues) => void | Promise<void>;
     initialData?: ContractTypeValues | null;
+    defaultCompanyId?: string;
 }
 
 const DOCUMENT_CATEGORIES_ROUTE = '/dashboard/documents/categories';
@@ -100,12 +101,18 @@ const defaultValues: ContractTypeValues = {
     documentExpiryDate: '',
 };
 
-export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: AddContractSheetProps) {
+export function AddContractSheet({
+    open,
+    onOpenChange,
+    onSubmit,
+    initialData,
+    defaultCompanyId,
+}: AddContractSheetProps) {
     const { t, i18n } = useTranslation(['contracts', 'employees', 'dashboard']);
     const isRtl = i18n.language === 'ar';
     const { toast } = useToast();
-    const { user } = useAuth();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const initializedSessionRef = useRef<string | null>(null);
     const [pendingContractFile, setPendingContractFile] = useState<File | null>(null);
     const [pendingFilePreviewUrl, setPendingFilePreviewUrl] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -119,6 +126,7 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
         handleSubmit, 
         reset, 
         setValue,
+        getValues,
         watch,
         formState: { errors } 
     } = useForm<ContractTypeValues>({
@@ -131,13 +139,11 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
     const documentUrl = watch('documentUrl');
     const documentFileName = watch('documentFileName');
     const documentExpiryDate = watch('documentExpiryDate');
-    const contractName = watch('contractName');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     const selectedInsuranceIds = watch('insuranceIds') || [];
 
-    const { data: insurancesData } = useInsurances({ 
-        limit: 100, 
-        companyOuId: selectedCompanyId || undefined 
+    const { data: insurancesData } = useInsurances({
+        limit: 100,
+        ouId: selectedCompanyId || undefined,
     });
 
     const {
@@ -167,13 +173,6 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
         [documentCategoriesData, selectedDocumentCategoryId],
     );
 
-    const documentOwnerId = useMemo(() => {
-        if (initialData?.id) {
-            return initialData.id;
-        }
-        return selectedCompanyId || user?.companyId || '';
-    }, [initialData?.id, selectedCompanyId, user?.companyId]);
-
     const clearPendingContractFile = () => {
         setPendingContractFile(null);
         setPendingFilePreviewUrl((current) => {
@@ -194,46 +193,68 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
 
     useEffect(() => {
         if (!open) {
+            initializedSessionRef.current = null;
             return;
         }
+
+        const sessionKey = initialData?.id ?? 'new';
+        if (initializedSessionRef.current === sessionKey) {
+            return;
+        }
+        initializedSessionRef.current = sessionKey;
+
         clearPendingContractFile();
         setIsSubmitting(false);
-    }, [open, initialData?.id]);
 
-    useEffect(() => {
-        if (!open) {
-            return;
-        }
         if (initialData) {
             reset({
                 ...initialData,
                 insuranceIds: initialData.insuranceIds || [],
             });
-        } else {
-            reset({
-                ...defaultValues,
-                companyId: companiesData?.[0]?.id || '',
-            });
+            return;
         }
-    }, [open, initialData, reset, companiesData]);
+
+        reset({
+            ...defaultValues,
+            companyId: defaultCompanyId || companiesData?.[0]?.id || '',
+        });
+    }, [open, initialData, defaultCompanyId, companiesData, reset]);
 
     useEffect(() => {
-        if (companiesData?.length && !selectedCompanyId && open && !initialData) {
-            setValue('companyId', companiesData[0].id);
+        if (!open || initialData) {
+            return;
         }
-    }, [companiesData, selectedCompanyId, setValue, open, initialData]);
+        const nextCompanyId =
+            defaultCompanyId || companiesData?.[0]?.id || '';
+        if (nextCompanyId && selectedCompanyId !== nextCompanyId) {
+            setValue('companyId', nextCompanyId);
+        }
+    }, [
+        companiesData,
+        defaultCompanyId,
+        initialData,
+        open,
+        selectedCompanyId,
+        setValue,
+    ]);
 
-    // Filter selected insurances to only match the selected company's insurances when company changes
     useEffect(() => {
-        if (selectedCompanyId && insurancesData?.data && selectedInsuranceIds.length > 0) {
-            const validInsuranceIds = selectedInsuranceIds.filter((id) =>
-                insurancesData.data.some((ins) => ins.id === id)
-            );
-            if (validInsuranceIds.length !== selectedInsuranceIds.length) {
-                setValue('insuranceIds', validInsuranceIds);
-            }
+        if (!open || initialData || !selectedCompanyId || !insurancesData?.data) {
+            return;
         }
-    }, [selectedCompanyId, insurancesData, selectedInsuranceIds, setValue]);
+
+        const currentInsuranceIds = getValues('insuranceIds') || [];
+        if (currentInsuranceIds.length === 0) {
+            return;
+        }
+
+        const validInsuranceIds = currentInsuranceIds.filter((id) =>
+            insurancesData.data.some((ins) => ins.id === id),
+        );
+        if (validInsuranceIds.length !== currentInsuranceIds.length) {
+            setValue('insuranceIds', validInsuranceIds, { shouldDirty: true });
+        }
+    }, [open, initialData, selectedCompanyId, insurancesData, getValues, setValue]);
 
     const validatePendingDocument = (): boolean => {
         if (!pendingContractFile) {
@@ -243,14 +264,6 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
             toast({
                 title: t('documentUploadFailed'),
                 description: t('selectDocumentType'),
-                variant: 'destructive',
-            });
-            return false;
-        }
-        if (!documentOwnerId) {
-            toast({
-                title: t('documentUploadFailed'),
-                description: t('documentUploadFailed'),
                 variant: 'destructive',
             });
             return false;
@@ -279,22 +292,14 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
             if (pendingContractFile) {
                 const formData = new FormData();
                 formData.append('file', pendingContractFile);
-                formData.append('categoryId', selectedDocumentCategoryId!);
-                formData.append('ownerId', documentOwnerId);
-                if (contractName?.trim()) {
-                    formData.append('description', contractName.trim());
-                }
-                if (documentExpiryDate) {
-                    formData.append('expiryDate', documentExpiryDate);
+
+                const uploadResult = await uploadLogo(formData);
+                if (uploadResult.error || !uploadResult.url) {
+                    throw new Error(uploadResult.error || t('documentUploadFailed'));
                 }
 
-                const result = await uploadDocumentAndGetUrl(formData);
-                if (!result.success) {
-                    throw new Error(result.error);
-                }
-
-                resolvedDocumentUrl = result.data.url;
-                resolvedDocumentFileName = result.data.fileName || pendingContractFile.name;
+                resolvedDocumentUrl = uploadResult.url;
+                resolvedDocumentFileName = pendingContractFile.name;
             }
 
             await onSubmit({
@@ -321,9 +326,9 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
     })) || [];
 
     const insuranceOptions = insurancesData?.data?.map((ins) => ({
-        label: ins.insuranceName,
-        value: ins.id,
-    })) || [];
+            label: ins.insuranceName,
+            value: ins.id,
+        })) || [];
 
     const handleInsuranceSelect = (insuranceId: string) => {
         if (!selectedInsuranceIds.includes(insuranceId)) {
@@ -356,7 +361,7 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
     const handleDocumentFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         event.target.value = '';
-        if (!file || !selectedDocumentCategoryId || !documentOwnerId) {
+        if (!file || !selectedDocumentCategoryId) {
             return;
         }
 
@@ -386,7 +391,6 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
     const displayedDocumentName = pendingContractFile
         ? pendingContractFile.name
         : documentFileName;
-    const displayedDocumentUrl = pendingFilePreviewUrl || documentUrl || '';
     const hasDisplayedDocument = Boolean(pendingContractFile || documentUrl);
 
     const selectedInsurances = insurancesData?.data?.filter((ins) =>
@@ -412,7 +416,6 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
                     className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-8 pb-10 no-scrollbar mt-4"
                 >
                     <div className="flex flex-col gap-8">
-                        {/* Contract Info Section */}
                         <div className="border border-border rounded-xl overflow-hidden bg-card">
                             <div className="bg-muted/40 border-b border-border px-4 py-3">
                                 <p className="text-sm font-semibold text-foreground">
@@ -479,7 +482,6 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
                             </div>
                         </div>
 
-                        {/* Contract Details Section */}
                         <div className="border border-border rounded-xl overflow-hidden bg-card">
                             <div className="bg-muted/40 border-b border-border px-4 py-3">
                                 <p className="text-sm font-semibold text-foreground">
@@ -546,7 +548,6 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
                             </div>
                         </div>
 
-                        {/* Insurances Section */}
                         <div className="border border-border rounded-xl overflow-hidden bg-card">
                             <div className="bg-muted/40 border-b border-border px-4 py-3">
                                 <p className="text-sm font-semibold text-foreground">
@@ -584,7 +585,6 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
                                         </Select>
                                     </div>
 
-                                    {/* Alert Info Box */}
                                     <div className="flex items-start gap-3 p-4 bg-[#EFF6FF] text-[#1E40AF] border border-[#BFDBFE] rounded-[8px]">
                                         <Info className="h-5 w-5 text-[#3B82F6] shrink-0 mt-0.5" />
                                         <span className="text-xs font-medium leading-relaxed">
@@ -593,7 +593,6 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
                                     </div>
                                 </div>
 
-                                {/* Selected Insurances Badges */}
                                 {selectedInsurances.length > 0 && (
                                     <div className="flex flex-wrap gap-2 pt-2">
                                         {selectedInsurances.map((ins) => (
@@ -616,7 +615,6 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
                             </div>
                         </div>
 
-                        {/* Contract Content Section */}
                         <div className="border border-border/80 rounded-xl overflow-hidden bg-background">
                             <div className="bg-muted/40 border-b border-border px-6 h-12.5 flex items-center">
                                 <p className="text-sm font-semibold text-foreground">
@@ -690,11 +688,7 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
                                     <Button
                                         variant="outline"
                                         type="button"
-                                        disabled={
-                                            !selectedDocumentCategoryId ||
-                                            !documentOwnerId ||
-                                            isSubmitting
-                                        }
+                                        disabled={!selectedDocumentCategoryId || isSubmitting}
                                         onClick={handleAddDocumentClick}
                                         className="h-9 w-38 border-primary/20 text-primary hover:bg-primary/5 transition-all flex items-center justify-center gap-2 px-4 py-2 rounded-[8px] font-medium shadow-sm active:scale-[0.98] disabled:opacity-50"
                                     >
@@ -716,9 +710,9 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
                                                                 {t('documentPendingSave')}
                                                             </p>
                                                         ) : null}
-                                                        {displayedDocumentUrl ? (
+                                                        {pendingContractFile && pendingFilePreviewUrl ? (
                                                             <a
-                                                                href={displayedDocumentUrl}
+                                                                href={pendingFilePreviewUrl}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
@@ -726,6 +720,19 @@ export function AddContractSheet({ open, onOpenChange, onSubmit, initialData }: 
                                                                 {t('viewDocument')}
                                                                 <ExternalLink className="h-3 w-3" />
                                                             </a>
+                                                        ) : documentUrl ? (
+                                                            <div className="mt-2">
+                                                                <ContractDocumentPreviewButton
+                                                                    documentReference={documentUrl}
+                                                                    documentName={
+                                                                        displayedDocumentName ||
+                                                                        t('viewDocument')
+                                                                    }
+                                                                    variant="button"
+                                                                    previewLabel={t('viewDocument')}
+                                                                    className="h-8"
+                                                                />
+                                                            </div>
                                                         ) : null}
                                                     </div>
                                                 </div>

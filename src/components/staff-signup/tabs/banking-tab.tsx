@@ -1,25 +1,16 @@
 import { UseFormRegister, Control, FieldErrors, useFieldArray } from 'react-hook-form';
-import { CreditCard, PlusCircle, Loader2 } from 'lucide-react';
+import { CreditCard, PlusCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { FormField } from '@/components/ui/FormField';
-import { Button } from '@/components/ui/button';
 import { OnboardingFormValues } from '../staff-onboarding-form';
 
 interface BankingTabProps {
     register: UseFormRegister<OnboardingFormValues>;
     control: Control<OnboardingFormValues>;
     errors: FieldErrors<OnboardingFormValues>;
-    isSubmitting: boolean;
-    isPending: boolean;
 }
 
-export function BankingTab({
-    register,
-    control,
-    errors,
-    isSubmitting,
-    isPending,
-}: BankingTabProps) {
+export function BankingTab({ register, control, errors }: BankingTabProps) {
     const { t } = useTranslation(['staffSignup', 'onboarding', 'common']);
     const { fields, append, remove } = useFieldArray({
         control,
@@ -34,7 +25,7 @@ export function BankingTab({
                         key={field.id}
                         className="bg-card border border-border shadow-[0px_1px_3px_rgba(0,0,0,0.04)] rounded-xl overflow-hidden group/bank"
                     >
-                        <div className="h-12.5 bg-secondary/50 flex items-center px-6 border-b border-border">
+                        <div className="flex h-12.5 items-center border-b border-border bg-secondary/50 px-4 sm:px-6">
                             <div className="flex-1 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <CreditCard className="size-4 text-primary" />
@@ -56,7 +47,7 @@ export function BankingTab({
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-4 p-6">
+                        <div className="flex flex-col gap-4 p-4 sm:p-6">
                             <FormField
                                 id={`bankAccounts.${index}.bankName`}
                                 label={t('onboarding.bankName')}
@@ -125,17 +116,6 @@ export function BankingTab({
                 </button>
             </div>
 
-            <Button
-                type="submit"
-                disabled={isSubmitting || isPending}
-                className="h-9 w-full rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm shadow-sm transition-all active:scale-[0.98]"
-            >
-                {isSubmitting || isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                ) : (
-                    t('onboarding.finishSetup')
-                )}
-            </Button>
         </>
     );
 }

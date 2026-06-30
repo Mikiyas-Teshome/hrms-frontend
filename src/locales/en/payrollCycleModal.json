@@ -15,7 +15,7 @@
     },
     "weekly": {
       "name": "Weekly",
-      "desc": "Calculated every 6 days"
+      "desc": "Calculated every 7 days"
     }
   }
 }

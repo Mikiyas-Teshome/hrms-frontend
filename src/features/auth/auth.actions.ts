@@ -41,7 +41,9 @@ import {
     UPDATE_TENANT_PROFILE_MUTATION,
     UPDATE_USER_ONBOARDING_COMPLETE_MUTATION,
     UPDATE_USER_ONBOARDING_STEP_MUTATION,
-    RESEND_FREE_ONBOARDING_OTP_MUTATION
+    UPDATE_DASHBOARD_PREFERENCES_MUTATION,
+    RESEND_FREE_ONBOARDING_OTP_MUTATION,
+    INVITATION_ONBOARD_CONTEXT_QUERY,
 } from './auth.queries';
 import { 
     AuthResponse, 
@@ -69,7 +71,9 @@ import {
     CompanyResponse,
     UpdateOnboardingCompleteInput,
     UpdateOnboardingStepInput,
-    ResendFreeOnboardingOtpInput
+    UpdateDashboardPreferencesInput,
+    ResendFreeOnboardingOtpInput,
+    InvitationOnboardContext,
 } from './auth.types';
 import { fetchRoles } from '@/features/roles/roles.actions';
 import { revalidatePath } from 'next/cache';
@@ -86,8 +90,7 @@ export const loginUser = async (input: LoginInput): Promise<ActionResult<AuthRes
         if (data.login.accessToken) {
             const cookieStore = await cookies();
 
-            // Calculate max-age from expiresIn (seconds)
-            const maxAge = data.login.expiresIn ?? 60 * 60 * 24 * 1; // default: 1 days
+            const maxAge = data.login.expiresIn ?? 60 * 60 * 24 * 1;
 
             cookieStore.set('hrms.accessToken', data.login.accessToken, {
                 httpOnly: true,
@@ -103,7 +106,7 @@ export const loginUser = async (input: LoginInput): Promise<ActionResult<AuthRes
                     secure: process.env.NODE_ENV === 'production',
                     sameSite: 'lax',
                     path: '/',
-                    maxAge: 60 * 60 * 24 * 30, // 30 days
+                    maxAge: 60 * 60 * 24 * 30,
                 });
             }
         }
@@ -150,7 +153,7 @@ export const registerTenantSuperAdmin = async (input: RegisterTenantSuperAdminIn
 
         if (data.register.accessToken) {
             const cookieStore = await cookies();
-            const maxAge = data.register.expiresIn ?? 60 * 60 * 24 * 1; // default: 1 days
+            const maxAge = data.register.expiresIn ?? 60 * 60 * 24 * 1;
 
             cookieStore.set('hrms.accessToken', data.register.accessToken, {
                 httpOnly: true,
@@ -525,6 +528,18 @@ export const updateTenantProfile = async (id: string, input: UpdateCompanyInput)
     });
 };
 
+export const updateDashboardPreferences = async (
+    input: UpdateDashboardPreferencesInput,
+): Promise<ActionResult<UserResponse>> => {
+    return safeAction(async () => {
+        const data = await authGqlRequest<{ updateDashboardPreferences: UserResponse }>(
+            UPDATE_DASHBOARD_PREFERENCES_MUTATION,
+            { input },
+        );
+        return data.updateDashboardPreferences;
+    });
+};
+
 export const updateUserOnboardingComplete = async (input: UpdateOnboardingCompleteInput): Promise<ActionResult<UserResponse>> => {
     return safeAction(async () => {
         const data = await authGqlRequest<{ updateUserOnboardingComplete: UserResponse }>(
@@ -556,5 +571,18 @@ export const resendFreeOnboardingOtp = async (input: ResendFreeOnboardingOtpInpu
             { input }
         );
         return data.resendFreeTenantRegistrationOtp;
+    });
+};
+
+export const getInvitationOnboardContext = async (
+    token: string,
+    tenantId?: string,
+): Promise<ActionResult<InvitationOnboardContext>> => {
+    return safeAction(async () => {
+        const data = await publicGqlRequest<{ invitationOnboardContext: InvitationOnboardContext }>(
+            INVITATION_ONBOARD_CONTEXT_QUERY,
+            { token, tenantId: tenantId || null },
+        );
+        return data.invitationOnboardContext;
     });
 };

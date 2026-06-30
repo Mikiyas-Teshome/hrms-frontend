@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 import { useCompanyOptions } from '@/features/organization/hooks/useOrganization';
+import { useContracts } from '@/features/contracts/hooks/useContracts';
 import {
     OnboardingStepTabs,
     OnboardingStepTabsList,
@@ -31,6 +33,7 @@ interface ContractsInsurancesFormProps {
 export function ContractsInsurancesForm({ onNext, onBack }: ContractsInsurancesFormProps) {
     const { t } = useTranslation('contractsInsurances');
     const router = useRouter();
+    const { toast } = useToast();
     const [activeTab, setActiveTab] = useState('insurances');
     const [isSaving, setIsSaving] = useState(false);
 
@@ -43,17 +46,56 @@ export function ContractsInsurancesForm({ onNext, onBack }: ContractsInsurancesF
     }, [companiesData]);
 
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+    const effectiveCompanyId = selectedCompanyId || companyOptions[0]?.value || '';
     const selectedCompanyName = useMemo(() => {
-        return companyOptions.find(c => c.value === selectedCompanyId)?.label || '';
-    }, [companyOptions, selectedCompanyId]);
+        return companyOptions.find(c => c.value === effectiveCompanyId)?.label || '';
+    }, [companyOptions, effectiveCompanyId]);
 
-    useEffect(() => {
-        if (companyOptions.length > 0 && !selectedCompanyId) {
-            setSelectedCompanyId(companyOptions[0].value);
-        }
-    }, [companyOptions, selectedCompanyId]);
+    const contractFilter = useMemo(
+        () =>
+            effectiveCompanyId
+                ? {
+                      limit: 1,
+                      page: 1,
+                      ouId: effectiveCompanyId,
+                  }
+                : undefined,
+        [effectiveCompanyId],
+    );
+
+    const { data: contractsResponse, isLoading: isLoadingContracts } = useContracts(
+        contractFilter,
+        { enabled: Boolean(effectiveCompanyId) },
+    );
+
+    const hasContractTemplate =
+        (contractsResponse?.pagination?.total ?? contractsResponse?.data?.length ?? 0) > 0;
+
+    const continueDisabled =
+        isSaving || isLoadingContracts || !effectiveCompanyId || !hasContractTemplate;
 
     const handleContinue = async () => {
+        if (!effectiveCompanyId) {
+            toast({
+                title: t('actions.error', { defaultValue: 'Error' }),
+                description: t('actions.selectCompanyFirst', {
+                    defaultValue: 'Please select a company first.',
+                }),
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        if (!hasContractTemplate) {
+            setActiveTab('contracts');
+            toast({
+                title: t('actions.error', { defaultValue: 'Error' }),
+                description: t('actions.contractTemplateRequired'),
+                variant: 'destructive',
+            });
+            return;
+        }
+
         setIsSaving(true);
         try {
             if (onNext) {
@@ -78,19 +120,25 @@ export function ContractsInsurancesForm({ onNext, onBack }: ContractsInsurancesF
                     </OnboardingStepTabTrigger>
                 </OnboardingStepTabsList>
 
-                <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-foreground">{t('filterCompany')}</Label>
+                <div className="w-full space-y-2">
+                    <Label className="text-sm font-semibold text-foreground">{t('selectCompany')}</Label>
                     <Select
                         onValueChange={(val) => {
                             if (val) setSelectedCompanyId(val);
                         }}
-                        value={selectedCompanyId}
+                        value={effectiveCompanyId}
                     >
                         <SelectTrigger
                             id="onboarding-company-selector"
-                            className="h-11 w-full max-w-xs rounded-lg bg-background border border-input text-sm"
+                            className="h-11 w-full rounded-lg bg-background border border-input text-sm"
                         >
-                            <SelectValue placeholder={isLoadingCompanies ? 'Loading...' : t('filterCompany')} />
+                            <SelectValue
+                                placeholder={
+                                    isLoadingCompanies
+                                        ? 'Loading...'
+                                        : t('selectCompanyPlaceholder')
+                                }
+                            />
                         </SelectTrigger>
                         <SelectContent position="popper" sideOffset={4}>
                             {companyOptions.map((option) => (
@@ -104,14 +152,16 @@ export function ContractsInsurancesForm({ onNext, onBack }: ContractsInsurancesF
 
                 <OnboardingStepTabsContent value="insurances">
                     <InsuranceTab
-                        selectedCompanyId={selectedCompanyId}
+                        selectedCompanyId={effectiveCompanyId}
                         companyName={selectedCompanyName}
+                        onContinueToContract={() => setActiveTab('contracts')}
                     />
                 </OnboardingStepTabsContent>
 
                 <OnboardingStepTabsContent value="contracts">
                     <ContractTab
-                        selectedCompanyId={selectedCompanyId}
+                        selectedCompanyId={effectiveCompanyId}
+                        companyName={selectedCompanyName}
                     />
                 </OnboardingStepTabsContent>
             </OnboardingStepTabs>
@@ -135,7 +185,7 @@ export function ContractsInsurancesForm({ onNext, onBack }: ContractsInsurancesF
                 <Button
                     type="button"
                     onClick={handleContinue}
-                    disabled={isSaving}
+                    disabled={continueDisabled}
                     className="h-11 rounded-[10px] bg-primary hover:bg-primary/90 px-8 text-sm font-semibold text-white transition-all shadow-sm"
                 >
                     {isSaving ? 'Saving...' : t('actions.continue')}

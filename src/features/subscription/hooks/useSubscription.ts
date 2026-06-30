@@ -29,8 +29,6 @@ export const useDeleteSubscriptionPlan = () => {
     });
 };
 
-// Query Hooks
-
 export const useSubscriptionPlans = () => {
     return useQuery({
         queryKey: ['subscription-plans'],

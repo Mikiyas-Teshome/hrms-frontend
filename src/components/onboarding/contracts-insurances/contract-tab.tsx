@@ -25,10 +25,14 @@ import { useContracts, useCreateContract } from '@/features/contracts/hooks/useC
 import { useInsurances } from '@/features/insurance/hooks/useInsurance';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { usePermissions } from '@/features/auth/hooks/usePermissions';
+import { useCompanyOptions } from '@/features/organization/hooks/useOrganization';
+import {
+    buildCompanyNameByOuIdMap,
+    resolveCompanyLabel,
+} from '@/features/organization/organization-unit-options.util';
 
 const FormSelectAny = FormSelect as any;
 
-// Zod schema for Contract Form in Onboarding
 export const contractOnboardingSchema = z.object({
     companyId: z.string().min(1, 'Company is required'),
     contractName: z.string().min(1, 'Contract name is required'),
@@ -65,29 +69,38 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
     const [contractFile, setContractFile] = useState<File | null>(null);
     const contractFileInputRef = useRef<HTMLInputElement>(null);
     const selectedCompanyIdTrimmed = selectedCompanyId?.trim();
+    const { companies: companiesData } = useCompanyOptions();
+    const companyNameByOuId = useMemo(
+        () => buildCompanyNameByOuIdMap(companiesData ?? []),
+        [companiesData],
+    );
 
-    // Fetch lists from backend
-    const { data: insurancesList } = useInsurances({
-        limit: 100,
-        companyOuId: selectedCompanyId || undefined,
-    });
+    const { data: insurancesList } = useInsurances(
+        {
+            limit: 100,
+            ouId: selectedCompanyIdTrimmed || undefined,
+        },
+        { enabled: Boolean(selectedCompanyIdTrimmed) },
+    );
 
     const contractFilter = useMemo(
-        () => ({
-            limit: rowsPerPage,
-            page: currentPage,
-        }),
-        [rowsPerPage, currentPage],
+        () =>
+            selectedCompanyIdTrimmed
+                ? {
+                      limit: rowsPerPage,
+                      page: currentPage,
+                      ouId: selectedCompanyIdTrimmed,
+                  }
+                : undefined,
+        [rowsPerPage, currentPage, selectedCompanyIdTrimmed],
     );
 
     const { data: contractsResponse, refetch: refetchContracts } = useContracts(contractFilter);
     const contractsList = contractsResponse?.data ?? [];
     const contractsPagination = contractsResponse?.pagination;
 
-    // Mutations
     const createContractMutation = useCreateContract();
 
-    // Contract Form Hook
     const {
         register: registerContract,
         handleSubmit: handleSubmitContract,
@@ -110,16 +123,23 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
         },
     });
 
-    // Sync selectedCompanyId to Contract Form and refetch
     useEffect(() => {
         if (selectedCompanyId) {
             setValueContract('companyId', selectedCompanyId);
+            setValueContract('insuranceIds', []);
             refetchContracts();
         }
     }, [selectedCompanyId, setValueContract, refetchContracts]);
 
-    // Watchers
     const selectedInsuranceIds = watchContract('insuranceIds') || [];
+    const contractType = watchContract('contractType');
+    const isPermanentContract = contractType === 'permanent';
+
+    useEffect(() => {
+        if (isPermanentContract) {
+            setValueContract('durationMonths', undefined);
+        }
+    }, [isPermanentContract, setValueContract]);
 
     const triggerContractFilePicker = () => {
         contractFileInputRef.current?.click();
@@ -143,27 +163,6 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
             return;
         }
         try {
-            const insurancesInput = data.insuranceIds
-                ?.map((id: string) => {
-                    const ins = insurancesList?.data?.find((i) => i.id === id);
-                    if (!ins) return null;
-                    return {
-                        insuranceName: ins.insuranceName,
-                        providerName: ins.providerName,
-                        policyNumber: ins.policyNumber,
-                        coverageType: ins.coverageType,
-                        assignment: ins.assignment,
-                        renewalType: ins.renewalType,
-                        hasDependentsCoverage: ins.hasDependentsCoverage,
-                        employerContribution: ins.employerContribution,
-                        employeeContribution: ins.employeeContribution,
-                        startDate: ins.startDate,
-                        endDate: ins.endDate,
-                        status: ins.status,
-                    };
-                })
-                .filter(Boolean);
-
             let documentUrl: string | undefined;
             if (contractFile) {
                 const formData = new FormData();
@@ -182,10 +181,12 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                 contractType: data.contractType as any,
                 employmentType: data.employmentType as any,
                 status: data.status as any,
-                durationMonths: data.durationMonths || undefined,
+                durationMonths:
+                    data.contractType === 'permanent' ? undefined : data.durationMonths || undefined,
                 isRenewable: data.isRenewable,
                 probationPeriodMonths: data.probationPeriodMonths || undefined,
-                insurances: insurancesInput,
+                ouId: selectedCompanyIdTrimmed || data.companyId,
+                insuranceIds: data.insuranceIds?.length ? data.insuranceIds : undefined,
                 documentUrl,
             };
 
@@ -220,7 +221,6 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
 
     return (
         <div className="space-y-8 animate-in fade-in duration-300 w-full">
-            {/* Add Contract Card — full width */}
             <Card className="rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-none bg-white dark:bg-zinc-950/20 overflow-hidden w-full">
                 <CardHeader className="bg-slate-50/50 dark:bg-zinc-900/40 border-b border-slate-200/60 dark:border-zinc-850 px-6 py-4">
                     <CardTitle className="text-base font-bold text-foreground">
@@ -232,7 +232,6 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                         onSubmit={(handleSubmitContract as any)(onAddContract)}
                         className="space-y-6"
                     >
-                        {/* Row 1: Contract name + Status */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="flex flex-col gap-2">
                                 <Label className="text-sm font-semibold text-foreground">
@@ -266,7 +265,6 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                             />
                         </div>
 
-                        {/* Row 2: Description full width */}
                         <div className="flex flex-col gap-2">
                             <Label className="text-sm font-semibold text-foreground">
                                 Description
@@ -278,7 +276,6 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                             />
                         </div>
 
-                        {/* Row 3: Employment type + Contract type */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormSelectAny
                                 id="contract-employment-type"
@@ -316,19 +313,21 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                             />
                         </div>
 
-                        {/* Row 4: Duration + Probation */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="flex flex-col gap-2">
-                                <Label className="text-sm font-semibold text-foreground">
-                                    Duration (months)
-                                </Label>
-                                <input
-                                    type="number"
-                                    {...registerContract('durationMonths')}
-                                    placeholder="Enter duration"
-                                    className="flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-sm placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                />
-                            </div>
+                            {!isPermanentContract ? (
+                                <div className="flex flex-col gap-2">
+                                    <Label className="text-sm font-semibold text-foreground">
+                                        Duration (months)
+                                    </Label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        {...registerContract('durationMonths')}
+                                        placeholder="Enter duration"
+                                        className="flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-sm placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                    />
+                                </div>
+                            ) : null}
 
                             <div className="flex flex-col gap-2">
                                 <Label className="text-sm font-semibold text-foreground">
@@ -343,7 +342,6 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                             </div>
                         </div>
 
-                        {/* Row 5: Renewable checkbox */}
                         <Controller
                             name="isRenewable"
                             control={controlContract as any}
@@ -364,7 +362,6 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                             )}
                         />
 
-                        {/* Row 6: Select insurance + info box */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                             <div className="space-y-2">
                                 <Label className="text-sm font-semibold text-foreground">
@@ -399,7 +396,6 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                                     </SelectContent>
                                 </Select>
 
-                                {/* Selected insurance chips */}
                                 {selectedInsuranceIds.length > 0 && (
                                     <div className="flex flex-wrap gap-2 pt-1">
                                         {selectedInsuranceIds.map((id) => (
@@ -428,7 +424,6 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                                 )}
                             </div>
 
-                            {/* Info box */}
                             <div className="flex items-start gap-2.5 p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-xs text-blue-700 dark:text-blue-300 font-medium leading-relaxed">
                                 <Info className="h-4 w-4 mt-0.5 shrink-0 text-blue-500" />
                                 You can select multiple insurance types that apply to the contract
@@ -436,7 +431,6 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                             </div>
                         </div>
 
-                        {/* Row 7: Contract content file upload */}
                         <div className="flex flex-col gap-2">
                             <Label className="text-sm font-semibold text-foreground">
                                 {t('fileAttachment', { defaultValue: 'Contract content' })}
@@ -467,7 +461,6 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                             </div>
                         </div>
 
-                        {/* Save button right-aligned */}
                         <div className="flex justify-end pt-2">
                             <Button
                                 type="submit"
@@ -484,7 +477,6 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                 </CardContent>
             </Card>
 
-            {/* Contracts Table — full width below */}
             <div className="w-full">
                 <Card className="rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-none bg-white dark:bg-zinc-950/20 overflow-hidden">
                     <CardContent className="p-0">
@@ -519,7 +511,11 @@ export function ContractTab({ selectedCompanyId, companyName }: ContractTabProps
                                                             `Contract ${c.contractNumber}`}
                                                     </td>
                                                     <td className="px-6 py-4 text-slate-600 dark:text-zinc-400">
-                                                        {companyName || 'ABC Engineering'}
+                                                        {resolveCompanyLabel(
+                                                            c.ouId,
+                                                            companyNameByOuId,
+                                                            companyName,
+                                                        )}
                                                     </td>
                                                     <td className="px-6 py-4 text-slate-600 dark:text-zinc-400 capitalize">
                                                         {c.contractType

@@ -22,19 +22,17 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { useProfile } from '@/features/auth/hooks/useAuth';
-import { useOrganizationUnitOptions } from '@/features/organization/hooks/useOrganization';
-import { useRoles } from '@/features/roles/hooks/useRoles';
-import { useContracts } from '@/features/contracts/hooks/useContracts';
-import { useInviteEmployee } from '@/features/employee/hooks/useEmployee';
-import { EMPLOYMENT_TYPE_OPTIONS } from '@/features/employee/employee.types';
+import {
+    BULK_INVITE_MAX_ROWS,
+    useEmployeeImportMetadata,
+} from '@/features/employee/hooks/useEmployeeImportMetadata';
+import { useInviteEmployees } from '@/features/employee/hooks/useEmployee';
 import { 
     generateEmployeeTemplate, 
     parseEmployeeExcel, 
     ParsedEmployeeRow 
 } from '@/lib/excel-template-generator';
 import { useToast } from '@/hooks/use-toast';
-import { useDisplayCurrency } from '@/features/settings/hooks/useDisplayCurrency';
 
 interface ImportEmployeesModalProps {
     open: boolean;
@@ -46,20 +44,18 @@ type ImportPhase = 'SELECT' | 'PREVIEW' | 'IMPORTING' | 'SUMMARY';
 const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpenChange }) => {
     const { t } = useTranslation('employees');
     const { toast } = useToast();
-    const { currencySymbol } = useDisplayCurrency();
 
-    const { data: profile } = useProfile();
-    const { unitOptions, isLoading: hierarchyLoading } = useOrganizationUnitOptions();
-    const { data: roles, isLoading: rolesLoading } = useRoles(profile?.companyId);
-    const { data: contractsData, isLoading: contractsLoading } = useContracts({ limit: 1000 });
-    const inviteMutation = useInviteEmployee();
+    const {
+        metadata,
+        isLoading: metadataLoading,
+        isReady,
+        hasContracts,
+        hasSalaryStructures,
+    } = useEmployeeImportMetadata();
+    const inviteEmployeesMutation = useInviteEmployees();
 
-    // 2. Local State variables
     const [phase, setPhase] = useState<ImportPhase>('SELECT');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [fileName, setFileName] = useState<string>('');
     const [parsedRows, setParsedRows] = useState<ParsedEmployeeRow[]>([]);
-    const [progress, setProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
     const [results, setResults] = useState<{ success: string[]; failed: { name: string; error: string }[] }>({
         success: [],
         failed: []
@@ -69,33 +65,21 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 3. Helper to format dynamic lists
-    const getMetadataLists = () => {
-        const departments = unitOptions.map((u) => ({ label: u.label, value: u.id }));
-        const roleOptions = roles?.filter((r) => !!r.id).map((r) => ({ label: r.name, value: r.id! })) || [];
-        const contractOptions = contractsData?.data?.map((c) => ({
-            label: c.contractName || `Contract ${c.contractNumber}`,
-            value: c.id,
-        })) || [];
-        const employmentTypes = EMPLOYMENT_TYPE_OPTIONS.map((opt) => ({
-            label: t(opt.value, opt.label),
-            value: opt.value,
-        }));
-
-        return {
-            departments,
-            roles: roleOptions,
-            contracts: contractOptions,
-            employmentTypes,
-            currencySymbol,
-        };
-    };
-
-    // 4. Download Handler
     const handleDownloadTemplate = async () => {
+        if (!isReady) {
+            toast({
+                title: t('downloadError', 'Failed to generate template'),
+                description: t(
+                    'importPrerequisitesMissing',
+                    'Set up at least one company with contracts and salary structures before downloading the template.',
+                ),
+                variant: 'destructive',
+            });
+            return;
+        }
+
         setIsDownloadingTemplate(true);
         try {
-            const metadata = getMetadataLists();
             const blob = await generateEmployeeTemplate(metadata);
             
             const url = window.URL.createObjectURL(blob);
@@ -109,14 +93,14 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
             
             toast({
                 title: t('downloadSuccess', 'Template Downloaded'),
-                description: t('downloadSuccessDesc', 'Dynamic template generated with active departments and roles.'),
-                variant: 'success',
+                description: t('downloadSuccessDesc', 'Dynamic template generated with active companies, org units, and roles.'),
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Something went wrong, please try again.';
             console.error('Failed to generate template:', error);
             toast({
                 title: t('downloadError', 'Failed to generate template'),
-                description: error.message || 'Something went wrong, please try again.',
+                description: message,
                 variant: 'destructive',
             });
         } finally {
@@ -124,11 +108,20 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
         }
     };
 
-    // 5. File Upload & Processing Handler
     const processFile = async (file: File) => {
-        setFileName(file.name);
+        if (!isReady) {
+            toast({
+                title: 'Import Unavailable',
+                description: t(
+                    'importPrerequisitesMissing',
+                    'Set up at least one company with contracts and salary structures before importing employees.',
+                ),
+                variant: 'destructive',
+            });
+            return;
+        }
+
         try {
-            const metadata = getMetadataLists();
             const rows = await parseEmployeeExcel(file, metadata);
             
             if (rows.length === 0) {
@@ -142,14 +135,14 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
 
             setParsedRows(rows);
             setPhase('PREVIEW');
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Failed to read the Excel file. Please use the original template.';
             console.error('File parsing failed:', error);
             toast({
                 title: 'Parsing Failed',
-                description: error.message || 'Failed to read the Excel file. Please use the original template.',
+                description: message,
                 variant: 'destructive',
             });
-            setFileName('');
         }
     };
 
@@ -160,7 +153,6 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
         }
     };
 
-    // Drag and Drop
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(true);
@@ -186,56 +178,89 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
     };
 
     const handleChooseFile = () => {
+        if (!isReady) {
+            toast({
+                title: 'Import Unavailable',
+                description: t(
+                    'importPrerequisitesMissing',
+                    'Set up at least one company with contracts and salary structures before importing employees.',
+                ),
+                variant: 'destructive',
+            });
+            return;
+        }
         fileInputRef.current?.click();
     };
 
-    // 6. Batch Invite sequential execution
     const handleImport = async () => {
-        const validRows = parsedRows.filter(r => r.isValid);
+        const validRows = parsedRows.filter((row) => row.isValid);
         if (validRows.length === 0) return;
 
+        if (validRows.length > BULK_INVITE_MAX_ROWS) {
+            toast({
+                title: t('importLimitExceeded', 'Import limit exceeded'),
+                description: t(
+                    'importLimitExceededDesc',
+                    'You can import up to {{max}} employees at once. Remove extra rows and try again.',
+                    { max: BULK_INVITE_MAX_ROWS },
+                ),
+                variant: 'destructive',
+            });
+            return;
+        }
+
         setPhase('IMPORTING');
-        setProgress({ current: 0, total: validRows.length });
-        
-        const successList: string[] = [];
-        const failedList: { name: string; error: string }[] = [];
 
-        for (let i = 0; i < validRows.length; i++) {
-            const row = validRows[i];
-            setProgress({ current: i + 1, total: validRows.length });
-
-            try {
-                await inviteMutation.mutateAsync({
+        try {
+            const result = await inviteEmployeesMutation.mutateAsync({
+                employees: validRows.map((row) => ({
                     email: row.email,
                     firstName: row.firstName,
                     lastName: row.lastName,
                     ouId: row.ouId,
-                    roleId: row.role, // role maps to roleId
+                    roleId: row.role,
                     gccId: row.gccid,
                     employmentType: row.employmentType,
-                    contractId: row.contractId,
+                    contractId: row.contractId!,
                     jobTitle: row.jobTitle,
                     salary: row.salary,
-                });
-                successList.push(`${row.firstName} ${row.lastName} (${row.email})`);
-            } catch (error: any) {
-                console.error(`Failed to invite ${row.email}:`, error);
-                failedList.push({
+                    salaryStructureId: row.salaryStructureId,
+                })),
+            });
+
+            const rowByEmail = new Map(validRows.map((row) => [row.email.toLowerCase(), row]));
+            const successList = result.successfulInvitations.map((invitation) => {
+                const row = rowByEmail.get(invitation.email.toLowerCase());
+                return row
+                    ? `${row.firstName} ${row.lastName} (${invitation.email})`
+                    : invitation.email;
+            });
+            const failedList = result.failedInvitations.map((failure) => {
+                const row = rowByEmail.get(failure.email.toLowerCase());
+                return {
+                    name: row ? `${row.firstName} ${row.lastName}` : failure.email,
+                    error: failure.reason,
+                };
+            });
+
+            setResults({ success: successList, failed: failedList });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Bulk invitation request failed.';
+            setResults({
+                success: [],
+                failed: validRows.map((row) => ({
                     name: `${row.firstName} ${row.lastName}`,
-                    error: error.message || 'Invitation request failed.'
-                });
-            }
+                    error: message,
+                })),
+            });
         }
 
-        setResults({ success: successList, failed: failedList });
         setPhase('SUMMARY');
     };
 
     const resetModal = () => {
         setPhase('SELECT');
-        setFileName('');
         setParsedRows([]);
-        setProgress({ current: 0, total: 0 });
         setResults({ success: [], failed: [] });
     };
 
@@ -246,9 +271,9 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
         onOpenChange(openVal);
     };
 
-    // Derived statistics
-    const validCount = parsedRows.filter(r => r.isValid).length;
+    const validCount = parsedRows.filter((row) => row.isValid).length;
     const invalidCount = parsedRows.length - validCount;
+    const exceedsImportLimit = validCount > BULK_INVITE_MAX_ROWS;
 
     return (
         <Dialog open={open} onOpenChange={handleCloseChange}>
@@ -258,7 +283,6 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                     phase === 'PREVIEW' ? "max-w-4xl" : "max-w-145"
                 )}
             >
-                {/* Header Section */}
                 <DialogHeader className="bg-muted/40 h-14 px-6 border-b border-border flex flex-row items-center justify-between space-y-0 shrink-0">
                     <div className="flex items-center gap-2">
                         <FileSpreadsheet className="h-5 w-5 text-primary" />
@@ -270,7 +294,7 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                         <Button
                             type="button"
                             variant="secondary"
-                            disabled={isDownloadingTemplate || hierarchyLoading || rolesLoading || contractsLoading}
+                            disabled={isDownloadingTemplate || metadataLoading || !isReady}
                             onClick={handleDownloadTemplate}
                             className="h-9 px-4 text-xs bg-primary/10 hover:bg-primary/20 text-primary font-bold flex items-center gap-2 border-none rounded-xl transition-all"
                         >
@@ -284,10 +308,35 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                     )}
                 </DialogHeader>
 
-                {/* PHASE 1: SELECT FILE */}
                 {phase === 'SELECT' && (
                     <div className="p-6 space-y-6">
-                        {/* Drag and Drop Zone */}
+                        {!metadataLoading && !isReady && (
+                            <div className="flex gap-3.5 p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl text-foreground/80 items-start">
+                                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" strokeWidth={1.5} />
+                                <div className="space-y-1">
+                                    <h4 className="text-xs font-bold text-foreground">
+                                        {t('importSetupRequired', 'Setup required before import')}
+                                    </h4>
+                                    <p className="text-xs leading-[1.4] text-muted-foreground">
+                                        {!hasContracts && !hasSalaryStructures
+                                            ? t(
+                                                'importNoContractsOrSalaryStructures',
+                                                'Create contracts and salary structures for your companies before using bulk import.',
+                                            )
+                                            : !hasContracts
+                                                ? t(
+                                                    'importNoContracts',
+                                                    'Create at least one contract for your companies before using bulk import.',
+                                                )
+                                                : t(
+                                                    'importNoSalaryStructures',
+                                                    'Create at least one salary structure for your companies before using bulk import.',
+                                                )}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         <div 
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
@@ -297,7 +346,8 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                                 "flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-2xl text-center cursor-pointer transition-all duration-200",
                                 isDragging 
                                     ? "border-primary bg-primary/5 scale-[0.99]" 
-                                    : "border-border hover:border-primary/60 hover:bg-muted/30"
+                                    : "border-border hover:border-primary/60 hover:bg-muted/30",
+                                !isReady && !metadataLoading && "opacity-60 cursor-not-allowed",
                             )}
                         >
                             <div className="p-4 bg-primary/5 rounded-2xl text-primary mb-4">
@@ -312,6 +362,7 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                             <Button 
                                 type="button"
                                 variant="outline"
+                                disabled={metadataLoading || !isReady}
                                 className="h-9 px-6 font-semibold rounded-xl text-xs hover:bg-muted transition-all"
                             >
                                 {t('chooseFile')}
@@ -326,7 +377,6 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                             />
                         </div>
 
-                        {/* Informational Alert */}
                         <div className="flex gap-3.5 p-4 bg-primary/5 border border-primary/10 rounded-2xl text-foreground/80 items-start">
                             <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" strokeWidth={1.5} />
                             <div className="space-y-1">
@@ -352,10 +402,8 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                     </div>
                 )}
 
-                {/* PHASE 2: PREVIEW PARSED EXCEL DATA */}
                 {phase === 'PREVIEW' && (
                     <div className="p-6 space-y-6 flex flex-col max-h-[75vh]">
-                        {/* Stats Banner */}
                         <div className="grid grid-cols-3 gap-4 shrink-0">
                             <div className="p-3 bg-muted/40 rounded-xl border border-border flex flex-col">
                                 <span className="text-xs text-muted-foreground">{t('totalRows', 'Total Entries')}</span>
@@ -371,7 +419,19 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                             </div>
                         </div>
 
-                        {/* Warnings Alert if any invalid rows */}
+                        {exceedsImportLimit && (
+                            <div className="flex gap-3 p-3 bg-rose-500/5 border border-rose-500/10 rounded-xl items-start shrink-0">
+                                <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+                                <p className="text-xs text-rose-600 dark:text-rose-400 leading-[1.4]">
+                                    {t(
+                                        'importLimitExceededDesc',
+                                        'You can import up to {{max}} employees at once. Remove extra rows and try again.',
+                                        { max: BULK_INVITE_MAX_ROWS },
+                                    )}
+                                </p>
+                            </div>
+                        )}
+
                         {invalidCount > 0 && (
                             <div className="flex gap-3 p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl items-start shrink-0">
                                 <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
@@ -381,7 +441,6 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                             </div>
                         )}
 
-                        {/* Interactive Data Preview Grid */}
                         <div className="flex-1 overflow-y-auto border border-border rounded-xl min-h-62.5 max-h-87.5">
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-muted/40 sticky top-0 border-b border-border z-10">
@@ -457,7 +516,7 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                                 <Button
                                     type="button"
                                     onClick={handleImport}
-                                    disabled={validCount === 0}
+                                    disabled={validCount === 0 || exceedsImportLimit || inviteEmployeesMutation.isPending}
                                     className="h-10 px-6 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg shadow-primary/20 flex items-center gap-2"
                                 >
                                     {t('importValidRows', 'Invite Ready Employees')}
@@ -468,7 +527,6 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                     </div>
                 )}
 
-                {/* PHASE 3: ACTIVE PROGRESSIVE BATCH IMPORT */}
                 {phase === 'IMPORTING' && (
                     <div className="p-8 space-y-6 flex flex-col items-center justify-center text-center">
                         <div className="relative p-6 bg-primary/5 rounded-full text-primary animate-pulse mb-2">
@@ -479,27 +537,15 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                                 {t('sendingInvites', 'Inviting Employees...')}
                             </h3>
                             <p className="text-xs text-muted-foreground max-w-85 mx-auto leading-relaxed">
-                                Processing sequential invitations to maintain database integrity and provide real-time updates. Please keep this modal open.
+                                {t(
+                                    'bulkInviteProgress',
+                                    'Sending invitations in a single batch. Please keep this modal open until the process completes.',
+                                )}
                             </p>
-                        </div>
-
-                        {/* Linear Progress Bar */}
-                        <div className="w-full max-w-90 space-y-2 mt-4">
-                            <div className="flex justify-between text-xs font-bold text-muted-foreground">
-                                <span>Progress</span>
-                                <span>{progress.current} of {progress.total}</span>
-                            </div>
-                            <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                                <div 
-                                    className="h-full bg-primary transition-all duration-300 rounded-full"
-                                    style={{ width: `${(progress.current / progress.total) * 100}%` }}
-                                />
-                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* PHASE 4: SUMMARY & AUDIT DASHBOARD */}
                 {phase === 'SUMMARY' && (
                     <div className="p-6 space-y-6 max-h-[75vh] flex flex-col">
                         <div className="text-center space-y-1.5 shrink-0">
@@ -514,7 +560,6 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                             </p>
                         </div>
 
-                        {/* Breakdown Grid */}
                         <div className="grid grid-cols-2 gap-4 shrink-0">
                             <div className="p-3 bg-emerald-500/3 rounded-xl border border-emerald-500/10 flex flex-col text-center">
                                 <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mb-1">Invited Successfully</span>
@@ -526,9 +571,7 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                             </div>
                         </div>
 
-                        {/* Summary Scroll Lists */}
                         <div className="flex-1 overflow-y-auto space-y-4 max-h-62.5">
-                            {/* Failed items log */}
                             {results.failed.length > 0 && (
                                 <div className="space-y-2">
                                     <h4 className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
@@ -546,7 +589,6 @@ const ImportEmployeesModal: React.FC<ImportEmployeesModalProps> = ({ open, onOpe
                                 </div>
                             )}
 
-                            {/* Successful entries listing */}
                             {results.success.length > 0 && (
                                 <div className="space-y-2">
                                     <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">

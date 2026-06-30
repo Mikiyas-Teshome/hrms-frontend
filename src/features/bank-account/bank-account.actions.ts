@@ -7,8 +7,10 @@ import {
   CREATE_MY_BANK_ACCOUNT_MUTATION,
   REMOVE_BANK_ACCOUNT_MUTATION,
   UPDATE_BANK_ACCOUNT_MUTATION,
+  UPDATE_MY_BANK_ACCOUNT_MUTATION,
   GET_BANK_ACCOUNT_QUERY,
   GET_BANK_ACCOUNTS_QUERY,
+  GET_MY_BANK_ACCOUNTS_QUERY,
 } from './bank-account.queries';
 import {
   BankAccount,
@@ -18,17 +20,32 @@ import {
 } from './bank-account.types';
 
 export async function fetchBankAccounts(employeeId: string): Promise<BankAccount[]> {
-  try {
+  const result = await safeAction(async () => {
     const data = await gqlRequest<{ bankAccounts: BankAccount[] }>(
       GraphQLService.CORE_HR,
       GET_BANK_ACCOUNTS_QUERY,
-      { employeeId }
+      { employeeId },
     );
-    return data.bankAccounts;
-  } catch (error) {
-    console.error(`Failed to fetch bank accounts for employee ${employeeId}:`, error);
-    return [];
+    return data.bankAccounts ?? [];
+  });
+  if (!result.success) {
+    throw new Error(result.error);
   }
+  return result.data;
+}
+
+export async function fetchMyBankAccounts(): Promise<BankAccount[]> {
+  const result = await safeAction(async () => {
+    const data = await gqlRequest<{ myBankAccounts: BankAccount[] }>(
+      GraphQLService.CORE_HR,
+      GET_MY_BANK_ACCOUNTS_QUERY,
+    );
+    return data.myBankAccounts ?? [];
+  });
+  if (!result.success) {
+    throw new Error(result.error);
+  }
+  return result.data;
 }
 
 export async function fetchBankAccount(id: string): Promise<BankAccount | null> {
@@ -63,7 +80,6 @@ export async function createBankAccount(input: CreateBankAccountInput): Promise<
       CREATE_BANK_ACCOUNT_MUTATION,
       { input }
     );
-    // revalidatePath('/dashboard/employees');
     return data.createBankAccount;
   });
 }
@@ -75,8 +91,21 @@ export async function updateBankAccount(id: string, input: UpdateBankAccountInpu
       UPDATE_BANK_ACCOUNT_MUTATION,
       { id, input }
     );
-    // revalidatePath('/dashboard/employees');
     return data.updateBankAccount;
+  });
+}
+
+export async function updateMyBankAccount(
+  id: string,
+  input: UpdateBankAccountInput,
+): Promise<ActionResult<BankAccount>> {
+  return safeAction(async () => {
+    const data = await gqlRequest<{ updateMyBankAccount: BankAccount }>(
+      GraphQLService.CORE_HR,
+      UPDATE_MY_BANK_ACCOUNT_MUTATION,
+      { id, input },
+    );
+    return data.updateMyBankAccount;
   });
 }
 
@@ -87,7 +116,6 @@ export async function removeBankAccount(id: string): Promise<ActionResult<BankAc
       REMOVE_BANK_ACCOUNT_MUTATION,
       { id }
     );
-    // revalidatePath('/dashboard/employees');
     return data.removeBankAccount;
   });
 }

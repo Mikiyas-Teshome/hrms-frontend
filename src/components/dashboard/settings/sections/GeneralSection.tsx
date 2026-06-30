@@ -15,6 +15,7 @@ import { CurrencySelect } from '@/components/ui/CurrencySelect';
 import { TimezoneSelect } from '@/components/ui/TimezoneSelect';
 import { PhoneCodeSelect } from '@/components/ui/PhoneCodeSelect';
 import { useTranslation } from 'react-i18next';
+import { changeLanguage } from '@/lib/i18n';
 import { Loader2 } from 'lucide-react';
 import { SectionLayout } from '../SectionLayout';
 import { GeneralSectionSkeleton } from '../SettingsSectionSkeleton';
@@ -37,19 +38,14 @@ const schema = z.object({
     postalCode: z.string().optional(),
     country: z.string().optional(),
     currency: z.string().optional(),
-    language: z.string().default('en'),
     timezone: z.string().optional(),
 });
 
 type GeneralValues = z.infer<typeof schema>;
 
-const LANGUAGE_OPTIONS = [
-    { label: 'English', value: 'en' },
-    { label: 'Arabic', value: 'ar' },
-];
-
 export function GeneralSection() {
     const { t, i18n } = useTranslation('settings');
+    const { t: tLanguage } = useTranslation('languageSwitcher');
     const { toast } = useToast();
     const {
         companyId,
@@ -62,6 +58,10 @@ export function GeneralSection() {
     const updateTenantMutation = useUpdateTenantProfile();
 
     const language = i18n.language?.startsWith('ar') ? 'ar' : 'en';
+    const languageOptions = [
+        { label: tLanguage('languages.english'), value: 'en' },
+        { label: tLanguage('languages.arabic'), value: 'ar' },
+    ];
 
     const { register, control, handleSubmit, reset, formState: { errors } } = useForm<GeneralValues>({
         resolver: zodResolver(schema) as never,
@@ -77,7 +77,6 @@ export function GeneralSection() {
             postalCode: '',
             country: '',
             currency: '',
-            language,
             timezone: '',
         },
     });
@@ -93,11 +92,10 @@ export function GeneralSection() {
         reset(
             buildGeneralFormValues(company, {
                 currencyFallback,
-                language,
                 timezoneFallback,
             }),
         );
-    }, [company, currencyFallback, language, timezoneFallback, reset]);
+    }, [company, currencyFallback, timezoneFallback, reset]);
 
     const onSubmit = async (data: GeneralValues) => {
         if (!companyId) {
@@ -318,13 +316,11 @@ export function GeneralSection() {
                         <FormSelect
                             id="language"
                             label={t('general.language')}
-                            control={control}
-                            name="language"
-                            error={errors.language}
-                            options={LANGUAGE_OPTIONS}
+                            value={language}
+                            options={languageOptions}
                             t={t}
                             onChange={(value) => {
-                                void i18n.changeLanguage(value);
+                                changeLanguage(value as 'en' | 'ar');
                             }}
                         />
                         <p className="text-xs text-muted-foreground mt-1">

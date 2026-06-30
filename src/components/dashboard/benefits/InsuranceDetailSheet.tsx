@@ -58,7 +58,6 @@ const InsuranceDetailSheet = ({
         <Separator />
 
         <div className="flex-1 overflow-y-auto no-scrollbar -mx-10 px-10 py-6 bg-slate-50/50 dark:bg-zinc-950/30 space-y-6">
-            {/* Insurance Info Card */}
             <div className="border border-slate-200/80 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20 shadow-sm shadow-slate-100/50 dark:shadow-none animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="bg-slate-50/80 dark:bg-zinc-900/60 border-b border-slate-200/60 dark:border-zinc-800 px-6 py-3.5">
                 <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
@@ -86,7 +85,6 @@ const InsuranceDetailSheet = ({
               </div>
             </div>
 
-            {/* Coverage Details Card */}
             <div className="border border-slate-200/80 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20 shadow-sm shadow-slate-100/50 dark:shadow-none animate-in fade-in slide-in-from-bottom-3 duration-300">
               <div className="bg-slate-50/80 dark:bg-zinc-900/60 border-b border-slate-200/60 dark:border-zinc-800 px-6 py-3.5">
                 <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">
@@ -182,7 +180,6 @@ const InsuranceDetailSheet = ({
               </div>
             </div>
 
-            {/* Eligibility Rules Card */}
             <div className="border border-slate-200/80 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950/20 shadow-sm shadow-slate-100/50 dark:shadow-none animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="bg-slate-50/80 dark:bg-zinc-900/60 border-b border-slate-200/60 dark:border-zinc-800 px-6 py-3.5">
                 <h3 className="text-sm font-semibold text-slate-800 dark:text-zinc-200">

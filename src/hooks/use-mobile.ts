@@ -1,19 +1,28 @@
 import * as React from "react"
+import { useClientHydrated } from "@/hooks/use-client-hydrated"
 
 const MOBILE_BREAKPOINT = 768
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const hydrated = useClientHydrated()
 
-  React.useEffect(() => {
+  const getSnapshot = () => window.innerWidth < MOBILE_BREAKPOINT
+
+  const subscribe = (callback: () => void) => {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    mql.addEventListener("change", callback)
+    window.addEventListener("resize", callback)
+    return () => {
+      mql.removeEventListener("change", callback)
+      window.removeEventListener("resize", callback)
     }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
+  }
 
-  return !!isMobile
+  const isMobile = React.useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    () => false,
+  )
+
+  return hydrated && isMobile
 }

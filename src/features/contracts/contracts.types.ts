@@ -43,6 +43,7 @@ export interface Contract {
     createdBy?: string;
     insurances?: Insurance[];
     benefitEntitlements?: BenefitEntitlement[];
+    contractsSignedCount: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -59,7 +60,8 @@ export interface CreateContractInput {
     probationPeriodMonths?: number;
     noticePeriodDays?: number;
     documentUrl?: string;
-    insurances?: any[]; // We can map CreateInsuranceInput here
+    ouId?: string;
+    insuranceIds?: string[];
 }
 
 export interface UpdateContractInput {
@@ -74,9 +76,11 @@ export interface UpdateContractInput {
     probationPeriodMonths?: number;
     noticePeriodDays?: number;
     documentUrl?: string;
+    insuranceIds?: string[];
 }
 
 export interface ContractFilterInput {
+    ouId: string;
     search?: string;
     contractType?: EmploymentContractType;
     status?: ContractStatus;

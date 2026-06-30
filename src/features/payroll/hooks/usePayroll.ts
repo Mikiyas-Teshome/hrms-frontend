@@ -4,21 +4,19 @@ import {
   fetchUpcomingPayrollDate,
   fetchPayrollRun,
   fetchPayrollRuns,
+  fetchPayrollRunsPaginated,
   fetchPayslip,
-  fetchPayslipsByEmployee,
-  fetchPayslipsByPayrollRun,
-  fetchSalaryStructure,
+  fetchPayslipsPaginated,
+  fetchEmployeePayrollPreview,
   createPayrollRun,
   finalizePayrollRun,
   markPayrollRunPaid,
+  deletePayrollRun,
   generatePayslip,
+  regeneratePayslip,
+  generatePayrollRunPayslips,
   generateWpsFile,
   updatePayrollConfig,
-  createSalaryStructure,
-  addAllowanceToSalaryStructure,
-  removeAllowanceFromSalaryStructure,
-  addDeductionToSalaryStructure,
-  removeDeductionFromSalaryStructure,
   createPayrollComponent,
   createPayrollComponentsBatch,
   updatePayrollComponent,
@@ -30,15 +28,24 @@ import {
 import {
   CreatePayrollRunInput,
   GeneratePayslipInput,
+  GeneratePayrollRunPayslipsInput,
   GenerateWpsInput,
   UpdatePayrollConfigInput,
-  CreateSalaryStructureInput,
   CreatePayrollComponentInput,
   UpdatePayrollComponentInput,
   UpsertPayrollComponentInput,
   PayrollComponentType,
-  SalaryStructureResponse,
-  PayrollComponent,
+  PayrollComponentFilterInput,
+  PayrollComponentPaginationInput,
+  PayrollComponentResponse,
+  PAYROLL_COMPONENTS_ALL_PAGE_SIZE,
+  PayrollRunFilterInput,
+  PayrollRunPaginationInput,
+  PayrollRunSortBy,
+  PayrollRunListSortOrder,
+  PayslipFilterInput,
+  PayslipPaginationInput,
+  PAYROLL_RUNS_ALL_PAGE_SIZE,
 } from '../payroll.types';
 
 export const usePayrollConfig = (companyId?: string) => {
@@ -57,11 +64,60 @@ export const useUpcomingPayrollDate = (companyId?: string) => {
   });
 };
 
-export const usePayrollComponents = (companyId?: string, isActive?: boolean) => {
+export const usePayrollComponents = (
+  ouId?: string,
+  filter?: PayrollComponentFilterInput,
+  pagination?: PayrollComponentPaginationInput,
+) => {
   return useQuery({
-    queryKey: ['payroll-components', { companyId, isActive }],
-    queryFn: () => fetchPayrollComponents(companyId!, isActive),
-    enabled: !!companyId,
+    queryKey: ['payroll-components', { ouId, filter, pagination }],
+    queryFn: () => fetchPayrollComponents(ouId!, filter, pagination),
+    enabled: !!ouId,
+  });
+};
+
+export const useAllPayrollComponents = (
+  ouId?: string,
+  filter?: PayrollComponentFilterInput,
+) => {
+  return usePayrollComponents(ouId, filter, { size: PAYROLL_COMPONENTS_ALL_PAGE_SIZE });
+};
+
+export const usePayrollAllowances = (ouId?: string) => {
+  const query = useAllPayrollComponents(ouId, { category: PayrollComponentType.ALLOWANCE });
+
+  return {
+    ...query,
+    data: (query.data?.data ?? []) as PayrollComponentResponse[],
+  };
+};
+
+export const usePayrollDeductions = (ouId?: string) => {
+  const query = useAllPayrollComponents(ouId, { category: PayrollComponentType.DEDUCTION });
+
+  return {
+    ...query,
+    data: (query.data?.data ?? []) as PayrollComponentResponse[],
+  };
+};
+
+export const useEmployeePayrollPreview = (
+  employeeId?: string,
+  companyId?: string,
+) => {
+  return useQuery({
+    queryKey: ['employee-payroll-preview', employeeId, companyId],
+    queryFn: async () => {
+      const result = await fetchEmployeePayrollPreview({
+        employeeId: employeeId!,
+        companyId: companyId!,
+      });
+      if (!result) {
+        throw new Error('Failed to load payroll calculation');
+      }
+      return result;
+    },
+    enabled: !!employeeId && !!companyId,
   });
 };
 
@@ -71,6 +127,29 @@ export const usePayrollRuns = (companyId?: string) => {
     queryFn: () => fetchPayrollRuns(companyId!),
     enabled: !!companyId,
   });
+};
+
+export const usePayrollRunsPaginated = (
+  companyId?: string,
+  filter?: PayrollRunFilterInput,
+  pagination?: PayrollRunPaginationInput,
+) => {
+  return useQuery({
+    queryKey: ['payroll-runs-paginated', { companyId, filter, pagination }],
+    queryFn: () => fetchPayrollRunsPaginated(companyId!, filter, pagination),
+    enabled: !!companyId,
+  });
+};
+
+export const useAllPayrollRuns = (companyId?: string) => {
+  return usePayrollRunsPaginated(
+    companyId,
+    {
+      sortBy: PayrollRunSortBy.START_DATE,
+      sortOrder: PayrollRunListSortOrder.DESC,
+    },
+    { page: 1, size: PAYROLL_RUNS_ALL_PAGE_SIZE },
+  );
 };
 
 export const usePayrollRun = (id: string) => {
@@ -89,27 +168,16 @@ export const usePayslip = (id: string) => {
   });
 };
 
-export const usePayslipsByEmployee = (employeeId: string) => {
+export const usePayslipsPaginated = (
+  companyId: string | undefined,
+  filter?: PayslipFilterInput,
+  pagination?: PayslipPaginationInput,
+  enabled = true,
+) => {
   return useQuery({
-    queryKey: ['payslips', 'employee', employeeId],
-    queryFn: () => fetchPayslipsByEmployee(employeeId),
-    enabled: !!employeeId,
-  });
-};
-
-export const usePayslipsByPayrollRun = (payrollRunId: string) => {
-  return useQuery({
-    queryKey: ['payslips', 'payroll-run', payrollRunId],
-    queryFn: () => fetchPayslipsByPayrollRun(payrollRunId),
-    enabled: !!payrollRunId,
-  });
-};
-
-export const useSalaryStructure = (employeeId: string) => {
-  return useQuery({
-    queryKey: ['salary-structure', employeeId],
-    queryFn: () => fetchSalaryStructure(employeeId),
-    enabled: !!employeeId,
+    queryKey: ['payslips-paginated', companyId, filter, pagination],
+    queryFn: () => fetchPayslipsPaginated(companyId!, filter, pagination),
+    enabled: !!companyId && enabled,
   });
 };
 
@@ -123,6 +191,7 @@ export const useCreatePayrollRun = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs-paginated'] });
     },
   });
 };
@@ -138,6 +207,7 @@ export const useFinalizePayrollRun = () => {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['payroll-run', id] });
       queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs-paginated'] });
     },
   });
 };
@@ -153,6 +223,22 @@ export const useMarkPayrollRunPaid = () => {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['payroll-run', id] });
       queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs-paginated'] });
+    },
+  });
+};
+
+export const useDeletePayrollRun = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const result = await deletePayrollRun(id);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs-paginated'] });
     },
   });
 };
@@ -166,8 +252,45 @@ export const useGeneratePayslip = () => {
       return result.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['payslips', 'employee', variables.employeeId] });
-      queryClient.invalidateQueries({ queryKey: ['payslips', 'payroll-run', variables.payrollRunId] });
+      queryClient.invalidateQueries({ queryKey: ['payslips-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-run', variables.payrollRunId] });
+    },
+  });
+};
+
+export const useRegeneratePayslip = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: GeneratePayslipInput) => {
+      const result = await regeneratePayslip(input);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['payslips-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['payslip'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-run', variables.payrollRunId] });
+    },
+  });
+};
+
+export const useGeneratePayrollRunPayslips = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: GeneratePayrollRunPayslipsInput) => {
+      const result = await generatePayrollRunPayslips(input);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['payslips-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-runs-paginated'] });
+      queryClient.invalidateQueries({ queryKey: ['payroll-run', variables.payrollRunId] });
     },
   });
 };
@@ -191,77 +314,9 @@ export const useUpdatePayrollConfig = () => {
       return result.data;
     },
     onSuccess: (updatedConfig) => {
-      queryClient.setQueryData(['payroll-config'], updatedConfig);
-    },
-  });
-};
-
-export const useCreateSalaryStructure = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: CreateSalaryStructureInput) => {
-      const result = await createSalaryStructure(input);
-      if (!result.success) throw new Error(result.error);
-      return result.data;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['salary-structure', variables.employeeId] });
-    },
-  });
-};
-
-export const useAddAllowanceToSalaryStructure = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ salaryStructureId, allowanceId }: { salaryStructureId: string; allowanceId: string }) => {
-      const result = await addAllowanceToSalaryStructure(salaryStructureId, allowanceId);
-      if (!result.success) throw new Error(result.error);
-      return result.data;
-    },
-    onSuccess: (data: SalaryStructureResponse) => {
-      queryClient.invalidateQueries({ queryKey: ['salary-structure', data.employeeId] });
-    },
-  });
-};
-
-export const useRemoveAllowanceFromSalaryStructure = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ salaryStructureId, allowanceId }: { salaryStructureId: string; allowanceId: string }) => {
-      const result = await removeAllowanceFromSalaryStructure(salaryStructureId, allowanceId);
-      if (!result.success) throw new Error(result.error);
-      return result.data;
-    },
-    onSuccess: (data: SalaryStructureResponse) => {
-      queryClient.invalidateQueries({ queryKey: ['salary-structure', data.employeeId] });
-    },
-  });
-};
-
-export const useAddDeductionToSalaryStructure = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ salaryStructureId, deductionId }: { salaryStructureId: string; deductionId: string }) => {
-      const result = await addDeductionToSalaryStructure(salaryStructureId, deductionId);
-      if (!result.success) throw new Error(result.error);
-      return result.data;
-    },
-    onSuccess: (data: SalaryStructureResponse) => {
-      queryClient.invalidateQueries({ queryKey: ['salary-structure', data.employeeId] });
-    },
-  });
-};
-
-export const useRemoveDeductionFromSalaryStructure = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ salaryStructureId, deductionId }: { salaryStructureId: string; deductionId: string }) => {
-      const result = await removeDeductionFromSalaryStructure(salaryStructureId, deductionId);
-      if (!result.success) throw new Error(result.error);
-      return result.data;
-    },
-    onSuccess: (data: SalaryStructureResponse) => {
-      queryClient.invalidateQueries({ queryKey: ['salary-structure', data.employeeId] });
+      queryClient.setQueryData(['payroll-config', { companyId: updatedConfig.companyId }], updatedConfig);
+      queryClient.invalidateQueries({ queryKey: ['payroll-config'] });
+      queryClient.invalidateQueries({ queryKey: ['salary-structures'] });
     },
   });
 };
@@ -274,12 +329,8 @@ export const useCreatePayrollComponent = () => {
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: (_, variables) => {
-      if (variables.componentType === PayrollComponentType.ALLOWANCE) {
-        queryClient.invalidateQueries({ queryKey: ['allowances'] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['deductions'] });
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll-components'] });
     },
   });
 };
@@ -293,8 +344,6 @@ export const useCreatePayrollComponentsBatch = () => {
       return result.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allowances'] });
-      queryClient.invalidateQueries({ queryKey: ['deductions'] });
       queryClient.invalidateQueries({ queryKey: ['payroll-components'] });
     },
   });
@@ -308,22 +357,8 @@ export const useUpsertPayrollComponents = () => {
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: (updatedComponents, variables) => {
-      const companyId = variables[0]?.companyId;
-      
-      // Update the main components list cache
-      queryClient.setQueryData(['payroll-components', { companyId, isActive: undefined }], (old: PayrollComponent[] | undefined) => {
-        if (!old) return updatedComponents;
-        
-        // Merge updated components into the existing list
-        const updatedIds = new Set(updatedComponents.map(c => c.id));
-        const filteredOld = old.filter(c => !updatedIds.has(c.id));
-        return [...filteredOld, ...updatedComponents];
-      });
-
-      // Also update specific caches for allowances and deductions if they exist
-      queryClient.invalidateQueries({ queryKey: ['allowances', { companyId }] });
-      queryClient.invalidateQueries({ queryKey: ['deductions', { companyId }] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll-components'] });
     },
   });
 };
@@ -331,17 +366,13 @@ export const useUpsertPayrollComponents = () => {
 export const useDeletePayrollComponent = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, componentType }: { id: string; componentType: PayrollComponentType }) => {
-      const result = await deletePayrollComponent(id, componentType);
+    mutationFn: async ({ id, category }: { id: string; category: PayrollComponentType }) => {
+      const result = await deletePayrollComponent(id, category);
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: (_, { id }) => {
-      queryClient.setQueryData(['payroll-components', { isActive: undefined }], (old: any[] | undefined) => {
-        return old?.filter(c => c.id !== id);
-      });
-      queryClient.invalidateQueries({ queryKey: ['allowances'] });
-      queryClient.invalidateQueries({ queryKey: ['deductions'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll-components'] });
     },
   });
 };
@@ -354,12 +385,8 @@ export const useUpdatePayrollComponent = () => {
       if (!result.success) throw new Error(result.error);
       return result.data;
     },
-    onSuccess: (_, variables) => {
-      if (variables.componentType === PayrollComponentType.ALLOWANCE) {
-        queryClient.invalidateQueries({ queryKey: ['allowances'] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['deductions'] });
-      }
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payroll-components'] });
     },
   });
 };

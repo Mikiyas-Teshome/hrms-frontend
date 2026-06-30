@@ -20,6 +20,7 @@ type AuthContextValue = {
     permissionsMap: PermissionsMap;
     isAuthenticated: boolean;
     isInitializing: boolean;
+    isProfileSettling: boolean;
     setUser: (user: UserResponse | null) => void;
     reloadSession: () => Promise<void>;
     checkPermission: (module: string, action?: string) => boolean;
@@ -44,7 +45,8 @@ export function AuthProvider({
         queryKey: AUTH_PROFILE_QUERY_KEY,
         queryFn: () => getProfile(),
         initialData: initialUser || cachedSession?.user || undefined,
-        staleTime: 60 * 1000,
+        staleTime: 30 * 1000,
+        refetchOnWindowFocus: true,
         retry: false,
     });
 
@@ -52,6 +54,7 @@ export function AuthProvider({
     const permissionsMap = getPermissionsMapFromUser(resolvedUser);
     const hasCachedSession = Boolean(initialUser || cachedSession?.user);
     const isInitializing = isPending && !hasCachedSession;
+    const isProfileSettling = isPending && hasCachedSession;
 
     useEffect(() => {
         if (resolvedUser) {
@@ -87,12 +90,6 @@ export function AuthProvider({
         const existingUser = queryClient.getQueryData<UserResponse | null>(AUTH_PROFILE_QUERY_KEY);
         await queryClient.cancelQueries({ queryKey: AUTH_PROFILE_QUERY_KEY });
 
-        const profile = await queryClient.fetchQuery({
-            queryKey: AUTH_PROFILE_QUERY_KEY,
-            queryFn: () => getProfile(),
-            staleTime: 0,
-        });
-
         try {
             const profile = await queryClient.fetchQuery({
                 queryKey: AUTH_PROFILE_QUERY_KEY,
@@ -124,6 +121,7 @@ export function AuthProvider({
             permissionsMap,
             isAuthenticated: Boolean(resolvedUser),
             isInitializing,
+            isProfileSettling,
             setUser: handleSetUser,
             reloadSession,
             checkPermission,
@@ -132,6 +130,7 @@ export function AuthProvider({
             resolvedUser,
             permissionsMap,
             isInitializing,
+            isProfileSettling,
             handleSetUser,
             reloadSession,
             checkPermission,

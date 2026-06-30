@@ -14,32 +14,24 @@ import {
 } from '@/components/ui/popover';
 
 interface DatePickerProps {
-    value?: string | Date; // ISO string or Date object
+    value?: string | Date;
     onChange?: (date: Date | undefined) => void;
     className?: string;
     placeholder?: string;
 }
 
 export function DatePicker({ value, onChange, className, placeholder = 'Pick a date' }: DatePickerProps) {
-    const [date, setDate] = React.useState<Date | undefined>(
+    const [uncontrolledDate, setUncontrolledDate] = React.useState<Date | undefined>(
         value ? new Date(value) : undefined
     );
 
-    // Sync internal state with prop
-    React.useEffect(() => {
-        if (value) {
-            const newDate = new Date(value);
-            if (!date || date.getTime() !== newDate.getTime()) {
-                setDate(newDate);
-            }
-        } else {
-            if (date) setDate(undefined);
-        }
-    }, [value, date]);
+    const date = value ? new Date(value) : uncontrolledDate;
 
     const handleSelect = (selectedDate: Date | undefined) => {
-        setDate(selectedDate);
-        onChange?.(selectedDate); // Return the Date object directly for better flexibility
+        if (!value) {
+            setUncontrolledDate(selectedDate);
+        }
+        onChange?.(selectedDate);
     };
 
     return (
@@ -59,7 +51,7 @@ export function DatePicker({ value, onChange, className, placeholder = 'Pick a d
                     </span>
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0 z-[60]" align="start">
                 <Calendar
                     mode="single"
                     selected={date}

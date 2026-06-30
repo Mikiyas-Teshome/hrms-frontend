@@ -52,9 +52,8 @@ const AddInsuranceSheet = ({ open, onOpenChange, insurance }: AddInsuranceSheetP
     defaultValues: defaultInsuranceFormValues,
   });
 
-  const formCompanyOuId = watch('companyOuId');
+  const formCompanyOuId = watch('ouId');
 
-  // Populate form when sheet opens
   useEffect(() => {
     if (!open) return;
     if (insurance) {
@@ -62,24 +61,20 @@ const AddInsuranceSheet = ({ open, onOpenChange, insurance }: AddInsuranceSheetP
     } else {
       reset({
         ...defaultInsuranceFormValues,
-        companyOuId: companiesData?.[0]?.id ?? '',
+        ouId: companiesData?.[0]?.id ?? '',
       });
     }
-  }, [open, insurance]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, insurance, companiesData, reset]);
 
-  // Once companies finish loading, re-apply the companyOuId so the Select
-  // renders the correct label (fixes the timing race between reset & data load)
   useEffect(() => {
     if (!open || !companiesData?.length) return;
     if (insurance) {
-      // Edit mode: ensure the saved companyOuId is reflected in the dropdown
-      const savedId = insurance.companyOuId || '';
-      setValue('companyOuId', savedId, { shouldValidate: true });
+      const savedId = insurance.ouId || '';
+      setValue('ouId', savedId, { shouldValidate: true });
     } else if (!formCompanyOuId) {
-      // Create mode: default to first company
-      setValue('companyOuId', companiesData[0].id, { shouldValidate: true });
+      setValue('ouId', companiesData[0].id, { shouldValidate: true });
     }
-  }, [companiesData, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [companiesData, formCompanyOuId, insurance, open, setValue]);
 
   const onSubmit = async (data: InsuranceFormValues) => {
     try {

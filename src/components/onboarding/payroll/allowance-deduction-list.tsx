@@ -1,7 +1,7 @@
 import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
+import { rowActionsClass, rowActionsGroupClass } from '@/lib/row-actions';
 import { cn } from '@/lib/utils';
 
 const COMPONENT_NAMES: Record<string, string> = {
@@ -19,7 +19,6 @@ interface AllowanceDeductionListProps {
     isLoading: boolean;
     currencySymbol: string;
     category: 'allowances' | 'deductions';
-    onToggle: (category: 'allowances' | 'deductions', id: string, checked: boolean) => void;
     onEdit: (category: 'allowances' | 'deductions', item: any) => void;
     onRemove: (category: 'allowances' | 'deductions', id: string) => void;
     t: (key: string, options?: any) => string;
@@ -31,7 +30,6 @@ export function AllowanceDeductionList({
     isLoading,
     currencySymbol,
     category,
-    onToggle,
     onEdit,
     onRemove,
     t,
@@ -48,7 +46,6 @@ export function AllowanceDeductionList({
                               key={i}
                               className="flex items-center gap-4 px-6 py-4 border-b border-border last:border-0"
                           >
-                              <Skeleton className="size-4 rounded" />
                               <div className="flex-1 space-y-2">
                                   <Skeleton className="h-4 w-24" />
                                   <Skeleton className="h-3 w-40" />
@@ -59,17 +56,10 @@ export function AllowanceDeductionList({
                           <div
                               key={item.dbId || item.id}
                               className={cn(
-                                  'group flex items-start gap-4 px-6 py-4 rtl:flex-row-reverse',
+                                  `${rowActionsGroupClass} flex items-start gap-4 px-6 py-4 rtl:flex-row-reverse`,
                                   index !== items.length - 1 && 'border-b border-border',
                               )}
                           >
-                              <Checkbox
-                                  checked={item.enabled}
-                                  onCheckedChange={(checked) =>
-                                      onToggle(category, item.id, !!checked)
-                                  }
-                                  className="mt-0.5 size-4 rounded border-border"
-                              />
                               <div className="flex-1 space-y-1 rtl:text-end">
                                   <p className="text-sm font-medium text-foreground">
                                       {COMPONENT_NAMES[item.id] || item.id}
@@ -94,24 +84,26 @@ export function AllowanceDeductionList({
                                       </p>
                                   ) : null}
                               </div>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className={cn(rowActionsClass, 'flex shrink-0 items-center gap-1')}>
                                   <Button
                                       type="button"
                                       variant="ghost"
                                       size="icon"
-                                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                      className="size-9 text-muted-foreground hover:text-foreground"
                                       onClick={() => onEdit(category, item)}
+                                      aria-label={t('components.actions.edit', { defaultValue: 'Edit' })}
                                   >
-                                      <Pencil className="size-3.5" />
+                                      <Pencil className="size-4" />
                                   </Button>
                                   <Button
                                       type="button"
                                       variant="ghost"
                                       size="icon"
-                                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                      className="size-9 text-muted-foreground hover:text-destructive"
                                       onClick={() => onRemove(category, item.id)}
+                                      aria-label={t('components.actions.delete', { defaultValue: 'Delete' })}
                                   >
-                                      <Trash2 className="size-3.5" />
+                                      <Trash2 className="size-4" />
                                   </Button>
                               </div>
                           </div>

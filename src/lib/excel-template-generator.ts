@@ -1,10 +1,18 @@
 import ExcelJS from 'exceljs';
 
+export interface TemplateOption {
+  label: string;
+  value: string;
+  companyOuId?: string;
+}
+
 export interface TemplateMetadata {
-  departments: { label: string; value: string }[];
-  roles: { label: string; value: string }[];
-  contracts: { label: string; value: string }[];
-  employmentTypes: { label: string; value: string }[];
+  companies: TemplateOption[];
+  departments: TemplateOption[];
+  roles: TemplateOption[];
+  contracts: TemplateOption[];
+  employmentTypes: TemplateOption[];
+  salaryStructures: TemplateOption[];
   currencySymbol?: string;
 }
 
@@ -12,6 +20,7 @@ export interface ParsedEmployeeRow {
   firstName: string;
   lastName: string;
   email: string;
+  companyOuId?: string;
   ouId?: string;
   role?: string;
   gccid?: string;
@@ -19,92 +28,107 @@ export interface ParsedEmployeeRow {
   contractId?: string;
   jobTitle?: string;
   salary?: number;
+  salaryStructureId?: string;
   isValid: boolean;
   errors: string[];
 }
 
 export async function generateEmployeeTemplate({
+  companies,
   departments,
   roles,
   contracts,
   employmentTypes,
+  salaryStructures,
   currencySymbol = '$',
 }: TemplateMetadata): Promise<Blob> {
   const workbook = new ExcelJS.Workbook();
 
-  // 1. Create Sheets
   const mainSheet = workbook.addWorksheet('Employees');
   const listSheet = workbook.addWorksheet('Data_Lists');
-  
-  // Hide the reference list sheet so the template stays perfectly neat
+
   listSheet.state = 'hidden';
 
-  // 2. Populate the Hidden Reference Sheet
-  // Column A: Departments, Column B: Roles, Column C: Contracts, Column D: Employment Types
+  companies.forEach((company, index) => {
+    listSheet.getCell(`A${index + 2}`).value = company.label;
+  });
   departments.forEach((dept, index) => {
-    listSheet.getCell(`A${index + 2}`).value = dept.label;
+    listSheet.getCell(`B${index + 2}`).value = dept.label;
   });
   roles.forEach((role, index) => {
-    listSheet.getCell(`B${index + 2}`).value = role.label;
+    listSheet.getCell(`C${index + 2}`).value = role.label;
   });
   contracts.forEach((contract, index) => {
-    listSheet.getCell(`C${index + 2}`).value = contract.label;
+    listSheet.getCell(`D${index + 2}`).value = contract.label;
   });
   employmentTypes.forEach((type, index) => {
-    listSheet.getCell(`D${index + 2}`).value = type.label;
+    listSheet.getCell(`E${index + 2}`).value = type.label;
+  });
+  salaryStructures.forEach((structure, index) => {
+    listSheet.getCell(`F${index + 2}`).value = structure.label;
   });
 
-  // 3. Define Main Sheet Headers
   const columns = [
     { header: 'First Name *', key: 'firstName', width: 20 },
     { header: 'Last Name *', key: 'lastName', width: 20 },
     { header: 'Email *', key: 'email', width: 25 },
-    { header: 'Department', key: 'department', width: 25 },
+    { header: 'Company *', key: 'company', width: 28 },
+    { header: 'Org Unit', key: 'orgUnit', width: 30 },
     { header: 'Role *', key: 'role', width: 25 },
     { header: 'GCC ID', key: 'gccId', width: 15 },
     { header: 'Employment Type', key: 'employmentType', width: 20 },
-    { header: 'Contract Type', key: 'contractType', width: 25 },
+    { header: 'Contract Type *', key: 'contractType', width: 30 },
     { header: 'Job Title', key: 'jobTitle', width: 25 },
     { header: `Salary (${currencySymbol})`, key: 'salary', width: 15 },
+    { header: 'Salary Structure *', key: 'salaryStructure', width: 30 },
   ];
-  
+
   mainSheet.columns = columns;
 
-  // Header Styling (Premium Look matching Bekur Design System)
   const headerRow = mainSheet.getRow(1);
   headerRow.font = { bold: true, color: { argb: 'FFFFFF' }, size: 11 };
   headerRow.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: '2865E3' }, // Primary Brand Blue
+    fgColor: { argb: '2865E3' },
   };
   headerRow.height = 25;
   headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-  // 4. Apply Excel Dropdown Data Validations (Apply to 100 rows for flexibility)
   const maxRows = 100;
-  
-  const deptRange = `Data_Lists!$A$2:$A$${departments.length + 1}`;
-  const roleRange = `Data_Lists!$B$2:$B$${roles.length + 1}`;
-  const contractRange = `Data_Lists!$C$2:$C$${contracts.length + 1}`;
-  const empTypeRange = `Data_Lists!$D$2:$D$${employmentTypes.length + 1}`;
+
+  const companyRange = `Data_Lists!$A$2:$A$${companies.length + 1}`;
+  const deptRange = `Data_Lists!$B$2:$B$${departments.length + 1}`;
+  const roleRange = `Data_Lists!$C$2:$C$${roles.length + 1}`;
+  const contractRange = `Data_Lists!$D$2:$D$${contracts.length + 1}`;
+  const empTypeRange = `Data_Lists!$E$2:$E$${employmentTypes.length + 1}`;
+  const salaryStructureRange = `Data_Lists!$F$2:$F$${salaryStructures.length + 1}`;
 
   for (let r = 2; r <= maxRows; r++) {
-    // Department (Col D)
-    if (departments.length > 0) {
+    if (companies.length > 0) {
       mainSheet.getCell(`D${r}`).dataValidation = {
         type: 'list',
-        allowBlank: true,
-        formulae: [deptRange],
-        error: 'Please select a department from the dropdown list.',
+        allowBlank: false,
+        formulae: [companyRange],
+        error: 'Please select a company from the dropdown list.',
         errorTitle: 'Invalid Selection',
         showErrorMessage: true,
       };
     }
 
-    // Role (Col E)
-    if (roles.length > 0) {
+    if (departments.length > 0) {
       mainSheet.getCell(`E${r}`).dataValidation = {
+        type: 'list',
+        allowBlank: true,
+        formulae: [deptRange],
+        error: 'Please select an org unit from the dropdown list.',
+        errorTitle: 'Invalid Selection',
+        showErrorMessage: true,
+      };
+    }
+
+    if (roles.length > 0) {
+      mainSheet.getCell(`F${r}`).dataValidation = {
         type: 'list',
         allowBlank: false,
         formulae: [roleRange],
@@ -114,9 +138,8 @@ export async function generateEmployeeTemplate({
       };
     }
 
-    // Employment Type (Col G)
     if (employmentTypes.length > 0) {
-      mainSheet.getCell(`G${r}`).dataValidation = {
+      mainSheet.getCell(`H${r}`).dataValidation = {
         type: 'list',
         allowBlank: true,
         formulae: [empTypeRange],
@@ -126,35 +149,55 @@ export async function generateEmployeeTemplate({
       };
     }
 
-    // Contract Type (Col H)
     if (contracts.length > 0) {
-      mainSheet.getCell(`H${r}`).dataValidation = {
+      mainSheet.getCell(`I${r}`).dataValidation = {
         type: 'list',
-        allowBlank: true,
+        allowBlank: false,
         formulae: [contractRange],
         error: 'Please select a contract type from the dropdown list.',
         errorTitle: 'Invalid Selection',
         showErrorMessage: true,
       };
     }
+
+    if (salaryStructures.length > 0) {
+      mainSheet.getCell(`L${r}`).dataValidation = {
+        type: 'list',
+        allowBlank: false,
+        formulae: [salaryStructureRange],
+        error: 'Please select a salary structure from the dropdown list.',
+        errorTitle: 'Invalid Selection',
+        showErrorMessage: true,
+      };
+    }
   }
 
-  // 5. Add a sample row (row 2) with default values from each dynamic list
-  const sampleRow = mainSheet.getRow(2);
-  // Static placeholder columns
-  sampleRow.getCell(1).value = 'John';     // First Name
-  sampleRow.getCell(2).value = 'Doe';      // Last Name
-  sampleRow.getCell(3).value = 'john.doe@example.com'; // Email
-  // Dynamic dropdown columns — pre-fill with the first available option
-  if (departments.length > 0) sampleRow.getCell(4).value = departments[0].label;   // Department (Col D)
-  if (roles.length > 0)       sampleRow.getCell(5).value = roles[0].label;          // Role (Col E)
-  sampleRow.getCell(6).value = '';  // GCC ID — leave blank
-  if (employmentTypes.length > 0) sampleRow.getCell(7).value = employmentTypes[0].label; // Employment Type (Col G)
-  if (contracts.length > 0)       sampleRow.getCell(8).value = contracts[0].label;        // Contract Type (Col H)
-  sampleRow.getCell(9).value = roles.length > 0 ? roles[0].label : 'Software Engineer'; // Job Title
-  sampleRow.getCell(10).value = 0; // Salary
+  const sampleCompany = companies[0];
+  const sampleCompanyId = sampleCompany?.value;
+  const sampleDepartments = sampleCompanyId
+    ? departments.filter((dept) => dept.companyOuId === sampleCompanyId)
+    : departments;
+  const sampleContracts = sampleCompanyId
+    ? contracts.filter((contract) => contract.companyOuId === sampleCompanyId)
+    : contracts;
+  const sampleSalaryStructures = sampleCompanyId
+    ? salaryStructures.filter((structure) => structure.companyOuId === sampleCompanyId)
+    : salaryStructures;
 
-  // Style the sample row subtly so it's distinguishable as an example
+  const sampleRow = mainSheet.getRow(2);
+  sampleRow.getCell(1).value = 'John';
+  sampleRow.getCell(2).value = 'Doe';
+  sampleRow.getCell(3).value = 'john.doe@example.com';
+  if (sampleCompany) sampleRow.getCell(4).value = sampleCompany.label;
+  if (sampleDepartments.length > 0) sampleRow.getCell(5).value = sampleDepartments[0].label;
+  if (roles.length > 0) sampleRow.getCell(6).value = roles[0].label;
+  sampleRow.getCell(7).value = '';
+  if (employmentTypes.length > 0) sampleRow.getCell(8).value = employmentTypes[0].label;
+  if (sampleContracts.length > 0) sampleRow.getCell(9).value = sampleContracts[0].label;
+  sampleRow.getCell(10).value = 'Software Engineer';
+  sampleRow.getCell(11).value = 0;
+  if (sampleSalaryStructures.length > 0) sampleRow.getCell(12).value = sampleSalaryStructures[0].label;
+
   sampleRow.eachCell((cell) => {
     cell.font = { italic: true, color: { argb: '888888' } };
     cell.fill = {
@@ -166,14 +209,13 @@ export async function generateEmployeeTemplate({
 
   sampleRow.commit();
 
-  // 6. Generate and Return File Buffer
   const buffer = await workbook.xlsx.writeBuffer();
   return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
 export async function parseEmployeeExcel(
   file: File,
-  metadata: TemplateMetadata
+  metadata: TemplateMetadata,
 ): Promise<ParsedEmployeeRow[]> {
   const workbook = new ExcelJS.Workbook();
   const arrayBuffer = await file.arrayBuffer();
@@ -185,28 +227,51 @@ export async function parseEmployeeExcel(
   }
 
   const parsedData: ParsedEmployeeRow[] = [];
+  const headerLabel = worksheet.getRow(1).getCell(4).text?.trim().toLowerCase() ?? '';
+  const isLegacyTemplate = headerLabel === 'department';
 
   worksheet.eachRow((row, rowNumber) => {
-    // Skip header row
     if (rowNumber === 1) return;
 
     const firstName = row.getCell(1).text?.trim();
     const lastName = row.getCell(2).text?.trim();
     const email = row.getCell(3).text?.trim().toLowerCase();
-    const deptLabel = row.getCell(4).text?.trim();
-    const roleLabel = row.getCell(5).text?.trim();
-    const gccid = row.getCell(6).text?.trim();
-    const empTypeLabel = row.getCell(7).text?.trim();
-    const contractLabel = row.getCell(8).text?.trim();
-    const jobTitle = row.getCell(9).text?.trim();
-    const salaryVal = row.getCell(10).value;
 
-    // Skip entirely empty rows
-    if (!firstName && !lastName && !email && !deptLabel && !roleLabel) return;
+    let companyLabel = '';
+    let orgUnitLabel = '';
+    let roleLabel = '';
+    let gccid = '';
+    let empTypeLabel = '';
+    let contractLabel = '';
+    let jobTitle = '';
+    let salaryVal: ExcelJS.CellValue;
+    let salaryStructureLabel = '';
+
+    if (isLegacyTemplate) {
+      orgUnitLabel = row.getCell(4).text?.trim();
+      roleLabel = row.getCell(5).text?.trim();
+      gccid = row.getCell(6).text?.trim();
+      empTypeLabel = row.getCell(7).text?.trim();
+      contractLabel = row.getCell(8).text?.trim();
+      jobTitle = row.getCell(9).text?.trim();
+      salaryVal = row.getCell(10).value;
+      salaryStructureLabel = row.getCell(11).text?.trim();
+    } else {
+      companyLabel = row.getCell(4).text?.trim();
+      orgUnitLabel = row.getCell(5).text?.trim();
+      roleLabel = row.getCell(6).text?.trim();
+      gccid = row.getCell(7).text?.trim();
+      empTypeLabel = row.getCell(8).text?.trim();
+      contractLabel = row.getCell(9).text?.trim();
+      jobTitle = row.getCell(10).text?.trim();
+      salaryVal = row.getCell(11).value;
+      salaryStructureLabel = row.getCell(12).text?.trim();
+    }
+
+    if (!firstName && !lastName && !email && !companyLabel && !orgUnitLabel && !roleLabel) return;
 
     const errors: string[] = [];
 
-    // Basic Validation Checks
     if (!firstName) errors.push('First name is required.');
     if (!lastName) errors.push('Last name is required.');
     if (!email) {
@@ -215,48 +280,78 @@ export async function parseEmployeeExcel(
       errors.push('Invalid email format.');
     }
 
-    // Resolve IDs from dynamic labels — fall back to first available default if blank
-    const cleanStr = (s: string | undefined | null) => (s || '').trim().toLowerCase();
-
-    // --- Department (OU) ---
-    let matchedDept = metadata.departments.find(d => cleanStr(d.label) === cleanStr(deptLabel));
-    if (!deptLabel && metadata.departments.length > 0) {
-      matchedDept = metadata.departments[0]; // default: first OU
-    } else if (deptLabel && !matchedDept) {
-      errors.push(`Department "${deptLabel}" is invalid or does not exist.`);
+    if (isLegacyTemplate) {
+      errors.push('This template is outdated. Download the latest template with Company, Org Unit, and required contract fields.');
     }
 
-    // --- Role ---
-    let matchedRole = metadata.roles.find(r => cleanStr(r.label) === cleanStr(roleLabel));
-    if (!roleLabel && metadata.roles.length > 0) {
-      matchedRole = metadata.roles[0]; // default: first role
-    } else if (roleLabel && !matchedRole) {
+    const cleanStr = (s: string | undefined | null) => (s || '').trim().toLowerCase();
+
+    const matchedCompany = metadata.companies.find(
+      (company) => cleanStr(company.label) === cleanStr(companyLabel),
+    );
+    if (!isLegacyTemplate) {
+      if (!companyLabel) {
+        errors.push('Company is required.');
+      } else if (!matchedCompany) {
+        errors.push(`Company "${companyLabel}" is invalid or does not exist.`);
+      }
+    }
+
+    const matchedDept = metadata.departments.find(
+      (dept) =>
+        cleanStr(dept.label) === cleanStr(orgUnitLabel)
+        && (!matchedCompany || dept.companyOuId === matchedCompany.value),
+    );
+    if (orgUnitLabel && !matchedDept) {
+      errors.push(`Org unit "${orgUnitLabel}" is invalid or does not belong to the selected company.`);
+    }
+
+    const matchedRole = metadata.roles.find((role) => cleanStr(role.label) === cleanStr(roleLabel));
+    if (!roleLabel) {
+      errors.push('Role is required.');
+    } else if (!matchedRole) {
       errors.push(`Role "${roleLabel}" is invalid or does not exist.`);
     }
 
-    // --- Employment Type ---
-    let matchedEmpType = metadata.employmentTypes.find(t => cleanStr(t.label) === cleanStr(empTypeLabel));
-    if (!empTypeLabel && metadata.employmentTypes.length > 0) {
-      matchedEmpType = metadata.employmentTypes[0]; // default: first employment type
-    } else if (empTypeLabel && !matchedEmpType) {
+    const matchedEmpType = metadata.employmentTypes.find(
+      (type) => cleanStr(type.label) === cleanStr(empTypeLabel),
+    );
+    if (empTypeLabel && !matchedEmpType) {
       errors.push(`Employment type "${empTypeLabel}" is invalid.`);
     }
 
-    // --- Contract Type ---
-    let matchedContract = metadata.contracts.find(c => cleanStr(c.label) === cleanStr(contractLabel));
-    if (!contractLabel && metadata.contracts.length > 0) {
-      matchedContract = metadata.contracts[0]; // default: first contract type
-    } else if (contractLabel && !matchedContract) {
-      errors.push(`Contract type "${contractLabel}" is invalid.`);
+    const matchedContract = metadata.contracts.find(
+      (contract) =>
+        cleanStr(contract.label) === cleanStr(contractLabel)
+        && (!matchedCompany || contract.companyOuId === matchedCompany.value),
+    );
+    if (!contractLabel) {
+      errors.push('Contract type is required.');
+    } else if (!matchedContract) {
+      errors.push(`Contract type "${contractLabel}" is invalid or does not belong to the selected company.`);
     }
 
     const salary = salaryVal ? Number(salaryVal) : undefined;
     if (salaryVal && isNaN(salary!)) errors.push('Salary must be a numeric value.');
 
+    const matchedSalaryStructure = metadata.salaryStructures.find(
+      (structure) =>
+        cleanStr(structure.label) === cleanStr(salaryStructureLabel)
+        && (!matchedCompany || structure.companyOuId === matchedCompany.value),
+    );
+    if (!salaryStructureLabel) {
+      errors.push('Salary structure is required.');
+    } else if (!matchedSalaryStructure) {
+      errors.push(
+        `Salary structure "${salaryStructureLabel}" is invalid or does not belong to the selected company.`,
+      );
+    }
+
     parsedData.push({
       firstName: firstName || '',
       lastName: lastName || '',
       email: email || '',
+      companyOuId: matchedCompany?.value,
       ouId: matchedDept?.value,
       role: matchedRole?.value,
       gccid,
@@ -264,6 +359,7 @@ export async function parseEmployeeExcel(
       contractId: matchedContract?.value,
       jobTitle: jobTitle || matchedRole?.label || '',
       salary,
+      salaryStructureId: matchedSalaryStructure?.value,
       isValid: errors.length === 0,
       errors,
     });

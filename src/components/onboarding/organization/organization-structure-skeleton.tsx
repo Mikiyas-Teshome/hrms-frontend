@@ -39,7 +39,6 @@ function HierarchyNodeSkeleton({
         index === 0 && "min-w-max pb-4"
       )}
     >
-      {/* Row: Icon + Card */}
       <div className="relative flex flex-row items-center gap-3 self-stretch z-1">
         {isLast && (
           <div
@@ -52,7 +51,6 @@ function HierarchyNodeSkeleton({
           />
         )}
 
-        {/* Icon circle skeleton */}
         <div
           className="shrink-0 w-12 h-12 rounded-full bg-primary/20 dark:bg-primary/40 flex items-center justify-center z-2 animate-pulse"
           style={{
@@ -62,11 +60,9 @@ function HierarchyNodeSkeleton({
           <div className="size-6 rounded-full bg-white/20" />
         </div>
 
-        {/* Card skeleton */}
         <div
           className="flex-1 min-w-50 sm:min-w-75 flex flex-row justify-between items-center gap-4 px-4 py-4 rounded-[16px] border bg-primary/4 border-primary/20 dark:bg-[rgba(40,101,227,0.06)] dark:border-[rgba(40,101,227,0.3)] shadow-sm"
         >
-          {/* Left: label + input skeleton */}
           <div className="flex flex-col gap-2 min-w-0">
             <span className="text-[10px] font-bold text-primary/60 dark:text-[#136DEC]/60 uppercase tracking-[1px] leading-3.75 font-inter">
               {t("hierarchy.level", { number: index + 1 })}
@@ -76,12 +72,10 @@ function HierarchyNodeSkeleton({
             </div>
           </div>
 
-          {/* Right: Switch skeleton */}
           <Skeleton className="shrink-0 h-5 w-9 rounded-full bg-primary/20 dark:bg-primary/40" />
         </div>
       </div>
 
-      {/* Nested child level node — Indented by var(--indent-size) to the right */}
       {inner && (
         <div className="w-full pl-(--indent-size) relative">
           <div
@@ -109,7 +103,6 @@ function HierarchyNodeSkeleton({
 export function OrganizationStructureSkeleton() {
   const { t } = useTranslation("orgStructure");
 
-  // Build a skeleton tree of 5 levels
   const levelsCount = 5;
   let tree: React.ReactNode = null;
   for (let i = levelsCount - 1; i >= 0; i--) {

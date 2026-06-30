@@ -46,7 +46,7 @@ const ForgotPasswordPage = () => {
                 if (result.success) {
                     toast({
                         title: t('successTitle', 'Email Sent'),
-                        description: t('successMessage', 'Password reset email sent!'),
+                        description: t('successMessage', 'Password reset code sent!'),
                     });
                     localStorage.setItem('resetEmail', data.email);
                     router.push('/reset-password');
@@ -65,19 +65,25 @@ const ForgotPasswordPage = () => {
 
             <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4">
                 <div className="w-full max-w-120 flex flex-col items-end gap-3">
-                    <Card className="w-full p-8 gap-8 rounded-[12px] shadow-sm border border-border">
+                    <Card className="w-full p-4 sm:p-8 gap-8 rounded-[12px] shadow-sm border border-border">
                         <div className="space-y-2 text-center sm:text-start">
-                            <h2 className="font-bold text-2xl text-card-foreground">
+                            <h2 className="font-bold text-xl sm:text-2xl text-card-foreground">
                                 {t('title', 'Forgot your password?')}
                             </h2>
                             <p className="font-normal text-sm text-muted-foreground">
-                                {t('subtitle', 'Enter your email address and we will send you a link to reset your password.')}
+                                {t(
+                                    'subtitle',
+                                    'Enter your email address and we will send you a 6-digit code to reset your password.',
+                                )}
                             </p>
                         </div>
 
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 mt-8">
+                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 mt-3 sm:mt-8">
                             {serverError && (
-                                <div role="alert" className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+                                <div
+                                    role="alert"
+                                    className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive"
+                                >
                                     {serverError}
                                 </div>
                             )}
@@ -93,16 +99,21 @@ const ForgotPasswordPage = () => {
                             />
 
                             <div className="space-y-6">
-                                <Button 
-                                    type="submit" 
+                                <Button
+                                    type="submit"
                                     disabled={isPending}
                                     className="w-full text-white h-9 text-sm leading-5 cursor-pointer"
                                 >
-                                    {isPending ? t('sending', 'Sending link...') : t('sendLink', 'Send reset link')}
+                                    {isPending
+                                        ? t('sending', 'Sending code...')
+                                        : t('sendLink', 'Send reset code')}
                                 </Button>
 
                                 <div className="text-center text-sm leading-6 text-foreground">
-                                    <Link href="/login" className="text-primary hover:underline font-medium">
+                                    <Link
+                                        href="/login"
+                                        className="text-primary hover:underline font-medium"
+                                    >
                                         {t('backToLogin', 'Back to login')}
                                     </Link>
                                 </div>

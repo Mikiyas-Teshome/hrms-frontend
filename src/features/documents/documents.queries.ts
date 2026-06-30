@@ -1,6 +1,30 @@
+export const GET_EMPLOYEE_DOCUMENT_OWNERS_QUERY = `
+  query EmployeeDocumentOwners($filter: EmployeeDocumentOwnerFilterInput, $pagination: PaginationInput) {
+    employeeDocumentOwners(filter: $filter, pagination: $pagination) {
+      data {
+        ownerId
+        ownerName
+        documentCount
+        overallCompliance
+        pendingApprovalCount
+        nearestExpiryDate
+      }
+      metaData {
+        page
+        size
+        total
+        totalPages
+        hasNext
+        hasPrevious
+        timestamp
+      }
+    }
+  }
+`;
+
 export const GET_EMPLOYEE_DOCUMENTS_QUERY = `
-  query EmployeeDocuments($filter: EmployeeDocumentFilterInput, $limit: Int, $offset: Int) {
-    employeeDocuments(filter: $filter, limit: $limit, offset: $offset) {
+  query EmployeeDocuments($filter: EmployeeDocumentFilterInput, $pagination: PaginationInput) {
+    employeeDocuments(filter: $filter, pagination: $pagination) {
       data {
         id
         ownerId
@@ -13,11 +37,14 @@ export const GET_EMPLOYEE_DOCUMENTS_QUERY = `
         approvalState
         uploadedBy
       }
-      pagination {
+      metaData {
         page
-        limit
+        size
         total
         totalPages
+        hasNext
+        hasPrevious
+        timestamp
       }
     }
   }
@@ -51,13 +78,14 @@ export const GET_DOCUMENT_CATEGORIES_QUERY = `
       criticalDocument
       allowedFileTypes
       maxFileSizeMb
+      organizationUnitIds
     }
   }
 `;
 
 export const GET_DOCUMENT_CATEGORIES_PAGED_QUERY = `
-  query DocumentCategoriesPaginated($filter: DocumentCategoryFilterInput, $limit: Int, $offset: Int) {
-    documentCategoriesPaginated(filter: $filter, limit: $limit, offset: $offset) {
+  query DocumentCategoriesPaginated($filter: DocumentCategoryFilterInput, $pagination: PaginationInput) {
+    documentCategoriesPaginated(filter: $filter, pagination: $pagination) {
       data {
         id
         name
@@ -73,12 +101,16 @@ export const GET_DOCUMENT_CATEGORIES_PAGED_QUERY = `
         criticalDocument
         allowedFileTypes
         maxFileSizeMb
+        organizationUnitIds
       }
-      pagination {
+      metaData {
         page
-        limit
+        size
         total
         totalPages
+        hasNext
+        hasPrevious
+        timestamp
       }
     }
   }
@@ -112,6 +144,7 @@ export const CREATE_DOCUMENT_CATEGORY_MUTATION = `
       criticalDocument
       allowedFileTypes
       maxFileSizeMb
+      organizationUnitIds
     }
   }
 `;
@@ -133,6 +166,7 @@ export const UPDATE_DOCUMENT_CATEGORY_MUTATION = `
       criticalDocument
       allowedFileTypes
       maxFileSizeMb
+      organizationUnitIds
     }
   }
 `;
@@ -192,8 +226,8 @@ export const GET_COMPLIANCE_ALERTS_QUERY = `
 `;
 
 export const GET_EMPLOYEE_COMPLIANCE_LIST_QUERY = `
-  query GetEmployeeComplianceList($limit: Int, $offset: Int, $search: String, $complianceStatus: String, $department: String) {
-    employeeComplianceList(limit: $limit, offset: $offset, search: $search, complianceStatus: $complianceStatus, department: $department) {
+  query GetEmployeeComplianceList($filter: EmployeeComplianceFilterInput, $pagination: PaginationInput) {
+    employeeComplianceList(filter: $filter, pagination: $pagination) {
       data {
         employeeId
         employeeName
@@ -203,11 +237,14 @@ export const GET_EMPLOYEE_COMPLIANCE_LIST_QUERY = `
         complianceStatus
         lastReminderDate
       }
-      pagination {
+      metaData {
         page
-        limit
+        size
         total
         totalPages
+        hasNext
+        hasPrevious
+        timestamp
       }
     }
   }

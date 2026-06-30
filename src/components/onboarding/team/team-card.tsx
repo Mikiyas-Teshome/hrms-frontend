@@ -39,12 +39,10 @@ export function TeamCard({
 
     return (
         <div className="flex flex-col rounded-[16px] bg-muted/50 border border-border overflow-hidden">
-            {/* Header */}
             <div className="p-6 border-b border-border bg-muted/50">
                 <h3 className="text-[16px] font-bold text-foreground">{displayTitle}</h3>
             </div>
 
-            {/* Body */}
             <div className="p-6 space-y-6 grow">
                 <div className="space-y-4">
                     <p className="text-sm font-semibold text-muted-foreground">
@@ -72,7 +70,6 @@ export function TeamCard({
                     </div>
                 </div>
 
-                {/* Footer Info */}
                 <div className="flex justify-between pt-4 text-xs">
                     <div className="space-y-1 text-start rtl:text-end">
                         <p className="text-muted-foreground opacity-70">{t('department')}</p>
@@ -85,7 +82,6 @@ export function TeamCard({
                 </div>
             </div>
 
-            {/* Actions */}
             <div className="grid grid-cols-2 gap-3 p-6 pt-0">
                 <Button
                     onClick={onAddMember}

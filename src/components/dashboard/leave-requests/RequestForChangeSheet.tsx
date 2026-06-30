@@ -12,36 +12,50 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { X, ArrowLeft, ArrowRight, CalendarDays, Loader2 } from 'lucide-react';
+import { X, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useTranslation } from 'react-i18next';
-import { requestForChangeSchema, type RequestForChangeFormValues } from '../schemas/request-for-change.schema';
-import { cn } from '@/lib/utils';
+import { requestForChangeSchema, type RequestForChangeFormValues } from '@/features/leave-request/schemas/request-for-change.schema';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface RequestForChangeSheetProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onBack?: () => void;
+    onSubmit?: (values: RequestForChangeFormValues) => Promise<void> | void;
+    isSubmitting?: boolean;
 }
 
-const RequestForChangeSheet: React.FC<RequestForChangeSheetProps> = ({ open, onOpenChange, onBack }) => {
+const RequestForChangeSheet: React.FC<RequestForChangeSheetProps> = ({
+    open,
+    onOpenChange,
+    onBack,
+    onSubmit,
+    isSubmitting = false,
+}) => {
     const { t, i18n } = useTranslation('dashboard');
     const isRTL = i18n.language === 'ar';
 
     const form = useForm<RequestForChangeFormValues>({
         resolver: zodResolver(requestForChangeSchema),
         defaultValues: {
-            acceptedFrom: '',
-            acceptedTo: '',
+            acceptedFrom: undefined,
+            acceptedTo: undefined,
             comment: '',
         },
     });
 
-    const onSubmit = () => {
-        onOpenChange(false);
-        form.reset();
+    const handleSubmit = async (values: RequestForChangeFormValues) => {
+        if (!onSubmit) {
+            return;
+        }
+        try {
+            await onSubmit(values);
+            onOpenChange(false);
+            form.reset();
+        } catch {
+        }
     };
 
     const handleBack = () => {
@@ -59,7 +73,6 @@ const RequestForChangeSheet: React.FC<RequestForChangeSheetProps> = ({ open, onO
                 showCloseButton={false}
                 className="w-full sm:max-w-200 p-0 flex flex-col h-full border-0 shadow-2xl bg-background focus:outline-none"
             >
-                {/* Header matching Frame 122 & 209 */}
                 <SheetHeader className="px-10 py-6">
                     <div className="flex flex-row items-center justify-between">
                         <button
@@ -93,12 +106,10 @@ const RequestForChangeSheet: React.FC<RequestForChangeSheetProps> = ({ open, onO
                     <Form {...form}>
                         <form
                             id="request-change-form"
-                            onSubmit={form.handleSubmit(onSubmit)}
+                            onSubmit={form.handleSubmit(handleSubmit)}
                             className="space-y-8"
                         >
-                            {/* Card Wrapper matching Frame 56 */}
                             <div className="bg-card border border-border shadow-[0px_1px_3px_rgba(0,0,0,0.04),0px_1px_2px_-1px_rgba(0,0,0,0.04)] rounded-xl overflow-hidden pb-4">
-                                {/* Title matching Frame 59 */}
                                 <div className="bg-card-header-background h-12.5 px-6 flex items-center mb-4">
                                     <h3 className="font-semibold text-sm text-foreground">
                                         {t('requestForChange.changeDetails', 'Change details')}
@@ -119,23 +130,11 @@ const RequestForChangeSheet: React.FC<RequestForChangeSheetProps> = ({ open, onO
                                                         )}
                                                     </FormLabel>
                                                     <FormControl>
-                                                        <div className="relative">
-                                                            <CalendarDays
-                                                                className={cn(
-                                                                    'absolute top-2.5 h-4 w-4 text-foreground',
-                                                                    isRTL ? 'right-3' : 'left-3',
-                                                                )}
-                                                                strokeWidth={1.33}
-                                                            />
-                                                            <Input
-                                                                placeholder="DD/MM/YYYY"
-                                                                {...field}
-                                                                className={cn(
-                                                                    'h-9 border-border focus:border-primary shadow-[0_1px_2px_rgba(0,0,0,0.05)] bg-background',
-                                                                    isRTL ? 'pr-10' : 'pl-10',
-                                                                )}
-                                                            />
-                                                        </div>
+                                                        <DatePicker
+                                                            value={field.value}
+                                                            onChange={field.onChange}
+                                                            placeholder="DD/MM/YYYY"
+                                                        />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -154,23 +153,11 @@ const RequestForChangeSheet: React.FC<RequestForChangeSheetProps> = ({ open, onO
                                                         )}
                                                     </FormLabel>
                                                     <FormControl>
-                                                        <div className="relative">
-                                                            <CalendarDays
-                                                                className={cn(
-                                                                    'absolute top-2.5 h-4 w-4 text-foreground',
-                                                                    isRTL ? 'right-3' : 'left-3',
-                                                                )}
-                                                                strokeWidth={1.33}
-                                                            />
-                                                            <Input
-                                                                placeholder="DD/MM/YYYY"
-                                                                {...field}
-                                                                className={cn(
-                                                                    'h-9 border-border focus:border-primary shadow-[0_1px_2px_rgba(0,0,0,0.05)] bg-background',
-                                                                    isRTL ? 'pr-10' : 'pl-10',
-                                                                )}
-                                                            />
-                                                        </div>
+                                                        <DatePicker
+                                                            value={field.value}
+                                                            onChange={field.onChange}
+                                                            placeholder="DD/MM/YYYY"
+                                                        />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -198,7 +185,6 @@ const RequestForChangeSheet: React.FC<RequestForChangeSheetProps> = ({ open, onO
                                                         />
                                                         <div className="flex justify-between items-center px-3 pb-3">
                                                             <div className="flex gap-2 text-muted-foreground">
-                                                                {/* Potential rich text/icons as per CSS addons block if needed */}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -221,10 +207,10 @@ const RequestForChangeSheet: React.FC<RequestForChangeSheetProps> = ({ open, onO
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={form.formState.isSubmitting}
+                                    disabled={form.formState.isSubmitting || isSubmitting}
                                     className="h-9 min-w-25 px-4 font-medium rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
                                 >
-                                    {form.formState.isSubmitting && (
+                                    {(form.formState.isSubmitting || isSubmitting) && (
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     )}
                                     {t('requestForChange.send', 'Send')}

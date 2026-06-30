@@ -1,7 +1,14 @@
-import EmployeeDocumentsPage from '@/components/dashboard/documents/EmployeeDocumentsPage';
+"use client";
+
+import { ProtectedRoute } from "@/components/auth/protected-route";
+import EmployeeDocumentsPage from "@/components/dashboard/documents/EmployeeDocumentsPage";
 
 const Page = () => {
-    return <EmployeeDocumentsPage />;
+    return (
+        <ProtectedRoute module="documents" allowAnyModulePermission>
+            <EmployeeDocumentsPage />
+        </ProtectedRoute>
+    );
 };
 
 export default Page;

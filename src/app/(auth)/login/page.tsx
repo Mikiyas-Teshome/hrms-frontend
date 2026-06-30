@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { FormField } from '@/components/ui/FormField';
 import { PasswordField } from '@/components/ui/PasswordField';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { PublicHeader } from '@/components/common/public-header';
 import { LanguageSwitcher } from '@/components/common/language-switcher';
@@ -90,9 +89,9 @@ const LoginPage = () => {
 
             <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4">
                 <div className="w-full max-w-120 flex flex-col items-end gap-3">
-                    <Card className="w-full p-8 gap-8 rounded-[12px] shadow-sm border border-border">
+                    <Card className="w-full p-4 sm:p-8 gap-8 rounded-[12px] border border-border">
                         <div className="space-y-2 text-center sm:text-start">
-                            <h2 className="font-bold text-2xl text-card-foreground">
+                            <h2 className="font-bold text-xl md:text-2xl text-card-foreground">
                                 {t('title', 'Login to HRMS workspace')}
                             </h2>
                             <p className="font-normal text-sm text-muted-foreground">
@@ -140,15 +139,6 @@ const LoginPage = () => {
                                         error={errors.password}
                                         t={t}
                                     />
-                                </div>
-                                <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                                    <Checkbox id="remember" {...register('remember')} />
-                                    <label
-                                        htmlFor="remember"
-                                        className="text-sm font-medium leading-none cursor-pointer"
-                                    >
-                                        {t('rememberMe', 'Remember me')}
-                                    </label>
                                 </div>
                             </div>
 

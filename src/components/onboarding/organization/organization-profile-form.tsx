@@ -19,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useOnboarding } from "@/components/onboarding/context/OnboardingContext";
 import { TimezoneSelect } from "@/components/ui/TimezoneSelect";
 import { CurrencySelect } from "@/components/ui/CurrencySelect";
-import {useUpdateCompanySmtp } from "@/features/company/hooks/useCompany";
 import { getUserFacingErrorMessage } from "@/lib/parse-api-error";
 import { uploadLogo } from "@/features/documents/documents.actions";
 import { normalizeWebsiteUrl } from "@/features/settings/settings.utils";
@@ -38,7 +37,6 @@ export function OrganizationProfileForm({ onNext, onBack }: OrganizationProfileF
   const { data: profile, isLoading: isLoadingProfile } = useProfile();
   const companyId = profile?.companyId ?? "";
   const updateTenantMutation = useUpdateTenantProfile();
-  const updateCompanySmtpMutation = useUpdateCompanySmtp();
 
   const { setProfileData, profileData } = useOnboarding();
   const [mounted, setMounted] = useState(false);
@@ -62,29 +60,18 @@ export function OrganizationProfileForm({ onNext, onBack }: OrganizationProfileF
   } = useForm<OrganizationProfileValues>({
     resolver: zodResolver(organizationProfileSchema) as any,
     defaultValues: {
-      city: profileData.city || "",
-      timezone: profileData.timezone || "",
-      currency: profileData.currency || "",
+      city: profileData.city || "Dubai",
+      timezone: profileData.timezone || "Asia/Dubai",
+      currency: profileData.currency || "AED",
       website: profileData.website || "",
       org_email:  "",
       themeColor: profileData.themeColor || "blue",
-      smtpHost: profileData.smtpHost || "",
-      smtpPort: profileData.smtpPort || "",
-      smtpEmail: profileData.smtpEmail || "",
-      smtpUsername: profileData.smtpUsername || "",
-      smtpPassword: profileData.smtpPassword || "",
-      smtpSecure: profileData.smtpSecure ?? false,
     },
   });
 
   const selectedColor = useWatch({
     control,
     name: "themeColor",
-  });
-
-  const smtpSecureValue = useWatch({
-    control,
-    name: "smtpSecure",
   });
 
   useEffect(() => {
@@ -131,40 +118,14 @@ export function OrganizationProfileForm({ onNext, onBack }: OrganizationProfileF
         });
       }
 
-      const hasSmtpConfig =
-        Boolean(data.smtpHost?.trim()) &&
-        Boolean(data.smtpPort) &&
-        Boolean(data.smtpEmail?.trim());
-
-      if (companyId && hasSmtpConfig) {
-        await updateCompanySmtpMutation.mutateAsync({
-          id: companyId,
-          input: {
-            host: data.smtpHost!.trim(),
-            port: Number(data.smtpPort),
-            fromEmail: data.smtpEmail!.trim(),
-            username: data.smtpUsername?.trim() || data.smtpEmail!.trim(),
-            password: data.smtpPassword ?? "",
-            secure: data.smtpSecure === true,
-          },
-        });
-      }
-
       setProfileData(data);
 
       const profileSaved = companyId && Object.keys(updatePayload).length > 0;
-      const smtpSaved = companyId && hasSmtpConfig;
 
-      if (profileSaved || smtpSaved) {
+      if (profileSaved) {
         toast({
           title: t("success.title"),
-          description: t(
-            profileSaved && smtpSaved
-              ? "success.profileAndSmtpSaved"
-              : smtpSaved
-                ? "success.smtpSaved"
-                : "success.profileSaved",
-          ),
+          description: t("success.profileSaved"),
         });
       }
 
@@ -193,7 +154,6 @@ export function OrganizationProfileForm({ onNext, onBack }: OrganizationProfileF
       <div className="space-y-2.5">
         <FormSection title={t("sections.locationAndTime")}>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
-            {/* City */}
             <FormField
               id="city"
               label={t("fields.city")}
@@ -204,7 +164,6 @@ export function OrganizationProfileForm({ onNext, onBack }: OrganizationProfileF
               t={t}
             />
 
-            {/* Time zone */}
             <TimezoneSelect
               control={control}
               name="timezone"
@@ -214,7 +173,6 @@ export function OrganizationProfileForm({ onNext, onBack }: OrganizationProfileF
               t={t}
             />
 
-            {/* Currency */}
             <CurrencySelect
               control={control}
               name="currency"
@@ -229,7 +187,6 @@ export function OrganizationProfileForm({ onNext, onBack }: OrganizationProfileF
         <FormSection title={t("sections.companyBranding")}>
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-x-8 gap-y-6 md:grid-cols-2">
-              {/* Logo Upload */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-foreground rtl:text-end block">{t("fields.logo")}</Label>
                 <UploadBox
@@ -253,7 +210,6 @@ export function OrganizationProfileForm({ onNext, onBack }: OrganizationProfileF
               </div>
 
               <div className="space-y-6">
-                {/* Website */}
                 <FormField
                   id="website"
                   label={`${t("fields.website")} ${t("fields.websiteOptional")}`}
@@ -264,7 +220,6 @@ export function OrganizationProfileForm({ onNext, onBack }: OrganizationProfileF
                   t={t}
                 />
 
-                {/* Email */}
                 <FormField
                   id="org_email"
                   label={`${t("fields.email")} ${t("fields.emailOptional")}`}
@@ -277,7 +232,6 @@ export function OrganizationProfileForm({ onNext, onBack }: OrganizationProfileF
               </div>
             </div>
 
-            {/* Theme Color */}
             <div className="space-y-4">
               <Label className="text-sm font-medium text-foreground block">
                 {t("fields.themeColor")}
@@ -322,100 +276,13 @@ export function OrganizationProfileForm({ onNext, onBack }: OrganizationProfileF
             </div>
           </div>
         </FormSection>
-
-        <FormSection title={t("sections.smtpConfiguration", "Email (SMTP) configuration")}>
-          <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
-            {/* Server address */}
-            <FormField
-              id="smtpHost"
-              label={t("fields.smtpHost", "Server address")}
-              placeholder="smtp.example.com"
-              register={register}
-              name="smtpHost"
-              error={errors.smtpHost}
-              t={t}
-            />
-
-            {/* Server port */}
-            <FormField
-              id="smtpPort"
-              label={t("fields.smtpPort", "Server port")}
-              placeholder="587"
-              register={register}
-              name="smtpPort"
-              error={errors.smtpPort}
-              t={t}
-            />
-
-            {/* E-mail account */}
-            <FormField
-              id="smtpEmail"
-              label={t("fields.smtpEmail", "E-mail account")}
-              placeholder="Someone@gmail.com"
-              register={register}
-              name="smtpEmail"
-              error={errors.smtpEmail}
-              t={t}
-            />
-
-            {/* User name (Optional) */}
-            <FormField
-              id="smtpUsername"
-              label={t("fields.smtpUsername", "User name (Optional)")}
-              placeholder="user@example.com"
-              register={register}
-              name="smtpUsername"
-              error={errors.smtpUsername}
-              t={t}
-            />
-
-            {/* Password */}
-            <FormField
-              id="smtpPassword"
-              label={t("fields.smtpPassword", "Password")}
-              placeholder="************"
-              type="password"
-              register={register}
-              name="smtpPassword"
-              error={errors.smtpPassword}
-              t={t}
-            />
-
-            {/* Encryption */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium leading-5 text-foreground block">
-                {t("fields.encryption", "Encryption")}
-              </Label>
-              <div className="flex items-center gap-6 mt-2 h-9">
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={smtpSecureValue === true}
-                    onChange={() => setValue("smtpSecure", true)}
-                    className="rounded border-input text-primary focus:ring-primary h-4 w-4"
-                  />
-                  <span>SSL/TLS</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={smtpSecureValue === false}
-                    onChange={() => setValue("smtpSecure", false)}
-                    className="rounded border-input text-primary focus:ring-primary h-4 w-4"
-                  />
-                  <span>STARTTLS</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </FormSection>
       </div>
 
-      {/* Action Buttons */}
       <OnboardingFormActions 
         onBack={onBack}
         backLabel={t("actions.back")}
         continueLabel={t("actions.continue")}
+        continueLabelShort={t("actions.continueShort")}
         isSubmitting={isSubmitting || (mounted && isLoadingProfile)}
       />
     </form>

@@ -153,8 +153,7 @@ export function AppearanceSection() {
             website: values.website,
             themeColor: values.themeColor,
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [company?.id, company?.updatedAt, themeColorFallback, reset]);
+    }, [company, themeColorFallback, reset]);
 
     useEffect(() => {
         if (selectedColor) {

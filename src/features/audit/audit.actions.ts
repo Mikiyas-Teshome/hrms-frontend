@@ -8,14 +8,13 @@ import { revalidatePath } from 'next/cache';
 export async function fetchAuditLogs(filters: { companyId?: string; entityId?: string; entityType?: string } = {}): Promise<AuditLog[]> {
   try {
     const data = await gqlRequest<{ auditLogs: AuditLog[] }>(
-      GraphQLService.CORE_HR,
+      GraphQLService.AUDIT_LOG,
       GET_AUDIT_LOGS_QUERY,
       { ...filters }
     );
     return data.auditLogs;
   } catch (error) {
     if (error instanceof Error && error.message.includes('Cannot query field "auditLogs"')) {
-      // Gracefully handle missing audit log endpoints
       return [];
     }
     console.error('Failed to fetch audit logs:', error);
@@ -25,7 +24,7 @@ export async function fetchAuditLogs(filters: { companyId?: string; entityId?: s
 
 export async function createAuditLog(input: CreateAuditLogInput): Promise<AuditLog> {
   const data = await gqlRequest<{ createAuditLog: AuditLog }>(
-    GraphQLService.CORE_HR,
+    GraphQLService.AUDIT_LOG,
     CREATE_AUDIT_LOG_MUTATION,
     { input }
   );

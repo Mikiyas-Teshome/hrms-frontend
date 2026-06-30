@@ -115,7 +115,6 @@ export function ManageTeamModal({
         </DialogHeader>
 
         <div className="p-6 space-y-6 bg-card">
-          {/* Form Section */}
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <Label className="text-[14px] font-medium text-foreground rtl:text-end block">
@@ -157,7 +156,6 @@ export function ManageTeamModal({
             </div>
           </div>
 
-          {/* Members Table */}
           <div className="rounded-lg border border-border bg-card overflow-hidden shadow-none flex flex-col">
             <div className="overflow-auto custom-scrollbar max-h-55">
               <table className="w-full text-start border-collapse">
@@ -220,7 +218,6 @@ export function ManageTeamModal({
               </table>
             </div>
 
-            {/* Table Footer / Pagination */}
             <div className="flex flex-col items-center justify-between border-t border-border px-4 py-3 sm:flex-row bg-card overflow-x-auto min-h-14">
               <span className="text-[14px] font-normal text-muted-foreground">
                 {t("table.rowsSelected", { count: 0, total: teamDraft.members.length })}

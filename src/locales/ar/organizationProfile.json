@@ -17,7 +17,7 @@
     "city": "المدينة (موقع المقر الرئيسي)",
     "cityPlaceholder": "مثال: Dubai",
     "timezone": "المنطقة الزمنية",
-    "timezonePlaceholder": "مثال: دبي - الإمارات العربية المتحدة (GMT+4)",
+    "timezonePlaceholder": "اختر المنطقة الزمنية",
     "currency": "العملة",
     "currencyPlaceholder": "مثال: درهم إماراتي",
     "websitePlaceholder": "مثال: https://www.company.com",
@@ -41,7 +41,8 @@
   },
   "actions": {
     "back": "عودة",
-    "continue": "تابع إلى إعداد المنظمة"
+    "continue": "تابع إلى إعداد المنظمة",
+    "continueShort": "متابعة إعداد المنظمة"
   },
   "errors": {
     "cityRequired": "المدينة مطلوبة",

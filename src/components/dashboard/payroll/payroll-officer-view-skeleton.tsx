@@ -4,7 +4,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function PayrollOfficerViewSkeleton() {
     return (
         <div className="flex min-h-screen flex-col gap-8 rounded-tl-[32px] bg-background p-[24px_24px_12px] font-sans text-foreground">
-            {/* Header Section Skeleton */}
             <div className="flex flex-col gap-6">
                 <div className="flex min-h-14 items-center justify-between gap-3">
                     <div className="flex-1 space-y-2 text-left rtl:text-right">
@@ -14,7 +13,6 @@ export function PayrollOfficerViewSkeleton() {
                 </div>
             </div>
 
-            {/* Stats Row Container Skeleton */}
             <div className="grid gap-4 w-full sm:grid-cols-2 lg:grid-cols-4">
                 {Array.from({ length: 4 }).map((_, idx) => (
                     <Card
@@ -34,7 +32,6 @@ export function PayrollOfficerViewSkeleton() {
                 ))}
             </div>
 
-            {/* Main Content Skeleton */}
             <div className="flex min-h-115 flex-1 flex-col items-center justify-center rounded-[24px] border border-dashed border-border bg-muted/30">
                 <div className="flex max-w-120 flex-col items-center justify-center p-8 text-center gap-4">
                     <Skeleton className="h-8 w-64 rounded-md" />

@@ -9,7 +9,8 @@
     "successMessage": "Payroll structure successfully saved!",
     "error": "Error",
     "errorMessage": "Failed to save payroll structure.",
-    "selectCompanyFirst": "Please select a company first."
+    "selectCompanyFirst": "Please select a company first.",
+    "salaryStructureRequired": "Create at least one salary structure before saving payroll settings."
   },
   "header": {
     "title": "Set up payroll structure",
@@ -18,7 +19,8 @@
   "sections": {
     "payrollCycle": "Payroll Cycle & Processing",
     "payrollComponents": "Payroll Components",
-    "configureStructure": "Configure Payroll structure by company"
+    "configureStructure": "Configure Payroll structure by company",
+    "defaultSalaryStructure": "Default salary structure (new hires)"
   },
   "cycles": {
     "monthly": "Monthly",
@@ -26,16 +28,20 @@
     "bi-weekly": "Bi-weekly",
     "bi-weeklyDesc": "Calculated every 14 days",
     "weekly": "Weekly",
-    "weeklyDesc": "Calculated every 6 days"
+    "weeklyDesc": "Calculated every 7 days"
   },
   "fields": {
+    "defaultStructureName": "Structure name",
+    "defaultStructureHint": "Built from the components and overtime rules below. Used when you invite employees with a basic salary.",
     "processingDay": "Processing Day",
     "processingDayHint": "Payments are typically processed on this day each month.",
+    "processingDayMonthlyHint": "If the chosen day does not exist in a month (for example, day 30 in February), payroll runs on that month's last day.",
     "processingDayWarning": "Changing the processing date may affect current active pay cycles. Please ensure all manual adjustments are complete.",
     "processingDayOptions": {
       "25th": "25th of the month",
       "last": "Last day of the month",
-      "1st": "1st of the month"
+      "1st": "1st of the month",
+      "nth": "{{day}}th of the month"
     }
   },
   "components": {
@@ -107,7 +113,7 @@
   },
   "actions": {
     "back": "Back",
-    "continue": "Continue to Team Setup",
+    "continue": "Set up contract",
     "finishSetup": "Finish Setup",
     "cancel": "Cancel",
     "save": "Save Changes",

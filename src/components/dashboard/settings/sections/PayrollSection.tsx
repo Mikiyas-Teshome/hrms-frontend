@@ -1,322 +1,363 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { FormField } from '@/components/ui/FormField';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { SectionLayout } from '../SectionLayout';
+import { AttendanceSectionSkeleton } from '../SettingsSectionSkeleton';
 import { useTranslation } from 'react-i18next';
+import { useCompanyOptions } from '@/features/organization/hooks/useOrganization';
+import { usePayrollConfig, useUpdatePayrollConfig } from '@/features/payroll/hooks/usePayroll';
+import {
+    useCreateOvertimePoliciesBatch,
+    useOvertimePolicies,
+    useUpdateOvertimePolicy,
+} from '@/features/payroll/overtime-policy/hooks/useOvertimePolicy';
+import { OvertimeType } from '@/features/payroll/overtime-policy/overtime-policy.types';
+import { PayrollCycle } from '@/features/payroll/payroll.types';
+import { useToast } from '@/hooks/use-toast';
+import { getUserFacingErrorMessage } from '@/lib/parse-api-error';
 
-const RATE_TYPES = [
-    { value: 'x_rate', label: 'x Rate' },
-    { value: 'flat_rate', label: 'Flat rate ($)' },
+type PayrollSettingsFormValues = {
+    companyId: string;
+    cycleType: PayrollCycle;
+    payDay: number;
+    autoFinalize: boolean;
+    standardOvertime: number;
+    weekendOvertime: number;
+    holidayOvertime: number;
+};
+
+const CYCLE_OPTIONS = [
+    { label: 'Monthly', value: PayrollCycle.MONTHLY },
+    { label: 'Bi-weekly', value: PayrollCycle.BI_WEEKLY },
+    { label: 'Weekly', value: PayrollCycle.WEEKLY },
 ];
 
-const schema = z.object({
-    companyId: z.string().default('abc'),
-    yearStartMonth: z.string().default('january'),
-    yearStartDay: z.string().default('1'),
-    carryUnused: z.boolean().default(true),
-    resetAnnually: z.boolean().default(true),
-    leaveUnits: z.string().default('full_day'),
-    standardOvertime: z.coerce.number().default(1.5),
-    standardOvertimeRate: z.string().default('x_rate'),
-    weekendOvertime: z.coerce.number().default(2.0),
-    weekendOvertimeRate: z.string().default('flat_rate'),
-    publicHolidayOvertime: z.coerce.number().default(5.0),
-    publicHolidayOvertimeRate: z.string().default('flat_rate'),
-    approvalWorkflow: z.string().default('approval_structure'),
-    autoEscalateDays: z.coerce.number().default(10),
-    escalationRecipient: z.string().default('hr_manager'),
-    maxCarryOverDays: z.coerce.number().default(15),
-    carryOverExpirationYears: z.coerce.number().default(2),
-    allowNegative: z.boolean().default(false),
-    maxNegativeDays: z.coerce.number().default(10),
-});
-
-type PayrollValues = z.infer<typeof schema>;
+function findOvertimePolicy(
+    policies: Array<{ id: string; name: string; rateValue: number }>,
+    keywords: string[],
+) {
+    return policies.find((policy) => {
+        const normalized = policy.name.toLowerCase();
+        return keywords.some((keyword) => normalized.includes(keyword));
+    });
+}
 
 export function PayrollSection() {
     const { t } = useTranslation('settings');
+    const { toast } = useToast();
+    const [isSaving, setIsSaving] = useState(false);
 
-    const { register, control, watch, setValue, handleSubmit, formState: { errors } } = useForm<PayrollValues>({
-        resolver: zodResolver(schema) as never,
+    const { companies, isLoading: isLoadingCompanies } = useCompanyOptions();
+    const companyOptions = useMemo(
+        () =>
+            companies.map((company) => ({
+                label: company.name || company.displayLabel || company.companyProfile?.legalName || company.id,
+                value: company.id,
+            })),
+        [companies],
+    );
+
+    const {
+        register,
+        control,
+        watch,
+        setValue,
+        handleSubmit,
+        reset,
+        formState: { errors },
+    } = useForm<PayrollSettingsFormValues>({
         defaultValues: {
-            companyId: 'abc',
-            yearStartMonth: 'january',
-            yearStartDay: '1',
-            carryUnused: true,
-            resetAnnually: true,
-            leaveUnits: 'full_day',
+            companyId: '',
+            cycleType: PayrollCycle.MONTHLY,
+            payDay: 25,
+            autoFinalize: false,
             standardOvertime: 1.5,
-            standardOvertimeRate: 'x_rate',
-            weekendOvertime: 2.0,
-            weekendOvertimeRate: 'flat_rate',
-            publicHolidayOvertime: 5.0,
-            publicHolidayOvertimeRate: 'flat_rate',
-            approvalWorkflow: 'approval_structure',
-            autoEscalateDays: 10,
-            escalationRecipient: 'hr_manager',
-            maxCarryOverDays: 15,
-            carryOverExpirationYears: 2,
-            allowNegative: false,
-            maxNegativeDays: 10,
+            weekendOvertime: 2,
+            holidayOvertime: 2,
         },
     });
 
-    const carryUnused = watch('carryUnused');
-    const resetAnnually = watch('resetAnnually');
+    const companyId = watch('companyId');
+    const autoFinalize = watch('autoFinalize');
 
-    // TODO: wire to backend – submit handler receives all fields
-    const onSubmit = (data: PayrollValues) => {
-        console.log(data);
-        /* call API */
+    const { data: payrollConfig, isLoading: isLoadingConfig } = usePayrollConfig(companyId);
+    const { data: overtimePolicies = [], isLoading: isLoadingOvertime } = useOvertimePolicies(companyId);
+    const { mutateAsync: updatePayrollConfig } = useUpdatePayrollConfig();
+    const { mutateAsync: createOvertimePoliciesBatch } = useCreateOvertimePoliciesBatch();
+
+    const standardPolicy = useMemo(
+        () => findOvertimePolicy(overtimePolicies, ['standard']),
+        [overtimePolicies],
+    );
+    const weekendPolicy = useMemo(
+        () => findOvertimePolicy(overtimePolicies, ['weekend']),
+        [overtimePolicies],
+    );
+    const holidayPolicy = useMemo(
+        () => findOvertimePolicy(overtimePolicies, ['holiday', 'public']),
+        [overtimePolicies],
+    );
+
+    const updateStandardPolicy = useUpdateOvertimePolicy(standardPolicy?.id ?? '');
+    const updateWeekendPolicy = useUpdateOvertimePolicy(weekendPolicy?.id ?? '');
+    const updateHolidayPolicy = useUpdateOvertimePolicy(holidayPolicy?.id ?? '');
+
+    useEffect(() => {
+        if (companyOptions.length > 0 && !companyId) {
+            setValue('companyId', companyOptions[0].value, { shouldValidate: true });
+        }
+    }, [companyOptions, companyId, setValue]);
+
+    useEffect(() => {
+        if (!companyId) {
+            return;
+        }
+
+        reset({
+            companyId,
+            cycleType: payrollConfig?.cycleType ?? PayrollCycle.MONTHLY,
+            payDay: payrollConfig?.payDay ?? 25,
+            autoFinalize: payrollConfig?.autoFinalize ?? false,
+            standardOvertime: standardPolicy?.rateValue ?? 1.5,
+            weekendOvertime: weekendPolicy?.rateValue ?? 2,
+            holidayOvertime: holidayPolicy?.rateValue ?? 2,
+        });
+    }, [
+        companyId,
+        payrollConfig,
+        standardPolicy,
+        weekendPolicy,
+        holidayPolicy,
+        reset,
+    ]);
+
+    const isSectionLoading =
+        isLoadingCompanies || (!!companyId && (isLoadingConfig || isLoadingOvertime));
+
+    const onSubmit = async (data: PayrollSettingsFormValues) => {
+        if (!companyId) {
+            toast({
+                variant: 'destructive',
+                title: t('errors.title'),
+                description: t('payroll.selectCompanyFirst'),
+            });
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            await updatePayrollConfig({
+                companyId,
+                cycleType: data.cycleType,
+                payDay: Math.round(Number(data.payDay)),
+                autoFinalize: data.autoFinalize,
+            });
+
+            const standardOvertime = Number(data.standardOvertime);
+            const weekendOvertime = Number(data.weekendOvertime);
+            const holidayOvertime = Number(data.holidayOvertime);
+
+            const missingPolicies = [
+                !standardPolicy
+                    ? {
+                          companyId,
+                          name: 'Standard Overtime',
+                          rateValue: standardOvertime,
+                          type: OvertimeType.MULTIPLIER,
+                      }
+                    : null,
+                !weekendPolicy
+                    ? {
+                          companyId,
+                          name: 'Weekend Overtime',
+                          rateValue: weekendOvertime,
+                          type: OvertimeType.FIXED_RATE,
+                      }
+                    : null,
+                !holidayPolicy
+                    ? {
+                          companyId,
+                          name: 'Public Holiday Overtime',
+                          rateValue: holidayOvertime,
+                          type: OvertimeType.FIXED_RATE,
+                      }
+                    : null,
+            ].filter((policy): policy is NonNullable<typeof policy> => policy !== null);
+
+            if (missingPolicies.length > 0) {
+                await createOvertimePoliciesBatch(missingPolicies);
+            }
+
+            await Promise.all([
+                standardPolicy
+                    ? updateStandardPolicy.mutateAsync({ rateValue: standardOvertime })
+                    : Promise.resolve(),
+                weekendPolicy
+                    ? updateWeekendPolicy.mutateAsync({ rateValue: weekendOvertime })
+                    : Promise.resolve(),
+                holidayPolicy
+                    ? updateHolidayPolicy.mutateAsync({ rateValue: holidayOvertime })
+                    : Promise.resolve(),
+            ]);
+
+            toast({
+                title: t('success.title'),
+                description: t('success.payrollSaved'),
+            });
+        } catch (error: unknown) {
+            toast({
+                variant: 'destructive',
+                title: t('errors.title'),
+                description: getUserFacingErrorMessage(error, t('errors.saveFailed')),
+            });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
+    if (isLoadingCompanies && companies.length === 0) {
+        return (
+            <SectionLayout title={t('payroll.title')} description={t('payroll.description')}>
+                <AttendanceSectionSkeleton />
+            </SectionLayout>
+        );
+    }
+
     return (
-        <SectionLayout 
-            title={t('payroll.title', 'Payroll')} 
-            description={t('payroll.description', 'Compensation and payment configuration.')}
-        >
-            <div className="flex flex-col gap-6">
-                {/* Select company */}
+        <SectionLayout title={t('payroll.title')} description={t('payroll.description')}>
+            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
                 <div className="max-w-sm">
                     <FormSelect
                         id="companyId"
-                        label={t('attendance.selectCompany', 'Select company')}
+                        label={t('payroll.selectCompany')}
+                        placeholder={
+                            isLoadingCompanies
+                                ? t('payroll.loadingCompanies')
+                                : t('payroll.selectCompany')
+                        }
                         control={control}
                         name="companyId"
                         error={errors.companyId}
-                        options={[
-                            { label: 'ABC Engineering', value: 'abc' },
-                        ]}
+                        options={companyOptions}
                         t={t}
+                        containerClassName="flex flex-col gap-1.5"
                     />
                 </div>
 
-                <div className="border-t border-border" />
+                {isSectionLoading ? (
+                    <AttendanceSectionSkeleton showCompanyField={false} />
+                ) : (
+                    <>
+                        <div className="border-t border-border" />
 
-                {/* Leave Policies */}
-                <div className="flex flex-col gap-4">
-                    <h3 className="text-sm font-semibold text-foreground">{t('leave.leavePolicies', 'Leave Policies')}</h3>
+                        <div className="flex flex-col gap-4">
+                            <h3 className="text-sm font-semibold text-foreground">{t('payroll.cycleSettings')}</h3>
 
-                    <div className="flex flex-col gap-1.5">
-                        <span className="text-sm font-medium text-foreground">{t('leave.yearStartDate', 'Leave year start date')}</span>
-                        <div className="flex gap-2 max-w-xs">
-                            <FormSelect
-                                id="yearStartMonth"
-                                control={control}
-                                name="yearStartMonth"
-                                options={['January','February','March','April','May','June','July','August','September','October','November','December'].map(m => ({
-                                    label: m,
-                                    value: m.toLowerCase()
-                                }))}
-                                t={t}
-                                containerClassName="flex-1"
-                            />
-                            <FormSelect
-                                id="yearStartDay"
-                                control={control}
-                                name="yearStartDay"
-                                options={Array.from({ length: 28 }, (_, i) => ({
-                                    label: String(i + 1),
-                                    value: String(i + 1)
-                                }))}
-                                t={t}
-                                containerClassName="w-24"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex items-start justify-between gap-8">
-                        <div>
-                            <p className="text-sm font-medium text-foreground">{t('leave.carryUnused', 'Carry unused leave')}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">{t('leave.carryUnusedDesc', 'Move unused leave to the next year.')}</p>
-                        </div>
-                        <Switch 
-                            checked={carryUnused} 
-                            onCheckedChange={(v) => setValue('carryUnused', v)} 
-                            className="shrink-0" 
-                        />
-                    </div>
-
-                    <div className="flex items-start justify-between gap-8">
-                        <div>
-                            <p className="text-sm font-medium text-foreground">{t('leave.resetBalances', 'Reset leave balances annually toggle')}</p>
-                        </div>
-                        <Switch 
-                            checked={resetAnnually} 
-                            onCheckedChange={(v) => setValue('resetAnnually', v)} 
-                            className="shrink-0" 
-                        />
-                    </div>
-
-                    <div className="max-w-xs">
-                        <FormSelect
-                            id="leaveUnits"
-                            label={t('leave.units', 'Leave Units')}
-                            control={control}
-                            name="leaveUnits"
-                            error={errors.leaveUnits}
-                            options={[
-                                { label: t('leave.unitFullDay', 'Full day'), value: 'full_day' },
-                                { label: t('leave.unitHalfDay', 'Half day'), value: 'half_day' },
-                                { label: t('leave.unitHours', 'Hours'), value: 'hours' },
-                            ]}
-                            t={t}
-                        />
-                    </div>
-                </div>
-
-                <div className="border-t border-border" />
-
-                {/* Overtime Rules */}
-                <div className="flex flex-col gap-4">
-                    <h3 className="text-sm font-semibold text-foreground">{t('payroll.overtimeRules', 'Overtime Rules')}</h3>
-
-                    <div className="flex flex-col gap-4">
-                        {/* Standard Overtime */}
-                        <div className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-foreground">{t('payroll.standardOvertime', 'Standard Overtime')}</span>
-                            <div className="flex gap-2 max-w-xs items-start">
-                                <div className="flex-1">
-                                    <FormField
-                                        id="standardOvertime"
-                                        label=""
-                                        register={register}
-                                        name="standardOvertime"
-                                        type="number"
-                                        error={errors.standardOvertime}
-                                        t={t}
-                                    />
-                                </div>
+                            <div className="grid max-w-xl grid-cols-1 gap-4 sm:grid-cols-2">
                                 <FormSelect
-                                    id="standardOvertimeRate"
+                                    id="cycleType"
+                                    label={t('payroll.cycleType')}
                                     control={control}
-                                    name="standardOvertimeRate"
-                                    options={RATE_TYPES}
+                                    name="cycleType"
+                                    error={errors.cycleType}
+                                    options={CYCLE_OPTIONS}
                                     t={t}
-                                    containerClassName="w-32"
+                                />
+                                <FormField
+                                    id="payDay"
+                                    label={t('payroll.payDay')}
+                                    register={register}
+                                    name="payDay"
+                                    type="number"
+                                    error={errors.payDay}
+                                    validation={{ valueAsNumber: true, min: 1, max: 31 }}
+                                    t={t}
                                 />
                             </div>
-                            <span className="text-xs text-muted-foreground">{t('payroll.standardOvertimeDesc', 'Weekdays & Regular hours')}</span>
-                        </div>
 
-                        {/* Weekend Overtime */}
-                        <div className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-foreground">{t('payroll.weekendOvertime', 'Weekend Overtime')}</span>
-                            <div className="flex gap-2 max-w-xs items-start">
-                                <div className="flex-1">
-                                    <FormField
-                                        id="weekendOvertime"
-                                        label=""
-                                        register={register}
-                                        name="weekendOvertime"
-                                        type="number"
-                                        error={errors.weekendOvertime}
-                                        t={t}
-                                    />
+                            <div className="flex items-start justify-between gap-8 max-w-xl">
+                                <div>
+                                    <p className="text-sm font-medium text-foreground">{t('payroll.autoFinalize')}</p>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{t('payroll.autoFinalizeDesc')}</p>
                                 </div>
-                                <FormSelect
-                                    id="weekendOvertimeRate"
-                                    control={control}
-                                    name="weekendOvertimeRate"
-                                    options={RATE_TYPES}
-                                    t={t}
-                                    containerClassName="w-32"
+                                <Switch
+                                    checked={autoFinalize}
+                                    onCheckedChange={(value) => setValue('autoFinalize', value)}
+                                    className="shrink-0"
                                 />
                             </div>
-                            <span className="text-xs text-muted-foreground">{t('payroll.weekendOvertimeDesc', 'Saturdays and Sundays')}</span>
                         </div>
 
-                        {/* Public Holiday */}
-                        <div className="flex flex-col gap-1.5">
-                            <span className="text-sm font-medium text-foreground">{t('payroll.publicHoliday', 'Public Holiday')}</span>
-                            <div className="flex gap-2 max-w-xs items-start">
-                                <div className="flex-1">
-                                    <FormField
-                                        id="publicHolidayOvertime"
-                                        label=""
-                                        register={register}
-                                        name="publicHolidayOvertime"
-                                        type="number"
-                                        error={errors.publicHolidayOvertime}
-                                        t={t}
-                                    />
-                                </div>
-                                <FormSelect
-                                    id="publicHolidayOvertimeRate"
-                                    control={control}
-                                    name="publicHolidayOvertimeRate"
-                                    options={RATE_TYPES}
+                        <div className="border-t border-border" />
+
+                        <div className="flex flex-col gap-4">
+                            <h3 className="text-sm font-semibold text-foreground">{t('payroll.overtimeRules')}</h3>
+
+                            <div className="grid max-w-xl grid-cols-1 gap-4 sm:grid-cols-3">
+                                <FormField
+                                    id="standardOvertime"
+                                    label={t('payroll.standardOvertime')}
+                                    register={register}
+                                    name="standardOvertime"
+                                    type="number"
+                                    error={errors.standardOvertime}
+                                    validation={{ valueAsNumber: true }}
                                     t={t}
-                                    containerClassName="w-32"
+                                />
+                                <FormField
+                                    id="weekendOvertime"
+                                    label={t('payroll.weekendOvertime')}
+                                    register={register}
+                                    name="weekendOvertime"
+                                    type="number"
+                                    error={errors.weekendOvertime}
+                                    validation={{ valueAsNumber: true }}
+                                    t={t}
+                                />
+                                <FormField
+                                    id="holidayOvertime"
+                                    label={t('payroll.publicHoliday')}
+                                    register={register}
+                                    name="holidayOvertime"
+                                    type="number"
+                                    error={errors.holidayOvertime}
+                                    validation={{ valueAsNumber: true }}
+                                    t={t}
                                 />
                             </div>
-                            <span className="text-xs text-muted-foreground">{t('payroll.publicHolidayDesc', 'Gazetted holidays')}</span>
                         </div>
-                    </div>
-                </div>
 
-                <div className="border-t border-border" />
+                        <Link
+                            href="/dashboard/payroll/salary-structures"
+                            className="flex items-center justify-between gap-4 rounded-xl border border-border px-4 py-3 transition-colors hover:border-primary/40 hover:bg-primary/5 max-w-xl"
+                        >
+                            <div>
+                                <p className="text-sm font-semibold text-foreground">{t('payroll.salaryStructuresLink')}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{t('payroll.salaryStructuresLinkDesc')}</p>
+                            </div>
+                            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        </Link>
 
-                {/* Approval Workflow */}
-                <div className="flex flex-col gap-4">
-                    <h3 className="text-sm font-semibold text-foreground">{t('leave.approvalWorkflow', 'Approval Workflow')}</h3>
-
-                    <div className="max-w-xs">
-                        <FormSelect
-                            id="approvalWorkflow"
-                            label={t('leave.approvalWorkflow', 'Approval Workflow')}
-                            control={control}
-                            name="approvalWorkflow"
-                            error={errors.approvalWorkflow}
-                            options={[
-                                { label: t('leave.workflowApprovalStructure', 'Approval Structure'), value: 'approval_structure' },
-                                { label: t('leave.workflowDirectManager', 'Direct Manager'), value: 'direct_manager' },
-                                { label: t('leave.workflowHrManager', 'HR Manager'), value: 'hr_manager' },
-                            ]}
-                            t={t}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 max-w-sm">
-                        <FormField
-                            id="autoEscalateDays"
-                            label={t('leave.autoEscalate', 'Auto-escalate after')}
-                            register={register}
-                            name="autoEscalateDays"
-                            type="number"
-                            error={errors.autoEscalateDays}
-                            t={t}
-                        />
-                        <FormSelect
-                            id="escalationRecipient"
-                            label={t('leave.escalationRecipient', 'Escalation recipient')}
-                            control={control}
-                            name="escalationRecipient"
-                            error={errors.escalationRecipient}
-                            options={[
-                                { label: t('leave.recipientHrManager', 'HR manager'), value: 'hr_manager' },
-                                { label: t('leave.recipientCeo', 'CEO'), value: 'ceo' },
-                            ]}
-                            t={t}
-                        />
-                    </div>
-                </div>
-
-                <div className="pt-2">
-                    <Button 
-                        onClick={handleSubmit(onSubmit)} 
-                        className="bg-primary hover:bg-primary/90 text-white h-9 px-5 rounded-lg"
-                    >
-                        {t('saveChange', 'Save change')}
-                    </Button>
-                </div>
-            </div>
+                        <div className="pt-2">
+                            <Button
+                                type="submit"
+                                disabled={isSaving || !companyId}
+                                className="bg-primary hover:bg-primary/90 text-white h-9 px-5 rounded-lg"
+                            >
+                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {t('saveChange')}
+                            </Button>
+                        </div>
+                    </>
+                )}
+            </form>
         </SectionLayout>
     );
 }

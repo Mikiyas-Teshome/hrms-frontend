@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -29,8 +30,12 @@ export function ManagerSignupForm({ onSignupSuccess, token, email }: ManagerSign
     const { t } = useTranslation(['staffSignup', 'onboarding', 'common']);
     const { toast } = useToast();
     const registerMutation = useRegisterTenantSuperAdmin();
+    const searchParams = useSearchParams();
 
-    // Step State
+    const returnTo = useMemo(() => {
+        const query = searchParams.toString();
+        return query ? `/onboard?${query}` : '/onboard';
+    }, [searchParams]);
 
     const {
         register,
@@ -41,8 +46,6 @@ export function ManagerSignupForm({ onSignupSuccess, token, email }: ManagerSign
     } = useForm<ManagerSignupFormValues>({
         resolver: zodResolver(managerSignupSchema),
         defaultValues: {
-            // firstName: '',
-            // lastName: '',
             email: email || '',
             phoneNumber: '',
             password: '',
@@ -50,14 +53,12 @@ export function ManagerSignupForm({ onSignupSuccess, token, email }: ManagerSign
         },
     });
 
-    // Auto-fill email from URL param whenever it changes
     useEffect(() => {
         if (email) {
             setValue('email', email);
         }
     }, [email, setValue]);
 
-    const watchedEmail = useWatch({ control, name: 'email' });
     const watchedPhoneNumber = useWatch({ control, name: 'phoneNumber' });
 
     const { reloadSession } = useAuth();
@@ -72,7 +73,7 @@ export function ManagerSignupForm({ onSignupSuccess, token, email }: ManagerSign
             });
 
             await reloadSession();
-            await queryClient.invalidateQueries({ queryKey: ['employee', 'profile'] });
+            await queryClient.invalidateQueries({ queryKey: ['myEmployee'] });
 
             toast({
                 title: t('staffSignup:accountCreatedTitle', { defaultValue: 'Account created!' }),
@@ -93,53 +94,49 @@ export function ManagerSignupForm({ onSignupSuccess, token, email }: ManagerSign
 
 
     return (
-        <div className="flex w-full max-w-140 flex-col items-center space-y-6 bg-card border border-border p-6 md:p-8 rounded-[32px]">
-            <div className="space-y-3 text-center w-full">
-                <h2 className="text-3xl font-black leading-tight tracking-tight text-foreground">
+        <div className="flex w-full max-w-140 flex-col gap-6">
+            <div className="flex w-full flex-col gap-2 text-start">
+                <h2 className="text-xl font-semibold text-foreground">
                     {t('staffSignup:formTitle')}
                 </h2>
-                <p className="text-muted-foreground font-medium">
+                <p className="text-sm leading-5 text-muted-foreground">
                     {t('staffSignup:formSubtitle')}
                 </p>
             </div>
 
-            {/* Auto-filled info pills */}
-            <div className="flex flex-col items-center gap-3 w-full">
-                {watchedEmail && (
-                    <div className="flex items-center gap-3 rounded-full bg-muted/50 border border-border px-4 py-1.5 shadow-sm">
-                        <div className="flex items-center justify-center size-8 rounded-full bg-primary/20">
-                            <User className="size-4 text-primary" />
+            {(email || watchedPhoneNumber) && (
+                <div className="flex w-full flex-col gap-2">
+                    {email && (
+                        <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+                            <User className="size-4 shrink-0 text-muted-foreground" />
+                            <span className="truncate text-sm text-foreground">{email}</span>
                         </div>
-                        <span className="text-[16px] font-normal text-foreground">
-                            {watchedEmail}
-                        </span>
-                    </div>
-                )}
-                {watchedPhoneNumber && (
-                    <div className="flex items-center gap-3 rounded-full bg-muted/50 border border-border px-4 py-1.5 shadow-sm">
-                        <div className="flex items-center justify-center size-8 rounded-full bg-primary/20">
-                            <Phone className="size-4 text-primary" />
+                    )}
+                    {watchedPhoneNumber && (
+                        <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+                            <Phone className="size-4 shrink-0 text-muted-foreground" />
+                            <span className="text-sm text-foreground">{watchedPhoneNumber}</span>
                         </div>
-                        <span className="text-[16px] font-normal text-foreground">
-                            {watchedPhoneNumber}
-                        </span>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
+            )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 w-full">
- 
-                <FormField
-                    id="email"
-                    label={t('onboarding:email')}
-                    name="email"
-                    type="email"
-                    register={register}
-                    error={errors.email}
-                    placeholder={t('onboarding:emailPlaceholder')}
-                    t={(key) => t(`onboarding:${key}`)}
-                    readOnly={!!email}
-                />
+            <form onSubmit={handleSubmit(onSubmit)} className="flex w-full flex-col gap-6">
+
+                {email ? (
+                    <input type="hidden" {...register('email')} />
+                ) : (
+                    <FormField
+                        id="email"
+                        label={t('onboarding:email')}
+                        name="email"
+                        type="email"
+                        register={register}
+                        error={errors.email}
+                        placeholder={t('onboarding:emailPlaceholder')}
+                        t={(key) => t(`onboarding:${key}`)}
+                    />
+                )}
 
                 <div className="space-y-2">
                     <PasswordField
@@ -150,7 +147,7 @@ export function ManagerSignupForm({ onSignupSuccess, token, email }: ManagerSign
                         error={errors.password}
                         t={(key) => t(`onboarding:${key}`)}
                     />
-                    <p className="text-xs font-medium text-muted-foreground ml-1">{t('staffSignup:passwordHint')}</p>
+                    <p className="text-xs text-muted-foreground">{t('staffSignup:passwordHint')}</p>
                 </div>
 
                 <PasswordField
@@ -175,18 +172,22 @@ export function ManagerSignupForm({ onSignupSuccess, token, email }: ManagerSign
                 </Button>
             </form>
 
-            <div className="text-center text-[11px] font-medium text-muted-foreground leading-relaxed px-4">
-                <p>
-                    {t('staffSignup:termsText')}{' '}
-                    <Link href="/terms" className="text-primary hover:underline font-bold">
-                        {t('staffSignup:termsLink')}
-                    </Link>{' '}
-                    {t('staffSignup:privacyText')}{' '}
-                    <Link href="/privacy" className="text-primary hover:underline font-bold">
-                        {t('staffSignup:privacyLink')}
-                    </Link>
-                </p>
-            </div>
+            <p className="text-sm leading-5 text-foreground/70">
+                {t('staffSignup:termsText')}{' '}
+                <Link
+                    href={`/terms?returnTo=${encodeURIComponent(returnTo)}`}
+                    className="font-medium text-primary underline hover:text-primary/80"
+                >
+                    {t('staffSignup:termsLink')}
+                </Link>{' '}
+                {t('staffSignup:privacyText')}{' '}
+                <Link
+                    href={`/privacy?returnTo=${encodeURIComponent(returnTo)}`}
+                    className="font-medium text-primary underline hover:text-primary/80"
+                >
+                    {t('staffSignup:privacyLink')}
+                </Link>
+            </p>
         </div>
     );
 }

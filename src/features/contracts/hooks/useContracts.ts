@@ -12,10 +12,15 @@ import {
   ContractFilterInput,
 } from '../contracts.types';
 
-export const useContracts = (filter: ContractFilterInput = {}) => {
+export const useContracts = (
+  filter: ContractFilterInput | undefined,
+  options?: { enabled?: boolean },
+) => {
+  const ouId = filter?.ouId?.trim();
   return useQuery({
     queryKey: ['contracts', filter],
-    queryFn: () => fetchContracts(filter),
+    queryFn: () => fetchContracts(filter!),
+    enabled: (options?.enabled ?? true) && Boolean(ouId),
   });
 };
 

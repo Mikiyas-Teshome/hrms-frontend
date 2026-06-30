@@ -59,8 +59,7 @@ const ImportAttendanceModal: React.FC<ImportAttendanceModalProps> = ({
     const updateMutation = useImportAttendanceRecord();
 
     const [phase, setPhase] = useState<ImportPhase>('SELECT');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [fileName, setFileName] = useState('');
+    const [, setFileName] = useState('');
     const [parsedRows, setParsedRows] = useState<ParsedAttendanceRow[]>([]);
     const [progress, setProgress] = useState({ current: 0, total: 0 });
     const [results, setResults] = useState<{

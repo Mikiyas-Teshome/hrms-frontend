@@ -2,20 +2,13 @@
 
 import { Moon, Sun } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
+import { useIsClient } from "@/hooks/use-is-client";
 
 export function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
 
-  // Ensure server and client markup match to avoid hydration mismatches
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-
-  // Avoid rendering until mounted so SSR and client markup match
   if (!mounted) {
     return (
       <div className="flex items-center gap-3 px-4 py-3">

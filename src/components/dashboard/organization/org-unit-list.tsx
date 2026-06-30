@@ -7,7 +7,6 @@ import { OrgHierarchyStats, OrgLoadingState } from '@/components/dashboard/organ
 import { Building2, GitBranch, Layers2, Users, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-// ─── Type config ─────────────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<
     string,
@@ -39,7 +38,6 @@ const TYPE_CONFIG: Record<
     },
 };
 
-// ─── Flatten ──────────────────────────────────────────────────────────────────
 
 function flattenNodes(nodes: OrganizationUnitType[]): OrganizationUnitType[] {
     const result: OrganizationUnitType[] = [];
@@ -57,7 +55,6 @@ function findParentName(hierarchy: OrganizationUnitType[], parentId?: string | n
     return all.find((n) => n.id === parentId)?.name ?? '—';
 }
 
-// ─── Unit Row ─────────────────────────────────────────────────────────────────
 
 interface UnitRowProps {
     unit: OrganizationUnitType;
@@ -96,7 +93,6 @@ function UnitRow({ unit, parentName, cfg }: UnitRowProps) {
     );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 interface OrgUnitListProps {
     type: OUType;
@@ -117,12 +113,9 @@ export function OrgUnitList({ type, title, description }: OrgUnitListProps) {
 
     return (
         <div className="space-y-6">
-            {/* Stats from hierarchy */}
             <OrgHierarchyStats />
 
-            {/* List */}
             <div className="rounded-2xl border border-border/60 bg-card overflow-hidden shadow-sm">
-                {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border/40 bg-muted/30">
                     <div className="flex items-center gap-2">
                         <div className={`p-1.5 rounded-lg ${cfg.bg}`}>{cfg.icon}</div>
@@ -136,7 +129,6 @@ export function OrgUnitList({ type, title, description }: OrgUnitListProps) {
                     </Badge>
                 </div>
 
-                {/* Body */}
                 <div className="p-4 space-y-2">
                     {units.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">

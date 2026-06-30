@@ -23,17 +23,14 @@ export default function TeamViewPage() {
         members: any[];
     } | null>(null);
 
-    // Use mock data if USE_MOCK_DATA is true, otherwise fallback to empty real state structure
     const allEmployees = USE_MOCK_DATA ? mockAllEmployees : [];
 
     const [teams, setTeams] = useState(USE_MOCK_DATA ? mockTeams : []);
 
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col">
-            {/* Header */}
             <PublicHeader showSave={true} />
 
-            {/* Main Content */}
             <main className="grow">
                 <div className="mx-auto max-w-4xl px-6 py-12 space-y-8">
                     <OnboardingHeader title={t('title')} subtitle={t('subtitle')} />
@@ -66,7 +63,6 @@ export default function TeamViewPage() {
                 </div>
             </main>
 
-            {/* Footer */}
             <footer className="flex justify-end p-8 max-w-4xl mx-auto w-full rtl:justify-start">
                 <Button
                     onClick={() => router.push('/onboarding-complete')}

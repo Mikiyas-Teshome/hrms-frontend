@@ -12,7 +12,6 @@ export default function NotFound() {
   const router = useRouter();
   const { t } = useTranslation("dashboard");
 
-  // Logic to find the first accessible route
   const getHomeRoute = () => {
     if (!user) return "/login";
     
@@ -24,7 +23,6 @@ export default function NotFound() {
       { id: "payroll_runs", path: "/dashboard/payroll" },
     ];
 
-    // New structure: permissionsMap[module][action]
     for (const mod of modules) {
       if (permissionsMap[mod.id]?.['read'] || permissionsMap[mod.id]?.['manage']) {
         return mod.path;

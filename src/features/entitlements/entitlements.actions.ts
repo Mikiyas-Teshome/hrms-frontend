@@ -22,13 +22,13 @@ import {
 } from './entitlements.types';
 
 export async function fetchBenefitEntitlementStats(
-  companyOuId?: string,
+  ouId?: string,
 ): Promise<BenefitEntitlementStats> {
   try {
     const data = await gqlRequest<{ benefitEntitlementStats: BenefitEntitlementStats }>(
       GraphQLService.CORE_HR,
       GET_BENEFIT_ENTITLEMENT_STATS_QUERY,
-      { companyOuId: companyOuId || undefined },
+      { ouId: ouId || undefined },
     );
     return data.benefitEntitlementStats;
   } catch (error) {

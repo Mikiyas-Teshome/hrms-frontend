@@ -33,7 +33,6 @@ export function CurrencySelect<T extends FieldValues>({ control, name, label, pl
         }))
         .sort((a, b) => a.label.localeCompare(b.label));
     } catch {
-      // Fallback for environments that might not support Intl.supportedValuesOf
       return [
         { value: "USD", label: "USD - US Dollar" },
         { value: "AED", label: "AED - UAE Dirham" },

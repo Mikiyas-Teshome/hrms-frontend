@@ -24,12 +24,12 @@ import { Input } from '@/components/ui/input';
 import { X, Clock, Loader2 } from 'lucide-react';
 import { FormSection } from '@/components/ui/form-section';
 import { Separator } from '@/components/ui/separator';
-import { shiftSchema, ShiftFormValues } from '../schemas/shift.schema';
+import { shiftSchema, ShiftFormValues } from '@/features/attendance/schemas/shift.schema';
 import { useCreateShiftTemplate, useUpdateShiftTemplate } from '@/features/attendance/hooks/useAttendance';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { WEEK_DAYS } from '@/features/attendance/attendance.utils';
+import { parseShiftTimeForApi, shiftTimeToInputValue, WEEK_DAYS } from '@/features/attendance/attendance.utils';
 import { useTranslation } from 'react-i18next';
 import { useCompanyOptions } from '@/features/organization/hooks/useOrganization';
 import { FormSelect } from '@/components/ui/FormSelect';
@@ -62,6 +62,7 @@ export function ShiftSheet({ open, onOpenChange, defaultCompanyId, shiftToEdit }
             breakDuration: 0,
             flexibleMinutes: 0,
             overtimeAllowed: false,
+            overtimePayable: true,
             workingDays: [1, 2, 3, 4, 5],
             companyOuId: defaultCompanyId || '',
             type: ShiftType.DAY,
@@ -74,26 +75,14 @@ export function ShiftSheet({ open, onOpenChange, defaultCompanyId, shiftToEdit }
     useEffect(() => {
         if (open) {
             if (shiftToEdit) {
-                // Extract HH:mm from ISO strings if needed
-                const formatTime = (timeStr: string) => {
-                    try {
-                        if (timeStr.includes('T')) {
-                            const d = new Date(timeStr);
-                            return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
-                        }
-                        return timeStr;
-                    } catch {
-                        return '';
-                    }
-                };
-
                 form.reset({
                     name: shiftToEdit.name,
-                    startTime: formatTime(shiftToEdit.startTime),
-                    endTime: formatTime(shiftToEdit.endTime),
+                    startTime: shiftTimeToInputValue(shiftToEdit.startTime),
+                    endTime: shiftTimeToInputValue(shiftToEdit.endTime),
                     breakDuration: shiftToEdit.breakDuration || 0,
                     flexibleMinutes: shiftToEdit.flexibleMinutes || 0,
                     overtimeAllowed: shiftToEdit.overtimeAllowed || false,
+                    overtimePayable: shiftToEdit.overtimePayable ?? true,
                     workingDays: shiftToEdit.workingDays || [1, 2, 3, 4, 5],
                     companyOuId: shiftToEdit.companyOuId || defaultCompanyId || '',
                     type: shiftToEdit.type || ShiftType.DAY,
@@ -107,6 +96,7 @@ export function ShiftSheet({ open, onOpenChange, defaultCompanyId, shiftToEdit }
                     breakDuration: 0,
                     flexibleMinutes: 0,
                     overtimeAllowed: false,
+                    overtimePayable: true,
                     workingDays: [1, 2, 3, 4, 5],
                     companyOuId: defaultCompanyId || '',
                     type: ShiftType.DAY,
@@ -125,21 +115,10 @@ export function ShiftSheet({ open, onOpenChange, defaultCompanyId, shiftToEdit }
     const onSubmit = (data: ShiftFormValues) => {
         if (!data.companyOuId) return;
 
-        const currentDate = new Date().toISOString().split('T')[0];
-        const parseTime = (timeStr: string) => {
-            try {
-                if (timeStr.includes('T')) return new Date(timeStr).toISOString();
-                const formattedTimeStr = timeStr.length === 5 ? `${timeStr}:00` : timeStr;
-                return new Date(`${currentDate}T${formattedTimeStr}`).toISOString();
-            } catch {
-                return new Date().toISOString();
-            }
-        };
-
         const payload = {
             ...data,
-            startTime: parseTime(data.startTime),
-            endTime: parseTime(data.endTime),
+            startTime: parseShiftTimeForApi(data.startTime),
+            endTime: parseShiftTimeForApi(data.endTime),
         };
 
         if (isEditMode && shiftToEdit) {
@@ -211,7 +190,6 @@ export function ShiftSheet({ open, onOpenChange, defaultCompanyId, shiftToEdit }
                             onSubmit={form.handleSubmit(onSubmit as any)}
                             className="space-y-8"
                         >
-                            {/* Shift Info Section */}
                             <FormSection title={t('attendance.shiftInfo', 'Shift info')}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="md:col-span-2">
@@ -262,7 +240,7 @@ export function ShiftSheet({ open, onOpenChange, defaultCompanyId, shiftToEdit }
                                         placeholder={t('attendance.shiftTypePlaceholder', 'Select shift type')}
                                         t={t}
                                         options={Object.values(ShiftType).map((type) => ({
-                                            label: type.charAt(0) + type.slice(1).toLowerCase(),
+                                            label: t(`attendance.shiftTypes.${type}`, type.charAt(0) + type.slice(1).toLowerCase()),
                                             value: type,
                                         }))}
                                     />
@@ -277,6 +255,28 @@ export function ShiftSheet({ open, onOpenChange, defaultCompanyId, shiftToEdit }
                                                     </FormLabel>
                                                     <div className="text-[12px] text-muted-foreground">
                                                         {t('attendance.overtimeDesc', 'Enable if this shift allows overtime')}
+                                                    </div>
+                                                </div>
+                                                <FormControl>
+                                                    <Switch
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control as any}
+                                        name="overtimePayable"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                                <div className="space-y-0.5">
+                                                    <FormLabel className="text-sm font-medium">
+                                                        {t('attendance.overtimePayable', 'Overtime payable')}
+                                                    </FormLabel>
+                                                    <div className="text-[12px] text-muted-foreground">
+                                                        {t('attendance.overtimePayableDesc', 'Enable if overtime is paid. Disable to bank as comp-off.')}
                                                     </div>
                                                 </div>
                                                 <FormControl>
@@ -313,7 +313,6 @@ export function ShiftSheet({ open, onOpenChange, defaultCompanyId, shiftToEdit }
                                 </div>
                             </FormSection>
 
-                            {/* Shift Details Section */}
                             <FormSection title={t('attendance.shiftDetails', 'Shift details')}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6">
                                     <FormField

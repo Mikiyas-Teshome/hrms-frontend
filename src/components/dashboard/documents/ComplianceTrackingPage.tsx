@@ -1,155 +1,269 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Eye, Send, CheckCircle2, XCircle, AlertTriangle, FileText } from 'lucide-react';
-import {
-    fetchComplianceDashboardStats,
-    fetchComplianceAlerts,
-    fetchEmployeeComplianceList,
-    sendComplianceReminder
-} from '@/features/documents/documents.actions';
-import { useToast } from "@/hooks/use-toast";
+import { MoreVertical, Eye, Send, CheckCircle2, XCircle, AlertTriangle, FileText, ListFilter } from 'lucide-react';
+import { sendComplianceReminder } from '@/features/documents/documents.actions';
+import { useToast } from '@/hooks/use-toast';
 import SummaryStatList from '@/components/dashboard/shared/SummaryStatList';
+import { SummaryStatListSkeleton } from '@/components/common/SummaryStatSkeleton';
 import { UniversalDataTable, ColumnConfig } from '@/components/ui/universal-data-table';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
+import { resolveDocumentError } from '@/features/documents/resolve-document-error';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FormSelect } from '@/components/ui/FormSelect';
+import { Skeleton } from '@/components/ui/skeleton';
+import { usePermissions } from '@/features/auth/hooks/usePermissions';
+import { cn } from '@/lib/utils';
+import ComplianceFilterSection from './ComplianceFilterSection';
+import { getOrganizationHierarchy } from '@/features/organization/organization.actions';
+import {
+    collectOrganizationDepartments,
+    resolveDepartmentDisplayName,
+} from '@/features/organization/organization-unit-options.util';
+import {
+    EmployeeComplianceFilterInput,
+    EmployeeComplianceSortBy,
+    EmployeeDocumentSortOrder,
+    ComplianceAlert,
+} from '@/features/documents/documents.types';
+import {
+    complianceQueryKeys,
+    useComplianceAlerts,
+    useComplianceListPaged,
+    useComplianceStats,
+} from '@/features/documents/hooks/useComplianceTracking';
+
+const defaultFilters: EmployeeComplianceFilterInput = {};
+
+const mapColumnToSortBy = (column: string): EmployeeComplianceSortBy | null => {
+    if (column === 'employee') return EmployeeComplianceSortBy.EMPLOYEE_NAME;
+    if (column === 'department') return EmployeeComplianceSortBy.DEPARTMENT;
+    if (column === 'missingDocument') return EmployeeComplianceSortBy.MISSING_DOCUMENT;
+    if (column === 'expiryDocument') return EmployeeComplianceSortBy.EXPIRING_DOCUMENT;
+    if (column === 'complianceStatus') return EmployeeComplianceSortBy.COMPLIANCE_STATUS;
+    if (column === 'lastReminder') return EmployeeComplianceSortBy.LAST_REMINDER;
+    return null;
+};
+
+type ComplianceTableRow = {
+    id: string;
+    employee: string;
+    department: string;
+    missingDocument: string;
+    expiryDocument: string;
+    complianceStatusRaw: string;
+    complianceStatus: string;
+    lastReminder: string;
+    rawMissing: string[];
+};
 
 const ComplianceTrackingPage = () => {
-    const { t } = useTranslation(['dashboard', 'document']);
+    const { t, i18n } = useTranslation(['dashboard', 'document']);
+    const dateLocale = i18n.language === 'ar' ? 'ar-SA' : 'en-US';
+    const { hasPermission } = usePermissions();
+    const canUpdateCompliance = hasPermission('compliance:update');
     const { toast } = useToast();
-    const [searchValue, setSearchValue] = useState("");
+    const router = useRouter();
+    const queryClient = useQueryClient();
+    const [searchValue, setSearchValue] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-    const [isLoading, setIsLoading] = useState(true);
+    const [showFilters, setShowFilters] = useState(false);
+    const [activeFilters, setActiveFilters] = useState<EmployeeComplianceFilterInput>(defaultFilters);
+    const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
+    const [sortColumn, setSortColumn] = useState<string>('employee');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+    const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
+    const tableSectionRef = useRef<HTMLDivElement>(null);
 
-    const [filtersOpen, setFiltersOpen] = useState(false);
-    const [filters, setFilters] = useState({
-        complianceStatus: '',
-        department: '',
-    });
-    const [departments, setDepartments] = useState<string[]>([]);
-    const filterForm = useForm({
-        defaultValues: {
-            complianceStatus: '__all__',
-            department: '__all__',
-        },
-    });
+    const departmentNameById = useMemo(
+        () => new Map(departments.map((department) => [department.id, department.name])),
+        [departments],
+    );
 
-    const [statsData, setStatsData] = useState({
-        fullyCompliant: 0,
-        nonCompliant: 0,
-        expiringSoon: 0,
-        totalCompliance: '0%',
-    });
-    const [alerts, setAlerts] = useState<any[]>([]);
-    const [tableData, setTableData] = useState<any[]>([]);
-    const [totalItems, setTotalItems] = useState(0);
-    const totalPages = Math.ceil(totalItems / pageSize) || 1;
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchValue.trim());
+            setCurrentPage(1);
+        }, 350);
 
-    const loadData = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const [statsResponse, alertsResponse, listResponse] = await Promise.all([
-                fetchComplianceDashboardStats(),
-                fetchComplianceAlerts(),
-                fetchEmployeeComplianceList({
-                    limit: pageSize,
-                    offset: (currentPage - 1) * pageSize,
-                    search: searchValue,
-                    complianceStatus: filters.complianceStatus || undefined,
-                    department: filters.department || undefined,
-                })
-            ]);
+        return () => clearTimeout(timer);
+    }, [searchValue]);
 
-            setStatsData({
-                fullyCompliant: statsResponse.fullyCompliantEmployeesCount,
-                nonCompliant: statsResponse.nonCompliantEmployeesCount,
-                expiringSoon: statsResponse.expiringSoonDocumentsCount,
-                totalCompliance: `${statsResponse.totalCompliancePercentage}%`,
-            });
+    const effectiveFilter = useMemo(
+        () => ({
+            ...activeFilters,
+            search: debouncedSearch || undefined,
+            sortBy: mapColumnToSortBy(sortColumn) ?? EmployeeComplianceSortBy.EMPLOYEE_NAME,
+            sortOrder: (sortDirection === 'asc' ? 'ASC' : 'DESC') as EmployeeDocumentSortOrder,
+        }),
+        [activeFilters, debouncedSearch, sortColumn, sortDirection],
+    );
 
-            setAlerts(alertsResponse.map(alert => ({
+    const listParams = useMemo(
+        () => ({
+            page: currentPage,
+            size: pageSize,
+            filter: effectiveFilter,
+        }),
+        [currentPage, pageSize, effectiveFilter],
+    );
+
+    const statsQuery = useComplianceStats();
+    const alertsQuery = useComplianceAlerts();
+    const listQuery = useComplianceListPaged(listParams);
+
+    const statsData = useMemo(
+        () => ({
+            fullyCompliant: statsQuery.data?.fullyCompliantEmployeesCount ?? 0,
+            nonCompliant: statsQuery.data?.nonCompliantEmployeesCount ?? 0,
+            expiringSoon: statsQuery.data?.expiringSoonDocumentsCount ?? 0,
+            totalCompliance: statsQuery.data
+                ? `${statsQuery.data.totalCompliancePercentage}%`
+                : '0%',
+        }),
+        [statsQuery.data],
+    );
+
+    const alerts = useMemo(
+        () =>
+            (alertsQuery.data ?? []).map((alert: ComplianceAlert) => ({
                 id: alert.id,
                 message: alert.message,
-                date: new Date(alert.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
-                type: alert.severity === 'CRITICAL' ? 'error' : 'warning',
-            })));
+                type: alert.type,
+                documentCategoryName: alert.documentCategoryName,
+                date: new Date(alert.date).toLocaleDateString(dateLocale, {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                }),
+                typeStyle: alert.severity === 'CRITICAL' ? 'error' : 'warning',
+            })),
+        [alertsQuery.data, dateLocale],
+    );
 
-            setTableData(listResponse.data.map(row => ({
+    const tableData = useMemo<ComplianceTableRow[]>(
+        () =>
+            (listQuery.data?.data ?? []).map((row) => ({
                 id: row.employeeId,
                 employee: row.employeeName,
-                department: row.department,
+                department: resolveDepartmentDisplayName(row.department, departmentNameById),
                 missingDocument: row.missingDocuments.length > 0 ? row.missingDocuments.join(', ') : '-',
                 expiryDocument: row.expiringDocuments.length > 0 ? row.expiringDocuments.join(', ') : '-',
-                complianceStatus: row.complianceStatus === 'COMPLIANT'
-                    ? t('complianceTracking.compliance.compliant', { ns: 'document' })
-                    : t('complianceTracking.compliance.nonCompliant', { ns: 'document' }),
-                lastReminder: row.lastReminderDate ? new Date(row.lastReminderDate).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : '-',
+                complianceStatusRaw: row.complianceStatus,
+                complianceStatus:
+                    row.complianceStatus === 'COMPLIANT'
+                        ? t('complianceTracking.compliance.compliant', { ns: 'document' })
+                        : t('complianceTracking.compliance.nonCompliant', { ns: 'document' }),
+                lastReminder: row.lastReminderDate
+                    ? new Date(row.lastReminderDate).toLocaleDateString(dateLocale, {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                      })
+                    : '-',
                 rawMissing: row.missingDocuments,
-            })));
+            })),
+        [listQuery.data, t, dateLocale, departmentNameById],
+    );
 
-            setTotalItems(listResponse.pagination.total);
-        } catch (error) {
-            console.error("Failed to load compliance data:", error);
-            toast({
-                variant: "destructive",
-                title: t('complianceTracking.toasts.errorTitle', { ns: 'document' }),
-                description: t('complianceTracking.toasts.fetchError', { ns: 'document' })
-            });
-        } finally {
-            setIsLoading(false);
+    const totalItems = listQuery.data?.metaData.total ?? 0;
+    const totalPages = listQuery.data?.metaData.totalPages ?? 0;
+
+    const activeFilterCount = useMemo(
+        () =>
+            Object.entries(activeFilters).filter(
+                ([key, value]) =>
+                    key !== 'search' &&
+                    key !== 'sortBy' &&
+                    key !== 'sortOrder' &&
+                    value !== undefined &&
+                    value !== '' &&
+                    value !== false,
+            ).length,
+        [activeFilters],
+    );
+
+    const buildAlertFilter = useCallback((alert: (typeof alerts)[number]): EmployeeComplianceFilterInput => {
+        if (alert.type === 'MISSING_DOCUMENT' && alert.documentCategoryName) {
+            return { missingCategoryName: alert.documentCategoryName };
         }
-    }, [currentPage, pageSize, searchValue, filters, toast, t]);
-
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
-
-    useEffect(() => {
-        const getDepartments = async () => {
-            try {
-                const response = await fetchEmployeeComplianceList({ limit: 100 });
-                const unique = Array.from(new Set(response.data.map(emp => emp.department).filter(Boolean))) as string[];
-                setDepartments(unique);
-            } catch (err) {
-                console.error("Failed to load departments:", err);
-            }
-        };
-        getDepartments();
+        if (alert.type === 'EXPIRING_SOON') {
+            return { hasExpiringDocuments: true };
+        }
+        if (alert.type === 'FULLY_NON_COMPLIANT') {
+            return { noUploadedDocuments: true };
+        }
+        return {};
     }, []);
 
-    const handleSearchChange = (value: string) => {
-        setSearchValue(value);
-        setCurrentPage(1);
-    };
+    const invalidateComplianceQueries = useCallback(() => {
+        queryClient.invalidateQueries({ queryKey: complianceQueryKeys.stats });
+        queryClient.invalidateQueries({ queryKey: complianceQueryKeys.alerts });
+        queryClient.invalidateQueries({ queryKey: ['compliance-list-paged'] });
+    }, [queryClient]);
 
-    const handleComplianceStatusChange = (value: string) => {
-        setFilters((prev) => ({ ...prev, complianceStatus: value === '__all__' ? '' : value }));
-        setCurrentPage(1);
-    };
-
-    const handleDepartmentChange = (value: string) => {
-        setFilters((prev) => ({ ...prev, department: value === '__all__' ? '' : value }));
-        setCurrentPage(1);
-    };
-
-    const clearFilters = () => {
-        setFilters({
-            complianceStatus: '',
-            department: '',
+    useEffect(() => {
+        let isMounted = true;
+        Promise.resolve().then(async () => {
+            const hierarchy = await getOrganizationHierarchy({ maxDepth: 10 });
+            if (isMounted) {
+                setDepartments(collectOrganizationDepartments(hierarchy));
+            }
         });
-        filterForm.setValue('complianceStatus', '__all__');
-        filterForm.setValue('department', '__all__');
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const handleApplyFilters = (filters: EmployeeComplianceFilterInput) => {
+        setActiveAlertId(null);
+        setActiveFilters(filters);
+        setCurrentPage(1);
+    };
+
+    const handleResetFilters = () => {
+        setSearchValue('');
+        setDebouncedSearch('');
+        setActiveAlertId(null);
+        setActiveFilters(defaultFilters);
+        setCurrentPage(1);
+    };
+
+    const handleAlertClick = (alert: (typeof alerts)[number]) => {
+        if (activeAlertId === alert.id) {
+            handleResetFilters();
+            return;
+        }
+
+        setActiveAlertId(alert.id);
+        setActiveFilters(buildAlertFilter(alert));
+        setSearchValue('');
+        setDebouncedSearch('');
+        setCurrentPage(1);
+        tableSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const handleSort = (column: string) => {
+        if (!mapColumnToSortBy(column)) {
+            return;
+        }
+        if (sortColumn === column) {
+            setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
         setCurrentPage(1);
     };
 
@@ -157,7 +271,7 @@ const ComplianceTrackingPage = () => {
         if (missingDocuments.length === 0) {
             toast({
                 title: t('complianceTracking.toasts.noMissingTitle', { ns: 'document' }),
-                description: t('complianceTracking.toasts.noMissingDescription', { ns: 'document' })
+                description: t('complianceTracking.toasts.noMissingDescription', { ns: 'document' }),
             });
             return;
         }
@@ -172,12 +286,12 @@ const ComplianceTrackingPage = () => {
                         docs: missingDocuments.join(', '),
                     }),
                 });
-                loadData();
+                invalidateComplianceQueries();
             } else {
                 toast({
                     variant: 'destructive',
                     title: t('complianceTracking.toasts.errorTitle', { ns: 'document' }),
-                    description: result.error || t('complianceTracking.toasts.sendReminderError', { ns: 'document' }),
+                    description: resolveDocumentError(result.error, i18n.getFixedT(i18n.language, 'document')),
                 });
             }
         } catch {
@@ -189,7 +303,63 @@ const ComplianceTrackingPage = () => {
         }
     };
 
-    const columns: ColumnConfig<any>[] = [
+    const handleViewEmployeeDocuments = (employeeId: string, employeeName: string) => {
+        const params = new URLSearchParams({ name: employeeName });
+        router.push(`/dashboard/documents/employee-documents/${employeeId}?${params.toString()}`);
+    };
+
+    const handleViewAffected = () => {
+        setActiveAlertId(null);
+        setActiveFilters({ complianceStatus: 'NON_COMPLIANT' });
+        setShowFilters(true);
+        setCurrentPage(1);
+        tableSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const handleSendBulkReminders = async () => {
+        const nonCompliantRows = tableData.filter(
+            (row) => row.complianceStatusRaw !== 'COMPLIANT' && row.rawMissing.length > 0,
+        );
+        if (nonCompliantRows.length === 0) {
+            toast({
+                title: t('complianceTracking.toasts.noRemindersTitle', { ns: 'document' }),
+                description: t('complianceTracking.toasts.noRemindersDescription', { ns: 'document' }),
+            });
+            return;
+        }
+
+        toast({
+            title: t('complianceTracking.toasts.sendingRemindersTitle', { ns: 'document' }),
+            description: t('complianceTracking.toasts.sendingRemindersDescription', {
+                ns: 'document',
+                count: nonCompliantRows.length,
+            }),
+        });
+
+        let successCount = 0;
+        for (const row of nonCompliantRows) {
+            try {
+                const result = await sendComplianceReminder(row.id, row.rawMissing);
+                if (result.success) {
+                    successCount += 1;
+                }
+            } catch (error) {
+                console.error(`Failed to send reminder to employee ${row.id}:`, error);
+            }
+        }
+
+        toast({
+            title: t('complianceTracking.toasts.remindersCompleteTitle', { ns: 'document' }),
+            description: t('complianceTracking.toasts.remindersCompleteDescription', {
+                ns: 'document',
+                successCount,
+                totalCount: nonCompliantRows.length,
+            }),
+        });
+        invalidateComplianceQueries();
+    };
+
+    const columns: ColumnConfig<ComplianceTableRow>[] = [
         {
             key: 'employee',
             label: t('documentData.complianceTracking.table.employee'),
@@ -213,113 +383,35 @@ const ComplianceTrackingPage = () => {
         {
             key: 'complianceStatus',
             label: t('documentData.complianceTracking.table.complianceStatus'),
+            sortable: true,
             render: (item) => (
-                <Badge 
-                    variant="outline" 
+                <Badge
+                    variant="outline"
                     className={
-                        item.complianceStatus === 'Compliant' 
-                        ? "bg-green-50 text-green-700 border-green-200" 
-                        : "bg-red-50 text-red-700 border-red-200"
+                        item.complianceStatusRaw === 'COMPLIANT'
+                            ? 'border-green-500/20 bg-green-500/10 text-green-600 dark:text-green-400'
+                            : 'border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400'
                     }
                 >
-                    <div className={item.complianceStatus === 'Compliant' ? "w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5" : "w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"} />
+                    <div
+                        className={
+                            item.complianceStatusRaw === 'COMPLIANT'
+                                ? 'mr-1.5 h-1.5 w-1.5 rounded-full bg-green-500'
+                                : 'mr-1.5 h-1.5 w-1.5 rounded-full bg-red-500'
+                        }
+                    />
                     {item.complianceStatus}
                 </Badge>
-            )
+            ),
         },
         {
             key: 'lastReminder',
             label: t('documentData.complianceTracking.table.lastReminder'),
             sortable: true,
-        }
+        },
     ];
 
-    const handleViewAffected = () => {
-        setFilters((prev) => ({ ...prev, complianceStatus: 'NON_COMPLIANT' }));
-        filterForm.setValue('complianceStatus', 'NON_COMPLIANT');
-        setFiltersOpen(true);
-        setCurrentPage(1);
-    };
-
-    const handleSendBulkReminders = async () => {
-        const nonCompliantRows = tableData.filter(row => row.complianceStatus === t('complianceTracking.compliance.nonCompliant', { ns: 'document' }) && row.rawMissing && row.rawMissing.length > 0);
-        if (nonCompliantRows.length === 0) {
-            toast({
-                title: t('complianceTracking.toasts.noRemindersTitle', { ns: 'document' }),
-                description: t('complianceTracking.toasts.noRemindersDescription', { ns: 'document' })
-            });
-            return;
-        }
-
-        toast({
-            title: t('complianceTracking.toasts.sendingRemindersTitle', { ns: 'document' }),
-            description: t('complianceTracking.toasts.sendingRemindersDescription', { ns: 'document', count: nonCompliantRows.length }),
-        });
-
-        let successCount = 0;
-        for (const row of nonCompliantRows) {
-            try {
-                const result = await sendComplianceReminder(row.id, row.rawMissing);
-                if (result.success) {
-                    successCount++;
-                }
-            } catch (error) {
-                console.error(`Failed to send reminder to employee ${row.id}:`, error);
-            }
-        }
-
-        toast({
-            title: t('complianceTracking.toasts.remindersCompleteTitle', { ns: 'document' }),
-            description: t('complianceTracking.toasts.remindersCompleteDescription', { ns: 'document', successCount, totalCount: nonCompliantRows.length })
-        });
-        loadData();
-    };
-
-    const handleGenerateReport = () => {
-        if (tableData.length === 0) {
-            toast({
-                variant: "destructive",
-                title: t('complianceTracking.toasts.noDataTitle', { ns: 'document' }),
-                description: t('complianceTracking.toasts.noDataDescription', { ns: 'document' })
-            });
-            return;
-        }
-
-        const headers = [
-            t('complianceTracking.report.employeeName', { ns: 'document' }),
-            t('complianceTracking.report.department', { ns: 'document' }),
-            t('complianceTracking.report.missingDocuments', { ns: 'document' }),
-            t('complianceTracking.report.expiringDocuments', { ns: 'document' }),
-            t('complianceTracking.report.complianceStatus', { ns: 'document' }),
-            t('complianceTracking.report.lastReminderDate', { ns: 'document' }),
-        ];
-        const rows = tableData.map(row => [
-            `"${row.employee}"`,
-            `"${row.department}"`,
-            `"${row.missingDocument}"`,
-            `"${row.expiryDocument}"`,
-            `"${row.complianceStatus}"`,
-            `"${row.lastReminder}"`
-        ]);
-
-        const csvContent = "data:text/csv;charset=utf-8," 
-            + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-        
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `compliance_report_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        toast({
-            title: t('complianceTracking.toasts.reportGeneratedTitle', { ns: 'document' }),
-            description: t('complianceTracking.toasts.reportGeneratedDescription', { ns: 'document' })
-        });
-    };
-
-    const renderRowActions = (item: any) => (
+    const renderRowActions = (item: ComplianceTableRow) => (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
@@ -327,22 +419,23 @@ const ComplianceTrackingPage = () => {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem className="gap-2 cursor-pointer">
+                <DropdownMenuItem
+                    className="cursor-pointer gap-2"
+                    onClick={() => handleViewEmployeeDocuments(item.id, item.employee)}
+                >
                     <Eye className="h-4 w-4 text-muted-foreground" />
                     <span>{t('complianceTracking.actions.view', { ns: 'document' })}</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                    className="gap-2 cursor-pointer"
-                    onClick={() => handleSendReminder(item.id, item.rawMissing || [])}
-                    disabled={!item.rawMissing || item.rawMissing.length === 0}
-                >
-                    <Send className="h-4 w-4 text-muted-foreground" />
-                    <span>{t('complianceTracking.actions.sendReminder', { ns: 'document' })}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2 cursor-pointer">
-                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                    <span>{t('complianceTracking.actions.markResolved', { ns: 'document' })}</span>
-                </DropdownMenuItem>
+                {canUpdateCompliance && (
+                    <DropdownMenuItem
+                        className="cursor-pointer gap-2"
+                        onClick={() => handleSendReminder(item.id, item.rawMissing)}
+                        disabled={item.rawMissing.length === 0}
+                    >
+                        <Send className="h-4 w-4 text-muted-foreground" />
+                        <span>{t('complianceTracking.actions.sendReminder', { ns: 'document' })}</span>
+                    </DropdownMenuItem>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );
@@ -352,70 +445,92 @@ const ComplianceTrackingPage = () => {
             title: t('documentData.complianceTracking.stats.fullyCompliant'),
             value: statsData.fullyCompliant.toString(),
             icon: CheckCircle2,
-            bgColor: "rgba(34, 197, 94, 0.05)",
-            color: "#22C55E",
-            borderColor: "rgba(34, 197, 94, 0.5)",
+            bgColor: 'rgba(34, 197, 94, 0.05)',
+            color: '#22C55E',
+            borderColor: 'rgba(34, 197, 94, 0.5)',
         },
         {
             title: t('documentData.complianceTracking.stats.nonCompliant'),
             value: statsData.nonCompliant.toString(),
             icon: XCircle,
-            bgColor: "rgba(239, 68, 68, 0.05)",
-            color: "#EF4444",
-            borderColor: "rgba(239, 68, 68, 0.5)",
+            bgColor: 'rgba(239, 68, 68, 0.05)',
+            color: '#EF4444',
+            borderColor: 'rgba(239, 68, 68, 0.5)',
         },
         {
             title: t('documentData.complianceTracking.stats.expiringSoon'),
             value: statsData.expiringSoon.toString(),
             icon: AlertTriangle,
-            bgColor: "rgba(245, 158, 11, 0.05)",
-            color: "#F59E0B",
-            borderColor: "rgba(245, 158, 11, 0.5)",
+            bgColor: 'rgba(245, 158, 11, 0.05)',
+            color: '#F59E0B',
+            borderColor: 'rgba(245, 158, 11, 0.5)',
         },
         {
             title: t('documentData.complianceTracking.stats.totalCompliance'),
             value: statsData.totalCompliance,
             icon: FileText,
-            bgColor: "rgba(40, 101, 227, 0.05)",
-            color: "#2865E3",
-            borderColor: "rgba(40, 101, 227, 0.5)",
+            bgColor: 'rgba(40, 101, 227, 0.05)',
+            color: '#2865E3',
+            borderColor: 'rgba(40, 101, 227, 0.5)',
         },
     ];
 
     return (
-        <div className="flex flex-col gap-8 w-full animate-in fade-in duration-500">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl text-foreground font-bold leading-8 tracking-tight">
+        <div className="flex w-full flex-col gap-8 duration-500 animate-in fade-in">
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold leading-8 tracking-tight text-foreground">
                     {t('documentData.complianceTracking.title')}
                 </h1>
             </div>
 
-            <SummaryStatList stats={statsList} />
+            {statsQuery.isLoading ? (
+                <SummaryStatListSkeleton count={statsList.length} />
+            ) : (
+                <SummaryStatList stats={statsList} />
+            )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2 border border-border shadow-sm">
-                    <CardHeader className="pb-3 border-b border-border/50 bg-gray-50/30">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <Card className="border border-border shadow-sm lg:col-span-2">
+                    <CardHeader className="border-b border-border/50 bg-card-header-background pb-3">
                         <CardTitle className="text-base font-semibold text-foreground">
                             {t('documentData.complianceTracking.riskAlerts')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                        {alerts.length === 0 ? (
+                        {alertsQuery.isLoading ? (
+                            <div className="flex flex-col gap-3 p-4">
+                                {Array.from({ length: 3 }).map((_, index) => (
+                                    <Skeleton key={index} className="h-12 w-full rounded-lg" />
+                                ))}
+                            </div>
+                        ) : alerts.length === 0 ? (
                             <div className="p-8 text-center text-sm text-muted-foreground">
                                 {t('complianceTracking.emptyRiskAlerts', { ns: 'document' })}
                             </div>
                         ) : (
                             <div className="flex flex-col divide-y divide-border/50">
                                 {alerts.map((alert) => (
-                                    <div key={alert.id} className="flex items-center justify-between p-4 hover:bg-gray-50/30 transition-colors">
+                                    <button
+                                        key={alert.id}
+                                        type="button"
+                                        onClick={() => handleAlertClick(alert)}
+                                        className={cn(
+                                            'flex w-full cursor-pointer items-center justify-between p-4 text-left transition-colors hover:bg-muted/30',
+                                            activeAlertId === alert.id && 'bg-primary/5 hover:bg-primary/10',
+                                        )}
+                                    >
                                         <div className="flex items-center gap-3">
-                                            <div className={alert.type === 'error' ? "text-red-500" : "text-amber-500"}>
+                                            <div
+                                                className={
+                                                    alert.typeStyle === 'error' ? 'text-red-500' : 'text-amber-500'
+                                                }
+                                            >
                                                 <AlertTriangle className="h-5 w-5" />
                                             </div>
                                             <span className="text-sm font-medium text-foreground">{alert.message}</span>
                                         </div>
                                         <span className="text-xs text-muted-foreground">{alert.date}</span>
-                                    </div>
+                                    </button>
                                 ))}
                             </div>
                         )}
@@ -423,7 +538,7 @@ const ComplianceTrackingPage = () => {
                 </Card>
 
                 <Card className="border border-border shadow-sm">
-                    <CardHeader className="pb-3 border-b border-border/50 bg-gray-50/30">
+                    <CardHeader className="border-b border-border/50 bg-card-header-background pb-3">
                         <CardTitle className="text-base font-semibold text-foreground">
                             {t('documentData.complianceTracking.quickActions')}
                         </CardTitle>
@@ -431,103 +546,77 @@ const ComplianceTrackingPage = () => {
                     <CardContent className="p-6">
                         <ul className="flex flex-col gap-4">
                             <li>
-                                <Button 
-                                    variant="link" 
+                                <Button
+                                    variant="link"
                                     onClick={handleViewAffected}
-                                    className="p-0 h-auto text-primary text-sm font-medium hover:no-underline"
+                                    className="h-auto cursor-pointer p-0 text-sm font-medium text-primary hover:no-underline"
                                 >
                                     {t('complianceTracking.quickActionItems.viewAffectedEmployees', { ns: 'document' })}
                                 </Button>
                             </li>
-                            <li>
-                                <Button 
-                                    variant="link" 
-                                    onClick={handleSendBulkReminders}
-                                    className="p-0 h-auto text-primary text-sm font-medium hover:no-underline"
-                                >
-                                    {t('complianceTracking.quickActionItems.sendReminder', { ns: 'document' })}
-                                </Button>
-                            </li>
-                            <li>
-                                <Button 
-                                    variant="link" 
-                                    onClick={handleGenerateReport}
-                                    className="p-0 h-auto text-primary text-sm font-medium hover:no-underline"
-                                >
-                                    {t('complianceTracking.quickActionItems.generateReport', { ns: 'document' })}
-                                </Button>
-                            </li>
+                            {canUpdateCompliance && (
+                                <li>
+                                    <Button
+                                        variant="link"
+                                        onClick={handleSendBulkReminders}
+                                        className="h-auto cursor-pointer p-0 text-sm font-medium text-primary hover:no-underline"
+                                    >
+                                        {t('complianceTracking.quickActionItems.sendReminder', { ns: 'document' })}
+                                    </Button>
+                                </li>
+                            )}
                         </ul>
                     </CardContent>
                 </Card>
             </div>
 
-            <div className="w-full">
+            <div ref={tableSectionRef} className="w-full scroll-mt-6">
                 <UniversalDataTable
                     data={tableData}
                     columns={columns}
                     enableSelection
                     searchValue={searchValue}
-                    onSearchChange={handleSearchChange}
+                    onSearchChange={setSearchValue}
                     searchPlaceholder={t('complianceTracking.filters.searchPlaceholder', { ns: 'document' })}
-                    showFilter
-                    onFilterClick={() => setFiltersOpen((prev) => !prev)}
-                    renderFilterPanel={
-                        filtersOpen ? (
-                            <div className="rounded-[8px] border border-border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)] mb-4">
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                                    <div className="flex flex-col gap-2">
-                                        <FormSelect
-                                            id="compliance-filter-status"
-                                            label={t('complianceTracking.filters.complianceStatus', { ns: 'document' })}
-                                            placeholder={t('complianceTracking.filters.allStatuses', { ns: 'document' })}
-                                            control={filterForm.control}
-                                            name="complianceStatus"
-                                            options={[
-                                                { label: t('complianceTracking.filters.allStatuses', { ns: 'document' }), value: '__all__' },
-                                                { label: t('complianceTracking.compliance.compliant', { ns: 'document' }), value: 'COMPLIANT' },
-                                                { label: t('complianceTracking.compliance.nonCompliant', { ns: 'document' }), value: 'NON_COMPLIANT' },
-                                            ]}
-                                            t={t}
-                                            onChange={handleComplianceStatusChange}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <FormSelect
-                                            id="compliance-filter-department"
-                                            label={t('complianceTracking.filters.department', { ns: 'document' })}
-                                            placeholder={t('complianceTracking.filters.allDepartments', { ns: 'document' })}
-                                            control={filterForm.control}
-                                            name="department"
-                                            options={[
-                                                { label: t('complianceTracking.filters.allDepartments', { ns: 'document' }), value: '__all__' },
-                                                ...departments.map((dept) => ({ label: dept, value: dept })),
-                                            ]}
-                                            t={t}
-                                            onChange={handleDepartmentChange}
-                                        />
-                                    </div>
-                                    <div className="flex items-end gap-2">
-                                        <Button
-                                            variant="outline"
-                                            className="h-10 px-4 rounded-lg"
-                                            onClick={clearFilters}
-                                        >
-                                            {t('common.clearFilters', { ns: 'document' })}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : null
-                    }
+                    renderCustomFilter={(
+                        <Button
+                            variant="outline"
+                            size="default"
+                            className={cn('h-10 gap-2 border-input', showFilters && 'bg-black/5 dark:bg-white/5')}
+                            onClick={() => setShowFilters((prev) => !prev)}
+                        >
+                            <ListFilter className="h-4 w-4" />
+                            <span>{t('attendance.filter', { ns: 'dashboard', defaultValue: 'Filter' })}</span>
+                            {activeFilterCount > 0 ? (
+                                <span className="ml-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-white">
+                                    {activeFilterCount}
+                                </span>
+                            ) : null}
+                        </Button>
+                    )}
+                    renderFilterPanel={(
+                        <ComplianceFilterSection
+                            isVisible={showFilters}
+                            onApply={handleApplyFilters}
+                            onReset={handleResetFilters}
+                            initialFilters={activeFilters}
+                            departments={departments}
+                        />
+                    )}
+                    sortColumn={sortColumn}
+                    sortDirection={sortDirection}
+                    onSort={handleSort}
                     currentPage={currentPage}
-                    totalPages={totalPages}
+                    totalPages={Math.max(1, totalPages)}
                     pageSize={pageSize}
                     onPageChange={setCurrentPage}
-                    onPageSizeChange={setPageSize}
+                    onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        setCurrentPage(1);
+                    }}
                     renderRowActions={renderRowActions}
                     totalItems={totalItems}
-                    isLoading={isLoading}
+                    isLoading={listQuery.isLoading}
                 />
             </div>
         </div>

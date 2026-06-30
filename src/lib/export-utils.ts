@@ -1,10 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-/**
- * Utility for exporting data to different formats (CSV, PDF)
- */
-
 export type ExportFormat = 'csv' | 'pdf';
 
 interface ExportColumn {
@@ -20,9 +16,6 @@ interface ExportOptions {
   format: ExportFormat;
 }
 
-/**
- * Exports data to CSV format
- */
 const exportToCSV = (filename: string, columns: ExportColumn[], data: any[]) => {
   const headers = columns.map(col => `"${col.header.replace(/"/g, '""')}"`).join(',');
   
@@ -35,7 +28,6 @@ const exportToCSV = (filename: string, columns: ExportColumn[], data: any[]) => 
         value = item[col.key];
       }
       
-      // Escape quotes and wrap in quotes
       const stringValue = value !== null && value !== undefined ? String(value) : '';
       return `"${stringValue.replace(/"/g, '""')}"`;
     }).join(',');
@@ -54,9 +46,6 @@ const exportToCSV = (filename: string, columns: ExportColumn[], data: any[]) => 
   document.body.removeChild(link);
 };
 
-/**
- * Exports data to PDF format
- */
 const exportToPDF = async (filename: string, columns: ExportColumn[], data: any[]) => {
   const doc = new jsPDF();
   
@@ -75,19 +64,15 @@ const exportToPDF = async (filename: string, columns: ExportColumn[], data: any[
     body: tableData,
     startY: 20,
     styles: { fontSize: 8 },
-    headStyles: { fillColor: [40, 101, 227] }, // Primary color
+    headStyles: { fillColor: [40, 101, 227] },
   });
 
-  // Add title
   doc.setFontSize(16);
   doc.text(filename, 14, 15);
 
   doc.save(`${filename}.pdf`);
 };
 
-/**
- * Main export function
- */
 export const exportReport = async (options: ExportOptions) => {
   const { filename, columns, data, format } = options;
 

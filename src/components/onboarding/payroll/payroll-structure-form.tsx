@@ -15,11 +15,10 @@ import {
     useUpdatePayrollConfig,
     useUpsertPayrollComponents,
     usePayrollConfig,
-    usePayrollComponents,
+    useAllPayrollComponents,
     useDeletePayrollComponent,
 } from '@/features/payroll/hooks/usePayroll';
-import { PayrollComponentType, PayrollCycle } from '@/features/payroll/payroll.types';
-import { OvertimeType } from '@/features/overtime-policy/overtime-policy.types';
+import { PayrollComponentType, PayrollCycle, isPercentageType } from '@/features/payroll/payroll.types';
 import { PayrollComponentSheet } from '@/components/payroll/payroll-component-sheet';
 import { useOnboarding } from '@/components/onboarding/context/OnboardingContext';
 import { useRouter } from 'next/navigation';
@@ -28,13 +27,12 @@ import {
     type PayrollStructureValues,
 } from '@/components/onboarding/schemas/payroll-structure';
 import { cn } from '@/lib/utils';
-import { useCreateOvertimePoliciesBatch } from '@/features/overtime-policy/hooks/useOvertimePolicy';
 import { useToast } from '@/hooks/use-toast';
 import { AllowanceDeductionList } from '@/components/onboarding/payroll/allowance-deduction-list';
-import { OvertimeRulesSection } from '@/components/onboarding/payroll/overtime-rules-section';
 import { useCompanyOptions } from '@/features/organization/hooks/useOrganization';
 import { useDisplayCurrency } from '@/features/settings/hooks/useDisplayCurrency';
-
+import { useSalaryStructures } from '@/features/payroll/salary-structure/hooks/useSalaryStructure';
+import { SalaryStructureList } from '@/components/payroll/salary-structure-list';
 const RadioIndicator = ({ checked }: { checked?: boolean }) => (
     <div
         className={cn(
@@ -46,7 +44,6 @@ const RadioIndicator = ({ checked }: { checked?: boolean }) => (
     </div>
 );
 
-/** Maps form allowance/deduction ids to human-readable names for the backend */
 const COMPONENT_NAMES: Record<string, string> = {
     hra: 'House Rent Allowance',
     conveyance: 'Conveyance Allowance',
@@ -68,6 +65,12 @@ const DEFAULT_DEDUCTIONS = [
     { id: 'loans', type: 'fixed', value: 0, recurring: true },
 ];
 
+const PROCESSING_DAY_BY_CYCLE: Record<PayrollStructureValues['payrollCycle'], number> = {
+    monthly: 30,
+    'bi-weekly': 14,
+    weekly: 7,
+};
+
 type PayrollStructureFormProps = {
     mode?: 'onboarding' | 'dashboard';
     onNext?: () => void;
@@ -83,6 +86,7 @@ export function PayrollStructureForm({
     const { toast } = useToast();
     const router = useRouter();
     const { setPayrollData, payrollData } = useOnboarding();
+    const [mounted, setMounted] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isAddComponentOpen, setIsAddComponentOpen] = useState(false);
     const [editingComponent, setEditingComponent] = useState<{
@@ -91,6 +95,7 @@ export function PayrollStructureForm({
         data: any;
     } | null>(null);
     const initializationRef = useRef(false);
+    const continueClickedRef = useRef(false);
 
     const {
         register,
@@ -107,16 +112,11 @@ export function PayrollStructureForm({
                 ? payrollData
                 : {
                       companyId: '',
+                      defaultStructureName: 'Standard Monthly',
                       payrollCycle: 'monthly',
-                      processingDay: 1,
-                      allowances: DEFAULT_ALLOWANCES.map((a) => ({ ...a, enabled: false })),
-                      deductions: DEFAULT_DEDUCTIONS.map((d) => ({ ...d, enabled: false })),
-                      overtimeRules: {
-                          standard: '1.5',
-                          weekend: '2.0',
-                          publicHoliday: '5.0',
-                          enableNightShift: true,
-                      },
+                      processingDay: 30,
+                      allowances: DEFAULT_ALLOWANCES,
+                      deductions: DEFAULT_DEDUCTIONS,
                   },
     });
 
@@ -125,18 +125,22 @@ export function PayrollStructureForm({
     const deductions = watch('deductions');
     const formCompanyId = watch('companyId');
 
-    // Queries & mutations
     const { companies: companiesData, isLoading: isLoadingCompanies } = useCompanyOptions();
     const {
-        data: existingComponents,
+        data: componentsResponse,
         isLoading: isLoadingComponentsList,
         isFetching: isFetchingComponents,
-    } = usePayrollComponents(formCompanyId);
+    } = useAllPayrollComponents(formCompanyId);
+    const existingComponents = componentsResponse?.data;
     const { data: existingConfig, isLoading: isLoadingConfig } = usePayrollConfig(formCompanyId);
+    const { data: salaryStructures = [], isLoading: isLoadingStructures } =
+        useSalaryStructures(formCompanyId);
+    const hasSalaryStructure = salaryStructures.length > 0;
+    const continueDisabled =
+        !mounted || isSaving || isLoadingStructures || !hasSalaryStructure;
 
     const { mutateAsync: updatePayrollConfig } = useUpdatePayrollConfig();
     const { mutateAsync: upsertPayrollComponents } = useUpsertPayrollComponents();
-    const { mutateAsync: createOvertimePoliciesBatch } = useCreateOvertimePoliciesBatch();
 
     const { currencySymbol } = useDisplayCurrency(formCompanyId);
 
@@ -149,7 +153,13 @@ export function PayrollStructureForm({
         return options;
     }, [companiesData]);
 
-    // Auto-select first company or handle invalid selection
+    useEffect(() => {
+        const frame = requestAnimationFrame(() => {
+            setMounted(true);
+        });
+        return () => cancelAnimationFrame(frame);
+    }, []);
+
     useEffect(() => {
         if (companyOptions && companyOptions.length > 0) {
             const isValid = companyOptions.some((opt) => opt.value === formCompanyId);
@@ -160,9 +170,7 @@ export function PayrollStructureForm({
         }
     }, [companyOptions, formCompanyId, setValue]);
 
-    // Map existing data to form
     useEffect(() => {
-        // Only map if we have data or we are sure it's empty (but not loading)
         if (existingComponents !== undefined && !isFetchingComponents) {
             const cycleMapRev: Record<string, string> = {
                 [PayrollCycle.MONTHLY]: 'monthly',
@@ -174,35 +182,33 @@ export function PayrollStructureForm({
                 Object.entries(COMPONENT_NAMES).map(([k, v]) => [v, k]),
             );
 
-            const mappedAllowances = existingComponents
-                .filter((c) => c.__typename === 'AllowanceResponse')
+            const mappedAllowances = (existingComponents ?? [])
+                .filter((c) => c.category === PayrollComponentType.ALLOWANCE)
                 .map((a) => ({
                     id: REVERSE_COMPONENT_NAMES[a.name] ?? a.name,
-                    enabled: (a as any).isActive === true, // Only enabled if isActive is explicitly true
                     description:
-                        a.type === 'percentage'
+                        isPercentageType(a.type)
                             ? `${a.value}%`
                             : `Fixed: ${currencySymbol} ${a.value.toFixed(2)}`,
                     type: a.type,
                     value: a.value,
-                    taxable: (a as any).taxable,
+                    taxable: a.taxable,
                     recurring: true,
                     dbId: a.id,
                 }));
 
-            const mappedDeductions = existingComponents
-                .filter((c) => c.__typename === 'DeductionResponse')
+            const mappedDeductions = (existingComponents ?? [])
+                .filter((c) => c.category === PayrollComponentType.DEDUCTION)
                 .map((d) => ({
                     id: REVERSE_COMPONENT_NAMES[d.name] ?? d.name,
-                    enabled: (d as any).isActive === true, // Only enabled if isActive is explicitly true
                     description:
-                        d.type === 'percentage'
+                        isPercentageType(d.type)
                             ? `${d.value}%`
                             : `Fixed: ${currencySymbol} ${d.value.toFixed(2)}`,
                     type: d.type,
                     value: d.value,
                     taxable: false,
-                    recurring: (d as any).recurring,
+                    recurring: d.recurring,
                     dbId: d.id,
                 }));
 
@@ -214,24 +220,17 @@ export function PayrollStructureForm({
 
             reset({
                 companyId: finalCompanyId,
+                defaultStructureName: 'Standard Monthly',
                 payrollCycle: existingConfig
                     ? (cycleMapRev[existingConfig.cycleType] as any)
                     : 'monthly',
-                processingDay: existingConfig ? existingConfig.payDay : 1,
+                processingDay: existingConfig
+                    ? existingConfig.payDay
+                    : PROCESSING_DAY_BY_CYCLE.monthly,
                 allowances:
-                    mappedAllowances.length > 0
-                        ? mappedAllowances
-                        : DEFAULT_ALLOWANCES.map((a) => ({ ...a, enabled: false })),
+                    mappedAllowances.length > 0 ? mappedAllowances : DEFAULT_ALLOWANCES,
                 deductions:
-                    mappedDeductions.length > 0
-                        ? mappedDeductions
-                        : DEFAULT_DEDUCTIONS.map((d) => ({ ...d, enabled: false })),
-                overtimeRules: {
-                    standard: '1.5',
-                    weekend: '2.0',
-                    publicHoliday: '5.0',
-                    enableNightShift: true,
-                },
+                    mappedDeductions.length > 0 ? mappedDeductions : DEFAULT_DEDUCTIONS,
             });
         }
     }, [
@@ -244,7 +243,6 @@ export function PayrollStructureForm({
         currencySymbol,
     ]);
 
-    // Initial Setup: If components are empty, seed with localized defaults (isActive: false)
     const [isInitializing, setIsInitializing] = useState(false);
 
     useEffect(() => {
@@ -262,31 +260,30 @@ export function PayrollStructureForm({
                 setIsInitializing(true);
                 try {
                     const defaultItems: any[] = DEFAULT_ALLOWANCES.map((a) => ({
-                        companyId: formCompanyId,
-                        componentType: PayrollComponentType.ALLOWANCE,
+                        ouId: formCompanyId,
+                        category: PayrollComponentType.ALLOWANCE,
                         name: COMPONENT_NAMES[a.id] || a.id,
                         type: a.type,
                         value: a.value,
                         taxable: a.taxable,
-                        isActive: false, // Seeding as inactive as requested
+                        isActive: true,
                     }));
 
                     const defaultDeductions: any[] = DEFAULT_DEDUCTIONS.map((d) => ({
-                        companyId: formCompanyId,
-                        componentType: PayrollComponentType.DEDUCTION,
+                        ouId: formCompanyId,
+                        category: PayrollComponentType.DEDUCTION,
                         name: COMPONENT_NAMES[d.id] || d.id,
                         type: d.type,
                         value: d.value,
                         recurring: d.recurring,
-                        isActive: false, // Seeding as inactive as requested
+                        isActive: true,
                     }));
 
                     const allDefaults = [...defaultItems, ...defaultDeductions];
                     await upsertPayrollComponents(allDefaults);
-                    // Refreshing is handled by react-query invalidation in useUpsertPayrollComponents
                 } catch (error) {
                     console.error('Failed to initialize default components:', error);
-                    initializationRef.current = false; // Allow retry on failure
+                    initializationRef.current = false;
                 } finally {
                     setIsInitializing(false);
                 }
@@ -302,12 +299,6 @@ export function PayrollStructureForm({
         isInitializing,
         mode,
     ]);
-
-    const toggleComponent = (type: 'allowances' | 'deductions', id: string, enabled: boolean) => {
-        const current = watch(type);
-        const updated = current.map((item) => (item.id === id ? { ...item, enabled } : item));
-        setValue(type, updated, { shouldValidate: true });
-    };
 
     const handleAddComponent = (data: any) => {
         const fieldKey =
@@ -329,7 +320,7 @@ export function PayrollStructureForm({
         }
 
         const defaultDesc =
-            data.type === 'percentage'
+            isPercentageType(data.type)
                 ? data.category === PayrollComponentType.ALLOWANCE
                     ? t('components.items.percentageAllowance', {
                           value: data.value,
@@ -351,7 +342,6 @@ export function PayrollStructureForm({
                 ...currentValues,
                 {
                     id: data.name,
-                    enabled: true,
                     description: data.description || defaultDesc,
                     type: data.type,
                     value: data.value,
@@ -373,7 +363,7 @@ export function PayrollStructureForm({
         if (!itemToUpdate) return;
 
         const defaultDesc =
-            data.type === 'percentage'
+            isPercentageType(data.type)
                 ? data.category ===
                   (type === 'allowances'
                       ? PayrollComponentType.ALLOWANCE
@@ -438,12 +428,11 @@ export function PayrollStructureForm({
         const itemToRemove = current.find((i) => i.id === id);
         const updated = current.filter((item) => item.id !== id);
 
-        // Persist deletion if it has a dbId
         if (itemToRemove?.dbId) {
             try {
                 await deletePayrollComponent({
                     id: itemToRemove.dbId,
-                    componentType:
+                    category:
                         category === 'allowances'
                             ? PayrollComponentType.ALLOWANCE
                             : PayrollComponentType.DEDUCTION,
@@ -463,7 +452,7 @@ export function PayrollStructureForm({
                     }),
                     variant: 'destructive',
                 });
-                return; // Don't remove from local state if backend delete fails
+                return;
             }
         }
 
@@ -471,6 +460,11 @@ export function PayrollStructureForm({
     };
 
     const onSubmit = async (data: PayrollStructureValues) => {
+        if (!continueClickedRef.current) {
+            return;
+        }
+        continueClickedRef.current = false;
+
         if (!data.companyId) {
             toast({
                 title: t('setup.error', { defaultValue: 'Error' }),
@@ -482,15 +476,53 @@ export function PayrollStructureForm({
             return;
         }
 
+        if (!hasSalaryStructure) {
+            toast({
+                title: t('setup.error', { defaultValue: 'Error' }),
+                description: t('setup.salaryStructureRequired', {
+                    defaultValue:
+                        'Create at least one salary structure before saving payroll settings.',
+                }),
+                variant: 'destructive',
+            });
+            return;
+        }
+
         setIsSaving(true);
         try {
-            // 1. Payroll Config
             const cycleMap: Record<string, PayrollCycle> = {
                 monthly: PayrollCycle.MONTHLY,
                 'bi-weekly': PayrollCycle.BI_WEEKLY,
                 weekly: PayrollCycle.WEEKLY,
             };
             const payDay = data.processingDay;
+
+            const componentInputs: any[] = [
+                ...data.allowances.map((item: any) => ({
+                    id: item.dbId,
+                    ouId: data.companyId,
+                    category: PayrollComponentType.ALLOWANCE,
+                    name: COMPONENT_NAMES[item.id] ?? item.id,
+                    type: item.type ?? 'fixed',
+                    value: item.value ?? 0,
+                    taxable: item.taxable ?? true,
+                    isActive: true,
+                })),
+                ...data.deductions.map((item: any) => ({
+                    id: item.dbId,
+                    ouId: data.companyId,
+                    category: PayrollComponentType.DEDUCTION,
+                    name: COMPONENT_NAMES[item.id] ?? item.id,
+                    type: item.type ?? 'fixed',
+                    value: item.value ?? 0,
+                    recurring: item.recurring ?? true,
+                    isActive: true,
+                })),
+            ];
+
+            if (componentInputs.length > 0) {
+                await upsertPayrollComponents(componentInputs);
+            }
 
             await updatePayrollConfig({
                 companyId: data.companyId,
@@ -499,59 +531,6 @@ export function PayrollStructureForm({
                 autoFinalize: false,
             });
 
-            // 2. Prepare Payroll Components for Unified Upsert
-            const componentInputs: any[] = [
-                ...data.allowances.map((item: any) => ({
-                    id: item.dbId,
-                    companyId: data.companyId,
-                    componentType: PayrollComponentType.ALLOWANCE,
-                    name: COMPONENT_NAMES[item.id] ?? item.id,
-                    type: item.type ?? 'fixed',
-                    value: item.value ?? 0,
-                    taxable: item.taxable ?? true,
-                    isActive: item.enabled,
-                })),
-                ...data.deductions.map((item: any) => ({
-                    id: item.dbId,
-                    companyId: data.companyId,
-                    componentType: PayrollComponentType.DEDUCTION,
-                    name: COMPONENT_NAMES[item.id] ?? item.id,
-                    type: item.type ?? 'fixed',
-                    value: item.value ?? 0,
-                    recurring: item.recurring ?? true,
-                    isActive: item.enabled,
-                })),
-            ];
-
-            // 3. Unified Upsert
-            if (componentInputs.length > 0) {
-                await upsertPayrollComponents(componentInputs);
-            }
-
-            // 4. Overtime Policies
-            const overtimeInputs = [
-                {
-                    companyId: data.companyId,
-                    name: t('overtime.standard', { defaultValue: 'Standard Overtime' }),
-                    rateValue: parseFloat(data.overtimeRules.standard) || 1.5,
-                    type: OvertimeType.MULTIPLIER,
-                },
-                {
-                    companyId: data.companyId,
-                    name: t('overtime.weekend', { defaultValue: 'Weekend Overtime' }),
-                    rateValue: parseFloat(data.overtimeRules.weekend) || 2.0,
-                    type: OvertimeType.FIXED_RATE,
-                },
-                {
-                    companyId: data.companyId,
-                    name: t('overtime.public holiday', { defaultValue: 'Public Holiday Overtime' }),
-                    rateValue: parseFloat(data.overtimeRules.publicHoliday) || 5.0,
-                    type: OvertimeType.FIXED_RATE,
-                },
-            ];
-
-            await createOvertimePoliciesBatch(overtimeInputs);
-
             toast({
                 title: t('setup.success', { defaultValue: 'Success' }),
                 description: t('setup.successMessage', {
@@ -559,12 +538,10 @@ export function PayrollStructureForm({
                 }),
             });
             setPayrollData(data);
-            if (onNext) {
-                onNext();
-            } else {
-                router.push(
-                    mode === 'dashboard' ? '/dashboard/payroll-officer' : '/onboarding/team-setup',
-                );
+            if (mode === 'onboarding' && onNext) {
+                await onNext();
+            } else if (mode === 'dashboard') {
+                router.push('/dashboard/payroll-officer');
             }
         } catch (err: any) {
             console.error('Error saving payroll structure:', err);
@@ -595,7 +572,6 @@ export function PayrollStructureForm({
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-6 sm:p-8">
-                        {/* Select company block */}
                         <div className="flex flex-col gap-3">
                             <FormSelect
                                 id="companyId"
@@ -624,11 +600,13 @@ export function PayrollStructureForm({
                                 </h3>
 
                                 <RadioGroup
-                                    onValueChange={(val) =>
-                                        setValue('payrollCycle', val as any, {
+                                    onValueChange={(val) => {
+                                        const cycle = val as PayrollStructureValues['payrollCycle'];
+                                        setValue('payrollCycle', cycle, { shouldValidate: true });
+                                        setValue('processingDay', PROCESSING_DAY_BY_CYCLE[cycle], {
                                             shouldValidate: true,
-                                        })
-                                    }
+                                        });
+                                    }}
                                     defaultValue={payrollCycle}
                                     className="flex w-full flex-col items-start gap-4 md:flex-row md:gap-6"
                                 >
@@ -662,17 +640,24 @@ export function PayrollStructureForm({
                                 </RadioGroup>
 
                                 <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-6">
-                                    <FormField
-                                        id="processingDay"
-                                        label={t('fields.processingDay')}
-                                        name="processingDay"
-                                        type="number"
-                                        register={register}
-                                        error={errors.processingDay}
-                                        validation={{ valueAsNumber: true, min: 1, max: 31 }}
-                                        className="h-9 text-left text-lg font-medium"
-                                        t={t}
-                                    />
+                                    <div className="w-full max-w-sm space-y-2">
+                                        <FormField
+                                            id="processingDay"
+                                            label={t('fields.processingDay')}
+                                            name="processingDay"
+                                            type="number"
+                                            register={register}
+                                            error={errors.processingDay}
+                                            validation={{ valueAsNumber: true, min: 1, max: 31 }}
+                                            className="h-9 text-left text-lg font-medium"
+                                            t={t}
+                                        />
+                                        {payrollCycle === 'monthly' ? (
+                                            <p className="text-[12px] font-normal text-muted-foreground rtl:text-end">
+                                                {t('fields.processingDayMonthlyHint')}
+                                            </p>
+                                        ) : null}
+                                    </div>
 
                                     <div className="mt-0 flex w-full flex-1 items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 rtl:flex-row-reverse">
                                         <CircleAlert className="size-5 shrink-0 text-amber-500" />
@@ -685,7 +670,6 @@ export function PayrollStructureForm({
 
                             <div className="my-8 w-full border-t border-border" />
 
-                            {/* Payroll Components */}
                             <div className="space-y-6">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-[14px] font-semibold text-foreground rtl:text-end">
@@ -705,7 +689,6 @@ export function PayrollStructureForm({
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                    {/* Allowances */}
                                     <AllowanceDeductionList
                                         title={t('components.allowances', {
                                             defaultValue: 'Allowances',
@@ -714,40 +697,35 @@ export function PayrollStructureForm({
                                         isLoading={isLoadingComponentsList || isLoadingConfig}
                                         currencySymbol={currencySymbol}
                                         category="allowances"
-                                        onToggle={toggleComponent}
                                         onEdit={openEditDialog}
                                         onRemove={handleRemoveComponent}
                                         t={t}
                                     />
 
-                                    {/* Deductions */}
                                     <AllowanceDeductionList
                                         title={t('components.deductions')}
                                         items={deductions}
                                         isLoading={isLoadingComponentsList || isLoadingConfig}
                                         currencySymbol={currencySymbol}
                                         category="deductions"
-                                        onToggle={toggleComponent}
                                         onEdit={openEditDialog}
                                         onRemove={handleRemoveComponent}
                                         t={t}
                                     />
                                 </div>
                             </div>
-
-                            <div className="my-8 w-full border-t border-border" />
-
-                            {/* Overtime Rules */}
-                            <OvertimeRulesSection
-                                isLoading={isLoadingComponentsList || isLoadingConfig}
-                                register={register}
-                                t={t}
-                            />
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Action Buttons */}
+                {formCompanyId && (
+                    <Card className="overflow-hidden rounded-[16px] border border-border bg-card shadow-none">
+                        <CardContent className="p-6">
+                            <SalaryStructureList companyId={formCompanyId} />
+                        </CardContent>
+                    </Card>
+                )}
+
                 <div className="flex items-center justify-between pb-10 pt-8">
                     <Button
                         type="button"
@@ -765,9 +743,15 @@ export function PayrollStructureForm({
                         {t('actions.back')}
                     </Button>
                     <Button
-                        type="submit"
+                        type="button"
                         size="lg"
-                        disabled={isSaving}
+                        disabled={continueDisabled}
+                        onClick={() => {
+                            continueClickedRef.current = true;
+                            handleSubmit(onSubmit, () => {
+                                continueClickedRef.current = false;
+                            })();
+                        }}
                         className="h-11 rounded-[10px] bg-primary px-8 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
                     >
                         {isSaving
@@ -793,6 +777,9 @@ export function PayrollStructureForm({
                         : undefined
                 }
                 defaultValues={editingComponent?.data}
+                defaultOuId={formCompanyId}
+                companyOptions={companyOptions}
+                isLoadingCompanies={isLoadingCompanies}
                 onSubmit={editingComponent ? handleSaveEdit : handleAddComponent}
             />
         </>

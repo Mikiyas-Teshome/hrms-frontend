@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { MoreVertical } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,35 +25,43 @@ export interface TableActionMenuProps {
 }
 
 export function TableActionMenu({ actions }: TableActionMenuProps) {
+  const { i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar' || i18n.language === 'he';
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          onClick={(e) => e.stopPropagation()}
+        >
           <MoreVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-50.25 p-3 rounded-md border border-border shadow-sm flex flex-col gap-1.5 bg-popover text-popover-foreground">
+      <DropdownMenuContent align={isRtl ? 'start' : 'end'} className="min-w-45">
         {actions.map((action, index) => {
           const Icon = action.icon;
           return (
             <DropdownMenuItem
               key={index}
-              variant={action.isDanger ? "destructive" : "default"}
+              disabled={action.disabled}
               onClick={(e) => {
+                e.stopPropagation();
                 if (!action.disabled) {
                   action.onClick?.(e);
                 }
               }}
-              disabled={action.disabled}
               className={cn(
-                "h-10 px-2 text-[16px] font-medium cursor-pointer rounded-md",
-                action.isDanger ? "text-destructive" : "text-popover-foreground"
+                "flex items-center cursor-pointer gap-2",
+                action.isDanger && "text-destructive"
               )}
             >
               {Icon && (
                 <Icon
                   className={cn(
-                    "mr-3 h-5 w-5 rtl:ml-3",
+                    "w-4 h-4",
                     action.isDanger ? "text-current" : "text-muted-foreground"
                   )}
                 />

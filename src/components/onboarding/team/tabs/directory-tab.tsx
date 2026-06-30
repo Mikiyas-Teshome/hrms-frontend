@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { FormField } from '@/components/ui/FormField';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { Button } from '@/components/ui/button';
@@ -10,20 +10,33 @@ import { ProTipAlert } from '@/components/onboarding/shared/pro-tip-alert';
 import { EmployeeTable } from '@/components/onboarding/team/employee-table';
 import { useProfile } from '@/features/auth/hooks/useAuth';
 import { useRoles } from '@/features/roles/hooks/useRoles';
-import { useOrganizationUnitOptions } from '@/features/organization/hooks/useOrganization';
+import {
+    useCompanyOptions,
+    useOrganizationHierarchy,
+} from '@/features/organization/hooks/useOrganization';
+import {
+    buildOrganizationUnitOptions,
+    buildOrganizationUnitOptionsForCompany,
+} from '@/features/organization/organization-unit-options.util';
+import type { OrganizationUnitType } from '@/features/organization/organization.types';
 import { useInviteEmployee, useEmployees } from '@/features/employee/hooks/useEmployee';
+import { parseInviteSalary } from '@/features/employee/parse-invite-salary';
 import { useContracts } from '@/features/contracts/hooks/useContracts';
+import { useInviteContractAutoResolve } from '@/features/contracts/hooks/useInviteContractAutoResolve';
+import {
+    buildContractsById,
+    useContractEmploymentTypeSync,
+} from '@/features/contracts/hooks/useContractEmploymentTypeSync';
+import {
+    ContractEmploymentTypeField,
+    formatEmploymentTypeLabel,
+} from '@/components/dashboard/employees/ContractEmploymentTypeField';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { EMPLOYMENT_TYPE_OPTIONS } from '@/features/employee/employee.types';
 import ImportEmployeesModal from '@/components/dashboard/employees/ImportEmployeesModal';
 import { useDisplayCurrency } from '@/features/settings/hooks/useDisplayCurrency';
-
-const formatEmploymentType = (type: string, t?: any) => {
-    const option = EMPLOYMENT_TYPE_OPTIONS.find((opt) => opt.value === type);
-    if (!option) return type || '-';
-    return t ? t(option.value, option.label) : option.label;
-};
+import { useSalaryStructures } from '@/features/payroll/salary-structure/hooks/useSalaryStructure';
+import { resolveContractEmploymentType } from '@/features/contracts/contract-employment-type.util';
 
 interface DirectoryTabProps {
     t: any;
@@ -38,11 +51,12 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
     const { currencySymbol } = useDisplayCurrency();
 
     const { data: roles, isLoading: rolesLoading } = useRoles(profile?.companyId);
-    const { unitOptions, isLoading: hierarchyLoading } = useOrganizationUnitOptions();
+    const { companies, isLoading: companiesLoading } = useCompanyOptions();
+    const { data: hierarchy, isLoading: hierarchyLoading } = useOrganizationHierarchy();
     const { data: employees } = useEmployees();
-    const { data: contractsData } = useContracts();
     const inviteMutation = useInviteEmployee();
     const newEmployeeIdRef = useRef(0);
+    const previousCompanyOuIdRef = useRef<string | undefined>(undefined);
 
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
@@ -50,6 +64,43 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
 
     const handleSendInvitation = async () => {
         const formData = getValues();
+        if (!formData.contractId) {
+            inviteForm.setError('contractId', {
+                type: 'required',
+                message: t('add.contractRequired', 'Contract type is required.'),
+            });
+            return;
+        }
+
+        if (!formData.salaryStructureId) {
+            inviteForm.setError('salaryStructureId', {
+                type: 'required',
+                message: t(
+                    'add.salaryStructureRequired',
+                    'Salary structure is required. Create at least one salary structure first.',
+                ),
+            });
+            if (!hasSalaryStructures) {
+                toast({
+                    variant: 'destructive',
+                    title: t('add.errorTitle', 'Invitation Failed'),
+                    description: t(
+                        'add.noSalaryStructuresHint',
+                        'Create at least one salary structure in Payroll setup before inviting employees.',
+                    ),
+                });
+            }
+            return;
+        }
+
+        if (parseInviteSalary(formData.salary) == null) {
+            inviteForm.setError('salary', {
+                type: 'required',
+                message: t('add.salaryRequired', 'Salary is required'),
+            });
+            return;
+        }
+
         if (formData.firstName && formData.email) {
             const invitePayload = {
                 email: formData.email.toLowerCase(),
@@ -58,16 +109,17 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
                 ouId: formData.ouId || undefined,
                 roleId: formData.roleId || undefined,
                 gccId: formData.gccId || undefined,
-                contractId: formData.contractId || undefined,
+                contractId: formData.contractId,
                 employmentType: formData.employmentType || undefined,
                 jobTitle: formData.jobTitle || undefined,
-                salary: formData.salary ? Number(formData.salary) : undefined,
+                salary: parseInviteSalary(formData.salary),
+                salaryStructureId: formData.salaryStructureId,
             };
             try {
                 await inviteMutation.mutateAsync(invitePayload);
 
                 const roleName = roles?.find((r) => r.id === formData.roleId)?.name || '';
-                const ouName = unitOptions.find((u) => u.id === formData.ouId)?.name || '';
+                const ouName = scopedUnitOptions.find((u) => u.id === formData.ouId)?.name || '';
 
                 const newEntry = {
                     id: `new-${(newEmployeeIdRef.current += 1)}`,
@@ -77,11 +129,11 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
                     department: ouName || t('add.na'),
                     role: roleName || t('add.na'),
                     jobTitle: formData.jobTitle || roleName,
-                    jobType: formatEmploymentType(formData.employmentType, t),
+                    jobType: formatEmploymentTypeLabel(formData.employmentType, t) || '-',
                     status: t('status.pending'),
                     gccId: formData.gccId || undefined,
                     employmentType: formData.employmentType || undefined,
-                    contractId: formData.contractId || undefined,
+                    contractId: formData.contractId,
                     salary: formData.salary || undefined,
                 };
                 appendEmployee(newEntry);
@@ -108,23 +160,12 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
         }
     };
 
-    const contractOptions =
-        contractsData?.data?.map((c) => ({
-            label: c.contractName || `Contract ${c.contractNumber}`,
-            value: c.id,
-        })) || [];
-
-    const {
-        register,
-        control,
-        getValues,
-        reset,
-        formState: { errors },
-    } = useForm({
+    const inviteForm = useForm({
         defaultValues: {
             firstName: '',
             lastName: '',
             email: '',
+            companyOuId: '',
             ouId: '',
             roleId: '',
             gccId: '',
@@ -132,8 +173,110 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
             contractId: '',
             jobTitle: '',
             salary: '',
+            salaryStructureId: '',
         },
     });
+
+    const {
+        register,
+        control,
+        getValues,
+        reset,
+        setValue,
+        formState: { errors },
+    } = inviteForm;
+
+    const selectedCompanyOuId = useWatch({ control, name: 'companyOuId' });
+    const selectedOuId = useWatch({ control, name: 'ouId' });
+    const selectedContractId = useWatch({ control, name: 'contractId' });
+    const selectedEmploymentType = useWatch({ control, name: 'employmentType' });
+    const selectedSalary = useWatch({ control, name: 'salary' });
+    const selectedSalaryStructureId = useWatch({ control, name: 'salaryStructureId' });
+
+    const companyOptions = useMemo(
+        () =>
+            (companies ?? []).map((company: OrganizationUnitType) => ({
+                label:
+                    company.name ||
+                    company.displayLabel ||
+                    company.companyProfile?.legalName ||
+                    company.id,
+                value: company.id,
+            })),
+        [companies],
+    );
+
+    const scopedUnitOptions =
+        !hierarchy || !selectedCompanyOuId
+            ? []
+            : buildOrganizationUnitOptionsForCompany(hierarchy, selectedCompanyOuId);
+
+    const { data: contractsData } = useContracts(
+        selectedCompanyOuId ? { ouId: selectedCompanyOuId, limit: 100 } : undefined,
+        { enabled: Boolean(selectedCompanyOuId) },
+    );
+    const { data: salaryStructures } = useSalaryStructures(selectedCompanyOuId);
+
+    const contractScopeOuId = selectedOuId || selectedCompanyOuId || undefined;
+    const {
+        contractOptions: departmentContractOptions,
+        departmentContracts,
+        isResolvingContract,
+    } = useInviteContractAutoResolve(inviteForm, contractScopeOuId);
+
+    const salaryStructureOptions = useMemo(
+        () => (salaryStructures ?? []).map((structure) => ({ label: structure.name, value: structure.id })),
+        [salaryStructures],
+    );
+    const hasSalaryStructures = Boolean(selectedCompanyOuId) && salaryStructureOptions.length > 0;
+
+    useEffect(() => {
+        if (companyOptions.length === 1 && !getValues('companyOuId')) {
+            setValue('companyOuId', companyOptions[0].value, { shouldValidate: true });
+        }
+    }, [companyOptions, getValues, setValue]);
+
+    useEffect(() => {
+        if (
+            previousCompanyOuIdRef.current !== undefined &&
+            previousCompanyOuIdRef.current !== selectedCompanyOuId
+        ) {
+            setValue('ouId', '', { shouldValidate: false });
+            setValue('contractId', '', { shouldValidate: false });
+            setValue('employmentType', '', { shouldValidate: false });
+            setValue('salaryStructureId', '', { shouldValidate: false });
+        }
+        previousCompanyOuIdRef.current = selectedCompanyOuId;
+    }, [selectedCompanyOuId, setValue]);
+
+    const allUnitOptions = useMemo(() => {
+        if (!hierarchy) {
+            return [];
+        }
+        return buildOrganizationUnitOptions(hierarchy);
+    }, [hierarchy]);
+
+    const contractOptions = useMemo(() => {
+        if (contractScopeOuId && departmentContractOptions.length > 0) {
+            return departmentContractOptions;
+        }
+        return (
+            contractsData?.data?.map((c) => ({
+                label: c.contractName || `Contract ${c.contractNumber}`,
+                value: c.id,
+            })) || []
+        );
+    }, [contractScopeOuId, departmentContractOptions, contractsData]);
+
+    const contractsById = useMemo(
+        () => buildContractsById(contractsData?.data, departmentContracts),
+        [contractsData?.data, departmentContracts],
+    );
+
+    useContractEmploymentTypeSync(inviteForm, contractsById);
+
+    const hasContracts =
+        Boolean(selectedCompanyOuId) && !isResolvingContract && contractOptions.length > 0;
 
     return (
         <div className="space-y-8">
@@ -147,19 +290,18 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
             <ImportEmployeesModal open={isImportModalOpen} onOpenChange={setIsImportModalOpen} />
 
             <Card className="overflow-hidden rounded-xl border-none shadow-none ring-1 ring-border">
-                <CardHeader className="border-b border-muted bg-muted/40 px-6 py-4">
-                    <div className="flex items-center justify-between">
+                <CardHeader className="border-b border-muted bg-muted/40 px-4 py-4 sm:px-6">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 rtl:sm:flex-row-reverse">
                         <CardTitle className="text-sm font-bold text-foreground">
                             {t('add.title')}
                         </CardTitle>
-                        <span className="text-[14px] font-medium text-muted-foreground rtl:text-right">
+                        <span className="text-sm font-medium text-muted-foreground sm:text-end">
                             {t('add.hint')}
                         </span>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-4 sm:p-8">
+                <CardContent className="space-y-4 pt-4 pb-6 sm:p-8">
                     <div className="grid grid-cols-1 gap-x-6 gap-y-6 md:grid-cols-2">
-                        {/* Employee name */}
                         <FormField
                             id="firstName"
                             label={t('add.firstName')}
@@ -179,7 +321,6 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
                             error={errors.lastName}
                             t={t}
                         />
-                        {/* Email */}
                         <FormField
                             id="email"
                             label={t('add.email')}
@@ -190,23 +331,48 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
                             t={t}
                         />
 
-                        {/* Department */}
+                        <FormSelect
+                            id="companyOuId"
+                            label={t('add.companyType', 'Company')}
+                            placeholder={
+                                companiesLoading
+                                    ? t('common.loading')
+                                    : t('add.selectCompanyType', 'Select company')
+                            }
+                            control={control}
+                            name="companyOuId"
+                            error={errors.companyOuId}
+                            options={companyOptions}
+                            disabled={companiesLoading || companyOptions.length === 0}
+                            t={t}
+                        />
+
                         <FormSelect
                             id="ouId"
-                            label={t('add.department', 'Department')}
+                            label={t('add.department', 'Org unit')}
                             placeholder={
-                                hierarchyLoading
-                                    ? t('common.loading')
-                                    : t('add.selectDepartment', 'Select department')
+                                !selectedCompanyOuId
+                                    ? t('add.selectCompanyType', 'Select company')
+                                    : hierarchyLoading
+                                      ? t('common.loading')
+                                      : scopedUnitOptions.length === 0
+                                        ? t('add.noOrgUnitsForCompany', {
+                                              defaultValue: 'No org units for this company',
+                                          })
+                                        : t('add.selectDepartment', 'Select org unit')
                             }
                             control={control}
                             name="ouId"
                             error={errors.ouId}
-                            options={unitOptions.map((u) => ({ label: u.label, value: u.id }))}
+                            options={scopedUnitOptions.map((u) => ({ label: u.label, value: u.id }))}
+                            disabled={
+                                !selectedCompanyOuId ||
+                                hierarchyLoading ||
+                                scopedUnitOptions.length === 0
+                            }
                             t={t}
                         />
 
-                        {/* Role */}
                         <FormSelect
                             id="roleId"
                             label={t('add.role')}
@@ -222,7 +388,6 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
                             t={t}
                         />
 
-                        {/* GCC ID */}
                         <FormField
                             id="gccId"
                             label={t('add.gccId', 'GCC ID')}
@@ -233,22 +398,67 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
                             t={t}
                         />
 
-                        {/* Employment type */}
-                        <FormSelect
-                            id="employmentType"
+                        <div className="flex flex-col gap-2">
+                            <FormSelect
+                                id="contractId"
+                                label={t('add.contractType', 'Contract type')}
+                                placeholder={
+                                    !selectedCompanyOuId
+                                        ? t('add.selectCompanyType', 'Select company')
+                                        : isResolvingContract
+                                          ? t('common.loading')
+                                          : contractOptions.length === 0
+                                            ? t('add.noContractForDepartment', {
+                                                  defaultValue:
+                                                      'No contract for this org unit or its parents',
+                                              })
+                                            : t('add.selectContractType', 'Select contract type')
+                                }
+                                control={control}
+                                name="contractId"
+                                error={errors.contractId}
+                                options={contractOptions}
+                                onChange={(contractId) => {
+                                    const employmentType = resolveContractEmploymentType(
+                                        contractsById.get(contractId),
+                                    );
+                                    setValue('employmentType', employmentType ?? '', {
+                                        shouldValidate: Boolean(employmentType),
+                                    });
+                                }}
+                                disabled={
+                                    !selectedCompanyOuId ||
+                                    isResolvingContract ||
+                                    contractOptions.length === 0
+                                }
+                                t={t}
+                            />
+                            {selectedCompanyOuId && !isResolvingContract && !hasContracts ? (
+                                <p className="text-sm text-muted-foreground">
+                                    {t(
+                                        'add.noContractForCompanyHint',
+                                        'Create a contract for this company before inviting employees.',
+                                    )}
+                                </p>
+                            ) : null}
+                        </div>
+
+                        <ContractEmploymentTypeField
                             label={t('add.employmentType', 'Employment type')}
-                            placeholder={t('add.selectEmploymentType', 'Select employment type')}
-                            control={control}
-                            name="employmentType"
-                            error={errors.employmentType}
-                            options={EMPLOYMENT_TYPE_OPTIONS.map((opt) => ({
-                                label: t(opt.value, opt.label),
-                                value: opt.value,
-                            }))}
+                            selectedContractId={selectedContractId}
+                            employmentType={selectedEmploymentType}
+                            register={register}
+                            selectContractFirstLabel={t(
+                                'add.selectContractFirst',
+                                'Select a contract first',
+                            )}
+                            employmentTypeFromContractLabel={t(
+                                'add.employmentTypeFromContract',
+                                'Set from selected contract',
+                            )}
                             t={t}
                         />
 
-                        {/* Job title */}
                         <FormField
                             id="jobTitle"
                             label={t('add.jobTitle', 'Job title')}
@@ -260,19 +470,6 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
                             t={t}
                         />
 
-                        {/* Contract type */}
-                        <FormSelect
-                            id="contractId"
-                            label={t('add.contractType', 'Contract type')}
-                            placeholder={t('add.selectContractType', 'Select contract type')}
-                            control={control}
-                            name="contractId"
-                            error={errors.contractId}
-                            options={contractOptions}
-                            t={t}
-                        />
-
-                        {/* Salary */}
                         <FormField
                             id="salary"
                             label={t('add.salary', { defaultValue: 'Salary ({{symbol}})', symbol: currencySymbol })}
@@ -281,11 +478,41 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
                             register={register}
                             name="salary"
                             error={errors.salary}
+                            validation={{
+                                validate: (value) =>
+                                    parseInviteSalary(value) != null ||
+                                    t('add.salaryRequired', 'Salary is required'),
+                            }}
                             t={t}
                         />
 
-                        {/* Empty spacing for desktop layout alignment */}
-                        <div />
+                        <div className="flex flex-col gap-2">
+                            <FormSelect
+                                id="salaryStructureId"
+                                label={t('add.salaryStructure', 'Salary Structure')}
+                                placeholder={
+                                    !selectedCompanyOuId
+                                        ? t('add.selectCompanyType', 'Select company')
+                                        : hasSalaryStructures
+                                          ? t('add.selectSalaryStructure', 'Select salary structure')
+                                          : t('add.noSalaryStructuresAvailable', 'No salary structures available')
+                                }
+                                control={control}
+                                name="salaryStructureId"
+                                error={errors.salaryStructureId}
+                                options={salaryStructureOptions}
+                                disabled={!selectedCompanyOuId || !hasSalaryStructures}
+                                t={t}
+                            />
+                            {!hasSalaryStructures ? (
+                                <p className="text-sm text-muted-foreground">
+                                    {t(
+                                        'add.noSalaryStructuresHint',
+                                        'Create at least one salary structure in Payroll setup before inviting employees.',
+                                    )}
+                                </p>
+                            ) : null}
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4">
@@ -293,7 +520,15 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
                             type="button"
                             variant="secondary"
                             className="bg-primary/10 hover:bg-primary/20 text-foreground py-2 px-4 font-medium text-sm gap-2 border-none transition-colors"
-                            disabled={inviteMutation.isPending}
+                            disabled={
+                                inviteMutation.isPending ||
+                                !selectedCompanyOuId ||
+                                !hasSalaryStructures ||
+                                !hasContracts ||
+                                !selectedContractId ||
+                                !selectedSalaryStructureId ||
+                                parseInviteSalary(selectedSalary) == null
+                            }
                             onClick={handleSendInvitation}
                         >
                             {inviteMutation.isPending && (
@@ -305,7 +540,6 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
                 </CardContent>
             </Card>
 
-            {/* Employee Table */}
             {(() => {
                 const serverEmails = new Set((employees || []).map((e) => e.email.toLowerCase()));
                 const filteredDirectoryFields = directoryFields.filter(
@@ -322,7 +556,7 @@ export function DirectoryTab({ t, directoryFields, appendEmployee }: DirectoryTa
                         jobType: e.employmentType || '-',
                         department:
                             e.orgUnit?.orgUnitName ||
-                            unitOptions.find((u) => u.id === e.departmentId)?.name ||
+                            allUnitOptions.find((u) => u.id === e.departmentId)?.name ||
                             t('add.na'),
                         status: t('status.active'),
                     })),

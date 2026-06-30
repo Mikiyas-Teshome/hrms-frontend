@@ -59,6 +59,7 @@ const EmployeeDirectory = () => {
             { header: t('firstName', 'First Name'), key: 'firstName' },
             { header: t('lastName', 'Last Name'), key: 'lastName' },
             { header: t('email', 'Email'), key: 'email' },
+            { header: t('role', 'Role'), key: 'roleName' },
             { header: t('jobTitle', 'Job Title'), key: 'jobTitle' },
             { header: t('status', 'Status'), key: 'status' },
             { header: t('hireDate', 'Hire Date'), key: 'hireDate' },
@@ -72,35 +73,20 @@ const EmployeeDirectory = () => {
         });
     };
 
-    // const handleFilterToggle = () => {
-    //     setIsFilterVisible(!isFilterVisible);
-    // };
-
-    // const handleApplyFilters = () => {
-    //     setIsFilterVisible(false);
-    // };
-
-    // const handleResetFilters = () => {
-    // };
-
     return (
         <div className="flex flex-col gap-8 w-full animate-in fade-in duration-500">
-            {/* Add Employee Sheet (Invitation) */}
             <AddEmployeeSheet 
                 open={isAddSheetOpen} 
                 onOpenChange={setIsAddSheetOpen} 
             />
 
-            {/* Edit Employee Sheet (Full Profile) */}
             <EditEmployeeSheet
                 open={isEditSheetOpen}
                 onOpenChange={setIsEditSheetOpen}
                 employee={employeeToEdit}
             />
             
-            {/* Import Modal */}
             <ImportEmployeesModal open={isImportModalOpen} onOpenChange={setIsImportModalOpen} />
-            {/* Header Section */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h1 className="text-2xl text-foreground font-bold leading-8 tracking-tight">
                     {t('employeesDirectory')}
@@ -116,7 +102,6 @@ const EmployeeDirectory = () => {
                 )}
             </div>
 
-            {/* Stats Section */}
             {isLoading ? (
                 <SummaryStatListSkeleton count={4} />
             ) : (
@@ -132,7 +117,6 @@ const EmployeeDirectory = () => {
                 />
             )}
             
-            {/* Table Section */}
             <div className="w-full">
                 <EmployeeTable 
                     onImport={handleImportClick}

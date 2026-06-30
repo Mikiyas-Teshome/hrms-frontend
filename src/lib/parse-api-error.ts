@@ -2,6 +2,10 @@ const INFRASTRUCTURE_PATTERN =
   /(ENOTFOUND|ECONNREFUSED|getaddrinfo|ETIMEDOUT|EHOSTUNREACH|127\.0\.0\.1:\d+|localhost:\d+)/i;
 
 const CODE_MESSAGES: Record<string, string> = {
+  SALARY_STRUCTURE_IN_USE:
+    'This salary structure is assigned to one or more employees and cannot be deleted. Reassign those employees first.',
+  CONFLICT:
+    'This change could not be saved because it conflicts with existing data. Please review and try again.',
   EXPIRY_DATE_REQUIRED: 'Please enter an expiry date for this document category.',
   ACTIVE_EMPLOYEE_CONTRACT_EXISTS:
     'This employee already has an active contract. Update the existing contract instead of assigning a new one.',
@@ -50,7 +54,16 @@ function parseJsonMessage(text: string): { message?: string; code?: string } | n
 }
 
 function messageFromCode(code: string, fallback?: string): string {
-  return CODE_MESSAGES[code] ?? fallback ?? code.replace(/_/g, ' ').toLowerCase();
+  if (CODE_MESSAGES[code]) {
+    return CODE_MESSAGES[code];
+  }
+  if (fallback && CODE_MESSAGES[fallback.toUpperCase()]) {
+    return CODE_MESSAGES[fallback.toUpperCase()];
+  }
+  if (fallback && fallback !== code) {
+    return fallback;
+  }
+  return 'Something went wrong. Please try again.';
 }
 
 function sanitizeInfrastructureMessage(message: string): string {
@@ -82,6 +95,22 @@ function extractGraphQlMessage(error: unknown): string | undefined {
   return undefined;
 }
 
+export function isConflictError(error: unknown): boolean {
+  if (error instanceof ApiError && error.code === 'CONFLICT') {
+    return true;
+  }
+
+  if (error instanceof Error) {
+    return error.message.toUpperCase().includes('CONFLICT');
+  }
+
+  if (typeof error === 'string') {
+    return error.toUpperCase().includes('CONFLICT');
+  }
+
+  return false;
+}
+
 export function getUserFacingErrorMessage(
   error: unknown,
   fallback = 'Something went wrong. Please try again.',
@@ -108,6 +137,10 @@ export function getUserFacingErrorMessage(
       return CODE_MESSAGES.STORAGE_UNAVAILABLE;
     }
     if (error.message && !error.message.startsWith('{')) {
+      const codeKey = error.message.toUpperCase();
+      if (CODE_MESSAGES[error.message] || CODE_MESSAGES[codeKey]) {
+        return CODE_MESSAGES[error.message] ?? CODE_MESSAGES[codeKey];
+      }
       return error.message;
     }
   }

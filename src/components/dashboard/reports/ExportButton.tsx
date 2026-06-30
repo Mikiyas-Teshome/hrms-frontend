@@ -15,9 +15,18 @@ interface ExportButtonProps {
     columns: { header: string; key: string; render?: (item: any) => string }[];
     filename: string;
     className?: string;
+    onServerExport?: (format: 'csv' | 'pdf' | 'xlsx') => Promise<void>;
+    serverExportLabel?: string;
 }
 
-export const ExportButton = ({ data, columns, filename, className }: ExportButtonProps) => {
+export const ExportButton = ({
+    data,
+    columns,
+    filename,
+    className,
+    onServerExport,
+    serverExportLabel = 'Export full report',
+}: ExportButtonProps) => {
     const { toast } = useToast();
 
     const handleExport = async (format: ExportFormat) => {
@@ -59,15 +68,40 @@ export const ExportButton = ({ data, columns, filename, className }: ExportButto
                     className="cursor-pointer gap-2"
                 >
                     <FileJson className="h-4 w-4 text-muted-foreground" />
-                    Export as CSV
+                    Export page as CSV
                 </DropdownMenuItem>
                 <DropdownMenuItem
                     onClick={() => handleExport('pdf')}
                     className="cursor-pointer gap-2"
                 >
                     <FileText className="h-4 w-4 text-muted-foreground" />
-                    Export as PDF
+                    Export page as PDF
                 </DropdownMenuItem>
+                {onServerExport && (
+                    <>
+                        <DropdownMenuItem
+                            onClick={() => onServerExport('csv')}
+                            className="cursor-pointer gap-2"
+                        >
+                            <Download className="h-4 w-4 text-muted-foreground" />
+                            {serverExportLabel} (CSV)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => onServerExport('xlsx')}
+                            className="cursor-pointer gap-2"
+                        >
+                            <Download className="h-4 w-4 text-muted-foreground" />
+                            {serverExportLabel} (Excel)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => onServerExport('pdf')}
+                            className="cursor-pointer gap-2"
+                        >
+                            <Download className="h-4 w-4 text-muted-foreground" />
+                            {serverExportLabel} (PDF)
+                        </DropdownMenuItem>
+                    </>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );

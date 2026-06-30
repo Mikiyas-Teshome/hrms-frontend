@@ -70,7 +70,6 @@ export function PaginationWrapper({
                 <PaginationFirst 
                   className="size-8 group cursor-pointer" 
                   onClick={() => onPageChange(1)}
-                  // disabled={currentPage === 1}
                 />
               </PaginationItem>
               <PaginationItem>
@@ -78,7 +77,6 @@ export function PaginationWrapper({
                   text={t("table.previous")} 
                   className="h-8 px-2 cursor-pointer" 
                   onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                  // disabled={currentPage === 1}
                 />
               </PaginationItem>
               <PaginationItem>
@@ -94,14 +92,12 @@ export function PaginationWrapper({
                   text={t("table.next")} 
                   className="h-8 px-2 cursor-pointer" 
                   onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-                  // disabled={currentPage === totalPages}
                 />
               </PaginationItem>
               <PaginationItem>
                 <PaginationLast 
                   className="size-8 group cursor-pointer" 
                   onClick={() => onPageChange(totalPages)}
-                  // disabled={currentPage === totalPages}
                 />
               </PaginationItem>
             </PaginationContent>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, MoreVertical, Eye, Download, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -12,103 +12,138 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import CreateReportSheet from './CreateReportSheet';
+import ViewCustomReportSheet from './ViewCustomReportSheet';
+import ConfirmationModal from '@/components/dashboard/shared/ConfirmationModal';
 import { ExportButton } from './ExportButton';
-
-const mockCustomReports = [
-    {
-        id: '1',
-        reportName: 'New employee team',
-        dataSource: 'Employees',
-        filters: 'Department, Date range',
-        lastRun: 'Mar 15, 2026',
-        createdBy: 'Miracle Torff',
-    },
-    {
-        id: '2',
-        reportName: 'May unpaid benefit',
-        dataSource: 'Payroll',
-        filters: 'Date range, Payroll compo...',
-        lastRun: 'Mar 1, 2026',
-        createdBy: 'Nolan Dias',
-    },
-    {
-        id: '3',
-        reportName: 'Insurance paid',
-        dataSource: 'Payroll',
-        filters: 'Date range',
-        lastRun: 'Mar 26, 2026',
-        createdBy: 'Craig Aminoff',
-    },
-    {
-        id: '4',
-        reportName: 'Deduction paid to tax',
-        dataSource: 'Payroll',
-        filters: 'Payroll component',
-        lastRun: 'Mar 10, 2026',
-        createdBy: 'Alena Korsgaard',
-    },
-    {
-        id: '5',
-        reportName: 'Payout for vocational workers',
-        dataSource: 'payroll',
-        filters: 'Date range, Department',
-        lastRun: 'Mar 8, 2026',
-        createdBy: 'Alena Gouse',
-    },
-    {
-        id: '6',
-        reportName: 'Teams created in 2025',
-        dataSource: 'Department',
-        filters: 'Department, date range',
-        lastRun: 'Mar 26, 2026',
-        createdBy: 'Kianna Carder',
-    },
-];
+import { useToast } from '@/hooks/use-toast';
+import { useLeaveCompanyOuId } from '@/features/leave/hooks/useLeaveCompanyOuId';
+import {
+    useCustomReports,
+    useDeleteCustomReport,
+    useExportCustomReport,
+    useRunCustomReport,
+} from '@/features/reports/reports.hooks';
+import { CustomReportListItem } from '@/features/reports/reports.types';
+import { format } from 'date-fns';
 
 const CustomReportsPage = () => {
     const { t } = useTranslation(['dashboard']);
+    const { toast } = useToast();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [viewReportId, setViewReportId] = useState('');
+    const [viewReportName, setViewReportName] = useState('');
+    const [isViewOpen, setIsViewOpen] = useState(false);
     const [searchValue, setSearchValue] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [reportToDelete, setReportToDelete] = useState<CustomReportListItem | null>(null);
 
-    const columns: ColumnConfig<any>[] = [
-        {
-            key: 'reportName',
-            label: 'Report name',
-            sortable: true,
-        },
-        {
-            key: 'dataSource',
-            label: 'Data source',
-            sortable: true,
-        },
-        {
-            key: 'filters',
-            label: 'Filters',
-            sortable: false,
-        },
-        {
-            key: 'lastRun',
-            label: 'Last run',
-            sortable: true,
-        },
-        {
-            key: 'createdBy',
-            label: 'Created by',
-            sortable: true,
-        },
+    const { companyOuId, derivedCompanyOuId } = useLeaveCompanyOuId();
+    const effectiveCompanyOuId = companyOuId || derivedCompanyOuId || undefined;
+
+    const listFilters = useMemo(
+        () => ({
+            page: currentPage,
+            limit: pageSize,
+            search: searchValue || undefined,
+            companyOuId: effectiveCompanyOuId,
+        }),
+        [currentPage, pageSize, searchValue, effectiveCompanyOuId],
+    );
+
+    const { data: listData, isLoading, refetch } = useCustomReports(listFilters);
+    const deleteMutation = useDeleteCustomReport();
+    const exportMutation = useExportCustomReport();
+    const {
+        data: runResult,
+        isLoading: isRunning,
+        isError: isRunError,
+    } = useRunCustomReport(viewReportId, isViewOpen && !!viewReportId);
+
+    const tableRows = useMemo(
+        () =>
+            (listData?.items ?? []).map((item) => ({
+                ...item,
+                lastRun: item.lastRunAt
+                    ? format(new Date(item.lastRunAt), 'MMM d, yyyy')
+                    : '—',
+            })),
+        [listData?.items],
+    );
+
+    const columns: ColumnConfig<(typeof tableRows)[number]>[] = [
+        { key: 'name', label: 'Report name', sortable: true },
+        { key: 'dataSource', label: 'Data source', sortable: true },
+        { key: 'filtersSummary', label: 'Filters', sortable: false },
+        { key: 'lastRun', label: 'Last run', sortable: true },
+        { key: 'createdByName', label: 'Created by', sortable: true },
     ];
 
     const exportColumns = [
-        { header: 'Report Name', key: 'reportName' },
+        { header: 'Report Name', key: 'name' },
         { header: 'Data Source', key: 'dataSource' },
-        { header: 'Filters', key: 'filters' },
+        { header: 'Filters', key: 'filtersSummary' },
         { header: 'Last Run', key: 'lastRun' },
-        { header: 'Created By', key: 'createdBy' },
+        { header: 'Created By', key: 'createdByName' },
     ];
 
-    const renderRowActions = () => (
+    const handleView = (item: CustomReportListItem) => {
+        setViewReportId(item.id);
+        setViewReportName(item.name);
+        setIsViewOpen(true);
+    };
+
+    const handleViewOpenChange = (open: boolean) => {
+        setIsViewOpen(open);
+        if (!open) {
+            setViewReportId('');
+            setViewReportName('');
+        }
+    };
+
+    const handleDeleteClick = (item: CustomReportListItem) => {
+        setReportToDelete(item);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!reportToDelete?.id) return;
+
+        try {
+            await deleteMutation.mutateAsync(reportToDelete.id);
+            setIsDeleteModalOpen(false);
+            setReportToDelete(null);
+            toast({ title: t('reports.custom.deleteSuccess') });
+            void refetch();
+        } catch {
+            toast({ variant: 'destructive', title: t('reports.custom.deleteFailed') });
+        }
+    };
+
+    const handleExport = async (id: string, formatType: 'csv' | 'xlsx' | 'pdf') => {
+        try {
+            const result = await exportMutation.mutateAsync({ id, format: formatType });
+            const binary = atob(result.content);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i += 1) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: result.mimeType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = result.fileName;
+            link.click();
+            URL.revokeObjectURL(url);
+            toast({ title: 'Export successful', description: result.fileName });
+            void refetch();
+        } catch {
+            toast({ variant: 'destructive', title: 'Export failed' });
+        }
+    };
+
+    const renderRowActions = (item: (typeof tableRows)[number]) => (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
@@ -116,15 +151,21 @@ const CustomReportsPage = () => {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem className="gap-2 cursor-pointer">
+                <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => handleView(item)}>
                     <Eye className="h-4 w-4 text-muted-foreground" />
                     <span>View</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2 cursor-pointer">
+                <DropdownMenuItem
+                    className="gap-2 cursor-pointer"
+                    onClick={() => handleExport(item.id, 'csv')}
+                >
                     <Download className="h-4 w-4 text-muted-foreground" />
                     <span>Export</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2 cursor-pointer text-destructive focus:text-destructive">
+                <DropdownMenuItem
+                    className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                    onClick={() => handleDeleteClick(item)}
+                >
                     <Trash2 className="h-4 w-4" />
                     <span>Delete</span>
                 </DropdownMenuItem>
@@ -134,9 +175,37 @@ const CustomReportsPage = () => {
 
     return (
         <div className="flex flex-col gap-8 w-full animate-in fade-in duration-500">
-            <CreateReportSheet open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+            <CreateReportSheet
+                open={isCreateOpen}
+                onOpenChange={setIsCreateOpen}
+                onCreated={() => void refetch()}
+            />
+            <ViewCustomReportSheet
+                open={isViewOpen}
+                onOpenChange={handleViewOpenChange}
+                reportName={viewReportName}
+                result={runResult}
+                isLoading={isRunning}
+                isError={isRunError}
+            />
+            {isDeleteModalOpen ? (
+                <ConfirmationModal
+                    open={isDeleteModalOpen}
+                    onOpenChange={(open) => {
+                        setIsDeleteModalOpen(open);
+                        if (!open) {
+                            setReportToDelete(null);
+                        }
+                    }}
+                    title={t('reports.custom.deleteConfirmTitle')}
+                    message={t('reports.custom.deleteConfirmMessage', { name: reportToDelete?.name ?? '' })}
+                    onConfirm={handleConfirmDelete}
+                    confirmLabel={t('reports.custom.delete')}
+                    isLoading={deleteMutation.isPending}
+                    variant="danger"
+                />
+            ) : null}
 
-            {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h1 className="text-2xl text-foreground font-bold leading-8 tracking-tight">
                     {t('reports.custom.title')}
@@ -150,30 +219,36 @@ const CustomReportsPage = () => {
                 </Button>
             </div>
 
-            {/* Table */}
             <div className="w-full">
                 <UniversalDataTable
-                    data={mockCustomReports}
+                    data={tableRows}
                     columns={columns}
                     enableSelection
                     searchValue={searchValue}
-                    onSearchChange={setSearchValue}
-                    searchPlaceholder="Search for employees"
+                    onSearchChange={(value) => {
+                        setSearchValue(value);
+                        setCurrentPage(1);
+                    }}
+                    searchPlaceholder="Search reports"
                     showFilter
                     currentPage={currentPage}
-                    totalPages={Math.ceil(mockCustomReports.length / pageSize)}
+                    totalPages={listData?.totalPages ?? 1}
                     pageSize={pageSize}
                     onPageChange={setCurrentPage}
-                    onPageSizeChange={setPageSize}
+                    onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        setCurrentPage(1);
+                    }}
+                    isLoading={isLoading}
                     renderRowActions={renderRowActions}
                     renderHeaderActions={
                         <ExportButton
-                            data={mockCustomReports}
+                            data={tableRows}
                             columns={exportColumns}
                             filename="Custom_Reports_List"
                         />
                     }
-                    totalItems={mockCustomReports.length}
+                    totalItems={listData?.total ?? 0}
                 />
             </div>
         </div>

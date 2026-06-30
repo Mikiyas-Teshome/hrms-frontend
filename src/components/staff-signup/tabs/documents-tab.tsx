@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { FormField } from '@/components/ui/FormField';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { OnboardingFormValues } from '../staff-onboarding-form';
 
@@ -12,15 +11,13 @@ interface DocumentsTabProps {
     register: UseFormRegister<OnboardingFormValues>;
     control: Control<OnboardingFormValues>;
     errors: FieldErrors<OnboardingFormValues>;
-    onNext: () => void;
 }
 
-export function DocumentsTab({ register, control, errors, onNext }: DocumentsTabProps) {
+export function DocumentsTab({ register, control, errors }: DocumentsTabProps) {
     const { t } = useTranslation(['staffSignup', 'onboarding', 'common']);
 
     return (
         <>
-            {/* Documents */}
             <div className="space-y-6">
                 <div className="flex items-center gap-2 pb-2 border-b border-border/50">
                     <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
@@ -139,13 +136,6 @@ export function DocumentsTab({ register, control, errors, onNext }: DocumentsTab
                 </div>
             </div>
 
-            <Button
-                type="button"
-                onClick={onNext}
-                className="h-9 w-full rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm shadow-sm transition-all active:scale-[0.98]"
-            >
-                {t('onboarding.continueToBanking')}
-            </Button>
         </>
     );
 }

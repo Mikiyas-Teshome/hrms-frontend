@@ -21,6 +21,7 @@
     "attendance": {
       "title": "الحضور",
       "overview": "نظرة عامة",
+      "calendar": "التقويم",
       "shifts": "الورديات",
       "overtime": "العمل الإضافي",
       "addShift": "إضافة وردية"
@@ -36,6 +37,7 @@
       "title": "الرواتب",
       "runs": "سجلات الرواتب",
       "salaries": "رواتب الموظفين",
+      "salaryStructures": "هياكل الرواتب",
       "components": "مكونات الراتب",
       "payslips": "قسائم الرواتب"
     },
@@ -117,6 +119,42 @@
     "subtitle": "إليك ما يحدث مع القوى العاملة لديك اليوم.",
     "editDashboard": "تعديل لوحة القيادة"
   },
+  "tenantSuperAdmin": {
+    "allCompanies": "جميع الشركات",
+    "roleLabel": "مشرف المستأجر الأعلى",
+    "subtitle": "إليك ما يحدث في مؤسستك اليوم.",
+    "stats": {
+      "totalEmployees": "إجمالي الموظفين",
+      "totalPayout": "إجمالي المدفوعات هذا الشهر",
+      "taxLiability": "الالتزام الضريبي"
+    },
+    "chart": {
+      "title": "اتجاهات الرواتب الشهرية",
+      "subtitle": "الإنفاق المتوقع مقابل الفعلي للسنة المالية 2025",
+      "last6Months": "آخر 6 أشهر",
+      "last12Months": "آخر 12 شهراً",
+      "last18Months": "آخر 18 شهراً",
+      "spendLabel": "{{value}} $"
+    },
+    "matrix": {
+      "title": "مصفوفة أداء الشركات",
+      "searchPlaceholder": "البحث عن الشركات...",
+      "filterAll": "الكل",
+      "filterPaid": "مدفوع",
+      "filterPending": "معلق",
+      "filterCanceled": "ملغى",
+      "companyUnit": "وحدة الشركة",
+      "region": "الموقع",
+      "payrollStatus": "حالة الرواتب",
+      "headcount": "عدد الموظفين",
+      "netSpend": "صافي الإنفاق",
+      "status": {
+        "paid": "مدفوع",
+        "pending": "معلق",
+        "canceled": "ملغى"
+      }
+    }
+  },
   "employeeDashboard": {
     "subtitle": "إليك نظرة عامة سريعة على عملك وطلباتك.",
     "pendingLeaveRequests": "طلبات الإجازة المعلقة",
@@ -134,7 +172,8 @@
     "totalEmployees": "إجمالي الموظفين",
     "pendingApprove": "بانتظار الموافقة",
     "upcomingPayroll": "تاريخ الرواتب القادم",
-    "activeJobs": "وظائف نشطة"
+    "activeJobs": "وظائف نشطة",
+    "activeEmployees": "الموظفون النشطون"
   },
   "edit": {
     "title": "تخصيص لوحة التحكم الخاصة بك",
@@ -142,6 +181,9 @@
     "dashboardDescription": "قم بتخصيص لوحة التحكم الخاصة بك لزيادة إنتاجيتك.",
     "cancel": "إلغاء",
     "saveChanges": "حفظ التغييرات",
+    "dashboardSaved": "تم حفظ تخطيط لوحة التحكم",
+    "dashboardSaveFailed": "تعذر حفظ تخطيط لوحة التحكم",
+    "addSelectedCards": "إضافة المحدد",
     "addCards": "إضافة بطاقات",
     "addKpiCard": "إضافة بطاقة KPI",
     "deleteConfirmTitle": "حذف بطاقة KPI من لوحة التحكم",
@@ -159,6 +201,55 @@
     "searchKpiPlaceholder": "البحث عن بطاقات KPI",
     "searchCardPlaceholder": "البحث عن بطاقات",
     "saveRole": "حفظ الدور",
+    "searchResults": "نتائج البحث",
+    "comingSoon": "قريبًا",
+    "noWidgetCardsAvailable": "لا توجد بطاقات متاحة لهذه الفئة ضمن صلاحياتك الحالية.",
+    "deleteWidgetConfirmTitle": "حذف بطاقة من لوحة التحكم",
+    "deleteWidgetConfirmDescription": "هل أنت متأكد أنك تريد حذف هذه البطاقة من لوحة التحكم؟",
+
+    "widgetCategories": {
+      "requests": "الطلبات",
+      "actions": "الإجراءات",
+      "charts": "الرسوم البيانية",
+      "activity": "النشاط"
+    },
+    "cardStructure": {
+      "back": "رجوع",
+      "dataType": "نوع البيانات",
+      "dataTypeLabel": "ما البيانات التي يجب أن تعرضها هذه البطاقة؟",
+      "visualization": "طريقة العرض",
+      "visualizations": {
+        "table": "جدول",
+        "pieChart": "رسم بياني دائري",
+        "lineChart": "رسم بياني خطي",
+        "barChart": "رسم بياني شريطي",
+        "areaChart": "رسم بياني مساحي"
+      }
+    },
+    "widgets": {
+      "types": {
+        "table": "جدول",
+        "actions": "إجراءات",
+        "lineChart": "رسم بياني خطي",
+        "barChart": "رسم بياني شريطي",
+        "areaChart": "رسم بياني مساحي"
+      },
+      "employeeRequests": {
+        "desc": "طلبات الإجازة والعمل الإضافي المعلقة من الموظفين."
+      },
+      "quickActions": {
+        "desc": "اختصارات للمهام الإدارية الشائعة."
+      },
+      "attendanceRateChart": {
+        "desc": "اتجاه معدل الحضور بمرور الوقت."
+      },
+      "employeesInsightsChart": {
+        "desc": "التعيينات الجديدة والموظفون في إجازة."
+      },
+      "recentActivity": {
+        "desc": "أحدث التنبيهات والإعلانات والإشعارات."
+      }
+    },
 
     "categories": {
       "workforce": "القوى العاملة",
@@ -176,6 +267,13 @@
     },
     "organizationCards": "بطاقات المؤسسة",
     "workforceCards": "القوى العاملة",
+    "noKpiCardsAvailable": "لا توجد بطاقات KPI متاحة لهذه الفئة ضمن صلاحياتك الحالية.",
+    "categorySections": {
+      "attendance": "مؤشرات الحضور",
+      "leave": "الإجازات",
+      "payroll": "الرواتب",
+      "compliance": "مؤشرات الامتثال"
+    },
     "kpis": {
       "totalEmployees": {
         "title": "إجمالي الموظفين",
@@ -187,11 +285,99 @@
       },
       "newHires": {
         "title": "توظيف جديد (هذا الشهر)",
-        "desc": "الموظفون الذين تم توظيفهم في هذا الشهر"
+        "desc": "الموظفون الذين تم توظيفهم في هذا الشهر."
       },
       "attritionRate": {
         "title": "معدل الاستنزاف",
-        "desc": "معدل تدهور الأداء وجودة العمل."
+        "desc": "نسبة الموظفين المنتهية خدمتهم من إجمالي القوى العاملة."
+      },
+      "pendingApprove": {
+        "title": "بانتظار الموافقة",
+        "desc": "إجمالي طلبات الإجازة والعمل الإضافي المعلقة."
+      },
+      "onLeaveToday": {
+        "title": "في إجازة اليوم",
+        "desc": "الموظفون في إجازة اليوم."
+      },
+      "attendanceRate": {
+        "title": "معدل الحضور",
+        "desc": "نسبة الموظفين النشطين من إجمالي القوى العاملة اليوم."
+      },
+      "pendingOvertime": {
+        "title": "عمل إضافي معلق",
+        "desc": "طلبات العمل الإضافي بانتظار الموافقة."
+      },
+      "approvedOvertime": {
+        "title": "عمل إضافي معتمد",
+        "desc": "طلبات العمل الإضافي المعتمدة اليوم."
+      },
+      "totalOvertimeHours": {
+        "title": "إجمالي ساعات العمل الإضافي",
+        "desc": "إجمالي ساعات العمل الإضافي المسجلة اليوم."
+      },
+      "overtimeEmployees": {
+        "title": "موظفو العمل الإضافي",
+        "desc": "الموظفون الذين سُجل لهم عمل إضافي اليوم."
+      },
+      "pendingLeaveRequests": {
+        "title": "طلبات إجازة معلقة",
+        "desc": "طلبات الإجازة بانتظار الموافقة."
+      },
+      "approvedLeaveRequests": {
+        "title": "طلبات إجازة معتمدة",
+        "desc": "طلبات الإجازة المعتمدة ضمن نطاق صلاحياتك."
+      },
+      "rejectedLeaveRequests": {
+        "title": "طلبات إجازة مرفوضة",
+        "desc": "طلبات الإجازة المرفوضة ضمن نطاق صلاحياتك."
+      },
+      "totalLeaveRequests": {
+        "title": "إجمالي طلبات الإجازة",
+        "desc": "جميع طلبات الإجازة ضمن نطاق صلاحياتك."
+      },
+      "leaveDaysRemaining": {
+        "title": "أيام الإجازة المتبقية",
+        "desc": "إجمالي أيام الإجازة المتبقية لدى الموظفين."
+      },
+      "activeLeavePolicies": {
+        "title": "سياسات الإجازة النشطة",
+        "desc": "عدد سياسات الإجازة النشطة."
+      },
+      "upcomingPayroll": {
+        "title": "موعد الرواتب القادم",
+        "desc": "الأيام المتبقية حتى موعد الرواتب التالي."
+      },
+      "draftPayrollRuns": {
+        "title": "مسيرات رواتب مسودة",
+        "desc": "مسيرات الرواتب التي لا تزال في حالة مسودة."
+      },
+      "pendingPayrollRuns": {
+        "title": "مسيرات رواتب معلقة",
+        "desc": "مسيرات الرواتب المعتمدة وبانتظار الدفع."
+      },
+      "paidPayrollRuns": {
+        "title": "مسيرات رواتب مدفوعة",
+        "desc": "مسيرات الرواتب المعلمة كمدفوعة."
+      },
+      "totalPayslips": {
+        "title": "إجمالي كشوف الرواتب",
+        "desc": "إجمالي كشوف الرواتب المتاحة ضمن نطاق صلاحياتك."
+      },
+      "compliancePercentage": {
+        "title": "نسبة الامتثال",
+        "desc": "نسبة الامتثال العامة للمستندات."
+      },
+      "fullyCompliantEmployees": {
+        "title": "موظفون ملتزمون بالكامل",
+        "desc": "الموظفون الذين أتموا جميع المستندات المطلوبة."
+      },
+      "nonCompliantEmployees": {
+        "title": "موظفون غير ملتزمين",
+        "desc": "الموظفون الذين يفتقدون مستندات الامتثال المطلوبة."
+      },
+      "expiringDocuments": {
+        "title": "مستندات تنتهي قريباً",
+        "desc": "المستندات التي ستنتهي صلاحيتها قريباً."
       }
     },
     "dashboardCards": {
@@ -219,7 +405,13 @@
     "requestType": "نوع الطلب",
     "date": "التاريخ",
     "status": "الحالة",
-    "viewAll": "عرض جميع الطلبات"
+    "viewAll": "عرض جميع الطلبات",
+    "viewAllLeave": "عرض جميع طلبات الإجازة",
+    "viewAllOvertime": "عرض العمل الإضافي",
+    "typeLeave": "إجازة",
+    "typeOvertime": "عمل إضافي",
+    "empty": "لا توجد طلبات لهذا التصفية",
+    "noPermission": "لا يوجد وصول لبيانات الطلبات"
   },
   "quickActions": {
     "title": "إجراءات سريعة",
@@ -227,7 +419,8 @@
     "addDepartment": "إضافة قسم",
     "approveRequests": "الموافقة على الطلبات",
     "createAnnouncements": "إنشاء إعلانات",
-    "generateReport": "إنشاء تقرير"
+    "generateReport": "إنشاء تقرير",
+    "none": "لا توجد إجراءات سريعة متاحة"
   },
   "charts": {
     "attendanceRate": "معدل الحضور",
@@ -236,7 +429,11 @@
     "last30Days": "آخر 30 يومًا",
     "last3Months": "آخر 3 أشهر",
     "newHires": "التعيينات الجديدة",
-    "employeesOnLeave": "الموظفون في إجازة"
+    "employeesOnLeave": "الموظفون في إجازة",
+    "loading": "جاري تحميل بيانات الرسم…",
+    "noPermission": "لا يوجد وصول إلى هذه البيانات",
+    "noData": "لا توجد بيانات لهذه الفترة",
+    "rateLabel": "{{value}}٪"
   },
   "recentActivity": {
     "title": "النشاط الأخير",
@@ -244,13 +441,19 @@
     "alert": "تنبيه",
     "announcements": "إعلانات",
     "notifications": "إشعارات",
+    "all": "الكل",
     "type": "النوع",
     "content": "المحتوى",
     "source": "المصدر",
     "date": "التاريخ",
     "priority": "الأولوية",
     "status": "الحالة",
-    "viewAll": "عرض كل النشاط"
+    "viewAll": "عرض كل النشاط",
+    "noResults": "لم يتم العثور على نتائج.",
+    "noPermission": "لا يوجد وصول إلى بيانات النشاط",
+    "loading": "جاري تحميل النشاط…",
+    "published": "منشور",
+    "resolved": "تم الحل"
   },
   "common": {
     "all": "الكل",
@@ -300,9 +503,107 @@
     "totalTime": "إجمالي الوقت",
     "finished": "تم الانتهاء",
     "overviewTitle": "نظرة عامة على الحضور",
+    "calendarTitle": "التقويم",
+    "calendarDescription": "جدول العمل وتقويم العطلات.",
     "shiftsTitle": "الورديات",
     "overtimeTitle": "العمل الإضافي",
     "addShift": "إضافة وردية",
+    "stats": {
+      "employees": "عدد الموظفين",
+      "active": "الموظفون النشطون",
+      "leave": "في إجازة",
+      "overtime": "إجمالي العمل الإضافي هذا الشهر",
+      "hoursUnit": "س"
+    },
+    "overtimeStats": {
+      "employees": "موظفو العمل الإضافي",
+      "approved": "العمل الإضافي الموافق عليه",
+      "pending": "العمل الإضافي المعلق",
+      "total": "إجمالي العمل الإضافي هذا الشهر"
+    },
+    "shiftsStats": {
+      "shifts": "عدد الورديات",
+      "morning": "موظفو الوردية الصباحية",
+      "evening": "موظفو الوردية المسائية",
+      "night": "موظفو الوردية الليلية"
+    },
+    "shiftName": "اسم الوردية",
+    "shiftNamePlaceholder": "أدخل اسم الوردية",
+    "shiftTypePlaceholder": "اختر نوع الوردية",
+    "startTime": "وقت البداية",
+    "endTime": "وقت النهاية",
+    "breakTime": "استراحة (د)",
+    "breakMin": "استراحة (د)",
+    "flexibleMin": "الدقائق المرنة",
+    "workingDays": "أيام العمل",
+    "allowed": "مسموح",
+    "notAllowed": "غير مسموح",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "editShift": "تعديل الوردية",
+    "shiftInfo": "معلومات الوردية",
+    "shiftDetails": "تفاصيل الوردية",
+    "saveShift": "حفظ الوردية",
+    "close": "إغلاق",
+    "overtimeAllowed": "السماح بالعمل الإضافي",
+    "overtimeDesc": "فعّل إذا كانت هذه الوردية تسمح بالعمل الإضافي",
+    "overtimePayable": "العمل الإضافي مدفوع",
+    "overtimePayableDesc": "فعّل إذا كان العمل الإضافي مدفوعاً. عطّله لتجميعه كتعويض.",
+    "activeDesc": "فعّل إذا كانت هذه الوردية نشطة حالياً",
+    "success": "نجاح",
+    "error": "خطأ",
+    "shiftCreated": "تم إنشاء قالب الوردية بنجاح",
+    "shiftUpdated": "تم تحديث قالب الوردية بنجاح",
+    "shiftCreateFailed": "فشل إنشاء قالب الوردية",
+    "shiftUpdateFailed": "فشل تحديث قالب الوردية",
+    "statusUpdated": "تم تحديث حالة الوردية بنجاح",
+    "statusUpdateFailed": "فشل تحديث حالة الوردية",
+    "minutesLabel": "د",
+    "days": {
+      "sun": "أحد",
+      "mon": "إثن",
+      "tue": "ثل",
+      "wed": "أرب",
+      "thu": "خم",
+      "fri": "جم",
+      "sat": "سب"
+    },
+    "statusLabels": {
+      "PRESENT": "حاضر",
+      "ABSENT": "غائب",
+      "ON_LEAVE": "في إجازة",
+      "ACTIVE": "نشط",
+      "LATE": "متأخر",
+      "HALF_DAY": "نصف يوم"
+    },
+    "shiftTypes": {
+      "DAY": "نهاري",
+      "FLEXIBLE": "مرن",
+      "NIGHT": "ليلي"
+    },
+    "overtimeStatusLabels": {
+      "PENDING": "قيد الانتظار",
+      "APPROVED": "موافق عليه",
+      "REJECTED": "مرفوض",
+      "PAID": "مدفوع"
+    },
+    "timeUnits": {
+      "hours": "س",
+      "minutes": "د"
+    },
+    "actions": {
+      "view": "عرض",
+      "edit": "تعديل",
+      "changeStatus": "تغيير الحالة",
+      "delete": "حذف"
+    },
+    "company": "الشركة",
+    "division": "القسم",
+    "subdivision": "القسم الفرعي",
+    "department": "الإدارة",
+    "contractType": "نوع العقد",
+    "overtimeStatus": "حالة العمل الإضافي",
+    "selectDateRange": "اختر نطاق التاريخ",
     "filterEmployee": "الموظف",
     "filterLocation": "الموقع",
     "filterShift": "الوردية",
@@ -319,6 +620,7 @@
     "exporting": "جاري التصدير...",
     "exportSuccess": "اكتمل التصدير",
     "exportSuccessDesc": "تم تصدير {{count}} سجل.",
+    "exportOvertimeSuccessDesc": "تم تصدير {{count}} سجل عمل إضافي.",
     "exportError": "فشل التصدير",
     "date": "التاريخ",
     "overtime": "العمل الإضافي",
@@ -383,9 +685,15 @@
     },
     "editRecordTitle": "تعديل سجل الحضور",
     "changeStatusTitle": "تغيير الحالة",
+    "changeOvertimeStatusTitle": "تغيير حالة العمل الإضافي",
+    "selectStatus": "اختر الحالة",
+    "saveChanges": "حفظ التغييرات",
+    "unknownEmployee": "غير معروف",
     "employee": "الموظف",
     "clockIn": "تسجيل الدخول",
     "clockOut": "تسجيل الخروج",
+    "clockOutConfirmTitle": "تأكيد تسجيل الخروج",
+    "clockOutConfirmMessage": "يُسمح بتسجيل الدخول والخروج مرة واحدة فقط في اليوم. بعد تسجيل الخروج، لن تتمكن من تسجيل الدخول مرة أخرى اليوم.",
     "status": "الحالة",
     "remarks": "ملاحظات",
     "remarksPlaceholder": "أضف ملاحظات/أسباب التعديل",
@@ -468,30 +776,41 @@
     "title": "إضافة سياسة إجازة",
     "createdSuccessTitle": "نجاح",
     "createdSuccessMsg": "تم إنشاء سياسة الإجازة بنجاح.",
+    "balanceSeedSuccessTitle": "تم تحديث الأرصدة",
+    "balanceSeedSuccessMsg": "تم إنشاء أرصدة الإجازة لـ {{count}} موظف.",
+    "balanceSeedNoEmployeesTitle": "لا يوجد موظفون مطابقون",
+    "balanceSeedNoEmployeesMsg": "تم حفظ السياسة، لكن لم يُعثر على موظفين في النطاق المحدد لإنشاء الأرصدة.",
+    "balanceSeedFailedTitle": "فشل إنشاء الأرصدة",
+    "balanceSeedFailedMsg": "تم حفظ السياسة، لكن تعذر إنشاء أرصدة الإجازة للموظفين.",
     "createError": "فشل إنشاء سياسة الإجازة",
     "sections": {
       "policyInfo": "معلومات السياسة",
       "entitlementRules": "قواعد الاستحقاق",
       "requestRules": "قواعد الطلب",
-      "approvalFlow": "مسار الموافقة والتعيين",
       "documentation": "التوثيق",
       "payrollImpact": "تأثير الرواتب"
     },
     "fields": {
       "policyName": "اسم السياسة",
-      "leaveType": "نوع الإجازة",
+      "code": "الرمز",
       "description": "الوصف",
       "maxDays": "الحد الأقصى للأيام في السنة",
-      "accrualMethod": "طريقة الاستحقاق",
-      "accrualRate": "معدل الاستحقاق",
+      "entitlementGrantMode": "طريقة منح الاستحقاق",
+      "grantRatePerPeriod": "معدل المنح لكل فترة",
+      "usageLimitScope": "نطاق حد الاستخدام",
+      "documentCategory": "فئة المستند",
+      "isCompOffPolicy": "سياسة تعويضية",
+      "compOffPolicyHint": "سياسة تعويضية واحدة فقط لكل شركة. تُضاف الأرصدة من العمل الإضافي المعتمد وليس مسبقًا.",
+      "compOffPolicyExists": "توجد سياسة تعويضية بالفعل لهذه الشركة.",
+      "compoundingEnabled": "التراكم السنوي",
+      "compoundingDays": "أيام التراكم (لكل سنة)",
+      "compoundingYears": "عدد سنوات تطبيق التراكم",
       "maxCarryForward": "الحد الأقصى لأيام الترحيل",
       "expiryPeriod": "فترة الصلاحية",
       "carryForward": "ترحيل الإجازات",
       "minDayPerRequest": "أقل أيام لكل طلب",
       "maxDaysPerRequest": "أقصى أيام لكل طلب",
       "noticePeriod": "فترة الإخطار",
-      "managerApproval": "موافقة المديرين",
-      "hrApproval": "موافقة الموارد البشرية",
       "probationRequired": "فترة التجربة مطلوبة",
       "applyTo": "تطبيق على",
       "requireAttachment": "طلب مرفق",
@@ -506,6 +825,7 @@
     },
     "placeholders": {
       "policyName": "أدخل اسم السياسة",
+      "documentCategory": "اختر فئة المستند",
       "description": "أضف وصفاً",
       "noticePeriod": "أيام قبل",
       "first15Days": "أول 15 يومًا",
@@ -515,6 +835,10 @@
     "options": {
       "yearlyAllocation": "تخصيص سنوي",
       "monthlyAccrual": "استحقاق شهري",
+      "manual": "يدوي",
+      "perCalendarYear": "لكل سنة تقويمية",
+      "oncePerLifetime": "مرة واحدة في العمر",
+      "noDocumentCategories": "لا توجد فئات مستندات متاحة",
       "days5": "5 أيام",
       "days10": "10 أيام",
       "days15": "15 يومًا",
@@ -528,13 +852,13 @@
       "fullPay": "أجر كامل",
       "partialPay": "أجر جزئي",
       "deduct": "خصم",
-      "noDeduction": "بدون خصم",
-      "noLeaveTypes": "لا توجد أنواع إجازات متاحة"
+      "noDeduction": "بدون خصم"
     },
     "save": "حفظ سياسة الإجازة"
   },
   "leaveRequests": {
     "title": "طلبات الإجازة",
+    "requestLeave": "طلب إجازة",
     "table": {
       "employee": "الموظف",
       "requestType": "نوع الطلب",
@@ -559,9 +883,31 @@
     "stats": {
       "active": "طلب إجازة نشط",
       "pending": "الطلبات المعلقة",
+      "approved": "الطلبات المعتمدة",
+      "rejected": "الطلبات المرفوضة",
+      "total": "إجمالي طلبات الإجازة",
       "employees": "الموظفين طالبي الإجازة",
       "totalDays": "إجمالي الأيام المطلوبة"
     },
+    "createTitle": "إنشاء طلب إجازة",
+    "sectionInfo": "معلومات طلب الإجازة",
+    "leavePolicy": "سياسة الإجازة",
+    "selectPolicy": "اختر سياسة الإجازة",
+    "from": "من",
+    "to": "إلى",
+    "reason": "السبب",
+    "reasonPlaceholder": "أضف السبب",
+    "attachments": "المرفقات",
+    "submit": "إرسال الطلب",
+    "successTitle": "نجاح",
+    "successMessage": "تم إرسال طلب الإجازة بنجاح",
+    "errorTitle": "خطأ",
+    "errorMessage": "فشل إرسال طلب الإجازة",
+    "cancel": "إلغاء",
+    "cancelSuccess": "تم إلغاء الطلب",
+    "cancelError": "فشل إلغاء الطلب",
+    "profileRequired": "تعذر تحميل ملف الموظف الخاص بك. تواصل مع الموارد البشرية لربط حسابك.",
+    "noLeavePolicies": "لم يتم إعداد سياسات الإجازة لشركتك بعد. تواصل مع الموارد البشرية لإعداد سياسات الإجازة.",
     "review": {
       "title": "مراجعة الطلب",
       "detailsTitle": "تفاصيل الطلب",
@@ -572,6 +918,9 @@
       "to": "إلى",
       "leaveBalance": "رصيد الإجازات",
       "status": "الحالة",
+      "attachments": "المرفقات",
+      "amendments": "طلبات التعديل",
+      "requestChangeSent": "تم إرسال طلب التعديل",
       "actions": {
         "requestChange": "طلب تغيير",
         "reject": "رفض",
@@ -588,6 +937,15 @@
       "back": "رجوع",
       "send": "إرسال",
       "cancel": "إلغاء"
+    },
+    "amendment": {
+      "accept": "قبول",
+      "reject": "رفض",
+      "acceptSuccess": "تم قبول التعديل",
+      "rejectSuccess": "تم رفض التعديل",
+      "actionError": "فشل تحديث التعديل",
+      "proposedDates": "التواريخ المقترحة",
+      "comment": "تعليق"
     }
   },
   "leavePolicies": {
@@ -595,18 +953,25 @@
     "addPolicy": "إضافة سياسة إجازة",
     "table": {
       "policyName": "اسم السياسة",
-      "leaveType": "نوع الإجازة",
+      "code": "الرمز",
       "maxDays": "أقصى أيام/سنة",
-      "accrualMethod": "طريقة الاستحقاق",
+      "entitlementGrantMode": "طريقة المنح",
+      "usageLimitScope": "نطاق الاستخدام",
       "carryForward": "الترحيل",
-      "approval": "الموافقة",
       "status": "الحالة"
+    },
+    "filter": {
+      "allStatus": "جميع الحالات",
+      "apply": "تطبيق الفلاتر",
+      "reset": "إعادة تعيين الفلاتر"
+    },
+    "status": {
+      "active": "نشط",
+      "inactive": "غير نشط"
     },
     "stats": {
       "total": "عدد السياسات",
-      "active": "السياسات النشطة",
-      "approvalRequired": "الموافقة مطلوبة",
-      "approvalNotRequired": "الموافقة غير مطلوبة"
+      "active": "السياسات النشطة"
     },
     "deleteSuccess": "تم حذف السياسة",
     "deleteSuccessDesc": "تم حذف سياسة الإجازة بنجاح.",
@@ -614,10 +979,15 @@
     "deleteErrorDesc": "حدث خطأ غير متوقع.",
     "deleteConfirmTitle": "حذف سياسة الإجازة",
     "deleteConfirmMessage": "هل أنت متأكد أنك تريد حذف سياسة الإجازة \"{{name}}\"؟ لا يمكن التراجع عن هذا الإجراء.",
+    "statusUpdated": "تم تحديث الحالة",
+    "statusUpdatedDesc": "تم تحديث حالة السياسة بنجاح.",
+    "statusUpdateError": "فشل تحديث حالة السياسة.",
     "actions": {
       "view": "عرض",
       "edit": "تعديل",
       "changeStatus": "تغيير الحالة",
+      "activate": "تفعيل",
+      "deactivate": "إلغاء التفعيل",
       "delete": "حذف"
     },
     "addLeavePolicy": {
@@ -632,7 +1002,7 @@
       },
       "fields": {
         "policyName": "اسم السياسة",
-        "leaveType": "نوع الإجازة",
+        "leavePolicy": "سياسة الإجازة",
         "description": "الوصف",
         "maxDays": "الحد الأقصى للأيام في السنة",
         "accrualMethod": "طريقة الاستحقاق",
@@ -675,8 +1045,10 @@
       "carriedForward": "إجمالي الأيام المرحلة"
     },
     "table": {
+      "employee": "الموظف",
+      "leavePolicies": "سياسات الإجازة",
       "name": "الاسم",
-      "leaveType": "نوع الإجازة",
+      "leavePolicy": "سياسة الإجازة",
       "year": "السنة",
       "allocated": "المخصصة",
       "used": "المستخدمة",
@@ -685,6 +1057,7 @@
     },
     "actions": {
       "view": "عرض",
+      "viewBalances": "عرض الأرصدة",
       "edit": "تعديل",
       "delete": "حذف"
     },
@@ -693,7 +1066,7 @@
       "balanceInfo": "معلومات الرصيد",
       "balanceDetails": "تفاصيل الرصيد",
       "employee": "الموظف",
-      "leaveType": "نوع الإجازة",
+      "leavePolicy": "سياسة الإجازة",
       "year": "السنة",
       "allocatedDays": "الأيام المخصصة",
       "usedDays": "الأيام المستخدمة",
@@ -702,17 +1075,32 @@
       "reason": "سبب التعديل",
       "placeholderReason": "أضف سبباً",
       "saveButton": "حفظ التغييرات",
+      "success": "تم تحديث رصيد الإجازة بنجاح",
+      "error": "فشل تحديث رصيد الإجازة",
       "validation": {
         "employeeRequired": "اسم الموظف مطلوب",
-        "leaveTypeRequired": "نوع الإجازة مطلوب",
+        "leavePolicyRequired": "سياسة الإجازة مطلوبة",
         "yearRequired": "السنة مطلوبة",
         "positiveNumber": "يجب أن يكون رقماً موجباً",
         "reasonRequired": "سبب التعديل مطلوب"
       }
     },
+    "errors": {
+      "generic": "تعذر حفظ التغييرات. يرجى المحاولة مرة أخرى.",
+      "notFound": "تعذر العثور على سجل رصيد الإجازة هذا.",
+      "insufficient": "الأيام المستخدمة تتجاوز الرصيد المتاح.",
+      "invalidDays": "يجب أن تكون الأيام المخصصة والمستخدمة والمرحلة أرقاماً صالحة غير سالبة."
+    },
     "delete": {
       "title": "حذف رصيد الإجازة",
-      "message": "هل أنت متأكد من رغبتك في حذف رصيد الإجازة لـ {{name}} ({{leaveType}})؟ لا يمكن التراجع عن هذا الإجراء."
+      "message": "هل أنت متأكد من رغبتك في حذف رصيد الإجازة لـ {{name}} ({{leavePolicy}})؟ لا يمكن التراجع عن هذا الإجراء.",
+      "success": "تم حذف رصيد الإجازة بنجاح",
+      "error": "فشل حذف رصيد الإجازة"
+    },
+    "employeePage": {
+      "backToList": "العودة إلى أرصدة الإجازات",
+      "title": "أرصدة إجازات {{name}}",
+      "unnamedEmployee": "موظف"
     }
   },
   "tableInfo": {
@@ -720,114 +1108,151 @@
     "rowsPerPage": "الصفوف في الصفحة",
     "pageOf": "الصفحة {{current}} من {{total}}"
   },
-  "payrollData": {
-    "runsTitle": "سجلات الرواتب",
-    "stats": {
-      "totalRuns": "إجمالي السجلات 2026",
-      "completedRuns": "سجلات مكتملة 2026",
-      "pendingRun": "سجل قيد الانتظار",
-      "totalGrossPay": "إجمالي الراتب الإجمالي 2026",
-      "numberEmployees": "عدد الموظفين",
-      "activeEmployees": "موظفون نشطون",
-      "componentsUsed": "المكونات المستخدمة",
-      "totalSalary": "إجمالي راتب الموظف",
-      "totalPayslip": "إجمالي قسائم الراتب 2026",
-      "totalPay": "إجمالي الدفع 2026",
-      "downloaded": "تم التنزيل",
-      "generated": "تم الإنشاء"
+  "reports": {
+    "custom": {
+      "title": "تقارير مخصصة",
+      "createReport": "إنشاء تقرير مخصص",
+      "deleteConfirmTitle": "حذف تقرير مخصص",
+      "deleteConfirmMessage": "هل أنت متأكد أنك تريد حذف \"{{name}}\"؟ لا يمكن التراجع عن هذا الإجراء.",
+      "deleteSuccess": "تم حذف التقرير",
+      "deleteFailed": "فشل حذف التقرير",
+      "delete": "حذف"
     },
-    "columns": {
-      "title": "العنوان",
-      "frequency": "التكرار",
-      "payPeriod": "فترة الدفع",
-      "payDate": "تاريخ الدفع",
-      "noOfEmployees": "عدد الموظفين",
-      "grossPay": "الراتب الإجمالي",
-      "netPay": "صافي الراتب",
-      "status": "الحالة",
-      "employee": "الموظف",
-      "salary": "الراتب",
-      "components": "المكونات",
-      "createdDate": "تاريخ الإنشاء",
-      "componentName": "اسم المكون",
-      "description": "الوصف",
-      "type": "النوع",
-      "calculationType": "نوع الحساب",
-      "value": "القيمة",
-      "payslipNumber": "رقم قسيمة الراتب",
-      "totalPay": "إجمالي الدفع"
-    },
-    "actions": {
-      "view": "عرض",
-      "delete": "حذف",
-      "showPayroll": "إظهار الراتب",
-      "edit": "تعديل",
-      "changeStatus": "تغيير الحالة",
-      "generate": "إنشاء",
-      "download": "تنزيل"
-    },
-    "salariesTitle": "رواتب الموظفين",
-    "componentsTitle": "مكونات الراتب",
-    "payslipsTitle": "قسائم الرواتب",
-    "searchPlaceholder": "البحث عن موظفين",
-    "batchDownload": "تنزيل جماعي",
-    "addComponent": "إضافة مكون راتب",
-    "status": {
-      "pending": "قيد الانتظار",
-      "completed": "مكتمل",
-      "active": "نشط",
-      "terminated": "منهي الخدمة",
-      "generated": "مُنشأ",
-      "downloaded": "مُنزل",
-      "present": "حاضر",
-      "onLeave": "في إجازة"
-    },
-    "modals": {
-      "addComponentTitle": "إضافة مكون راتب",
-      "componentInfo": "معلومات المكون",
-      "nameLabel": "اسم المكون",
-      "typeLabel": "النوع",
+    "create": {
+      "title": "إنشاء تقرير مخصص",
+      "description": "قم بتكوين مصدر البيانات، الفلاتر، الحقول، والعرض المرئي لتقريرك.",
+      "basicInfo": "المعلومات الأساسية",
+      "reportName": "اسم التقرير",
+      "dataSource": "مصدر البيانات",
+      "selectDataSource": "حدد مصدر البيانات",
       "descriptionLabel": "الوصف",
-      "descriptionPlaceholder": "أضف وصفاً",
-      "componentDetails": "تفاصيل المكون",
-      "calcTypeLabel": "نوع الحساب",
-      "valueLabel": "القيمة",
-      "saveBtn": "حفظ المكون",
-      "cancelBtn": "إلغاء"
-    },
-    "detail": {
-      "back": "رجوع",
-      "previous": "السابق",
-      "next": "التالي",
-      "salaryGross": "الراتب (الإجمالي)",
-      "salaryNet": "الراتب (الصافي)",
-      "workingDays": "أيام العمل",
-      "attendanceRate": "معدل الحضور",
-      "calculatorTitle": "حساب راتب",
-      "tabs": {
-        "attendanceSummary": "ملخص الحضور",
-        "dailyRecord": "سجل الحضور اليومي",
-        "earningDeduction": "الأرباح والخصومات",
-        "netSalary": "صافي الراتب"
+      "addDescription": "أضف وصفاً",
+      "filters": "الفلاتر",
+      "company": "الشركة",
+      "loadingCompanies": "جاري تحميل الشركات...",
+      "selectCompany": "اختر شركة",
+      "division": "القسم",
+      "subDivision": "الشعبة الفرعية",
+      "department": "الإدارة",
+      "all": "الكل",
+      "allCompanies": "جميع الشركات",
+      "allDivisions": "جميع الأقسام",
+      "allSubDivisions": "جميع الشعب الفرعية",
+      "allDepartments": "جميع الإدارات",
+      "dateFrom": "التاريخ من",
+      "dateTo": "التاريخ إلى",
+      "payPeriod": "فترة الدفع",
+      "selectPayPeriod": "حدد فترة الدفع",
+      "employeeType": "نوع الموظف",
+      "empTypes": {
+        "fullTime": "دوام كامل",
+        "partTime": "دوام جزئي",
+        "contract": "عقد",
+        "intern": "متدرب",
+        "consultant": "مستشار"
       },
-      "working": "أيام العمل",
-      "present": "أيام الحضور",
-      "half": "أنصاف الأيام",
-      "absent": "أيام الغياب",
-      "paidLeave": "أيام الإجازة المدفوعة",
-      "unpaidLeave": "أيام الإجازة غير المدفوعة",
-      "overtime": "العمل الإضافي",
-      "earnings": "الأرباح",
-      "deductions": "الخصومات",
-      "totalEarning": "إجمالي الأرباح",
-      "totalDeduction": "إجمالي الخصومات",
-      "basicSalary": "الراتب الأساسي",
-      "unpaidDeduction": "خصم الإجازة غير المدفوعة",
-      "absentDeduction": "خصم الغياب",
-      "calcFormula": "صيغة الحساب",
-      "formula": "صافي الراتب = (الراتب الأساسي + البدلات) - (أيام الغياب × الإجازات غير المدفوعة) + العمل الإضافي - الخصومات",
-      "breakdownLabel": "تفصيل أيام الإجازة غير المدفوعة",
-      "breakdownValue": "إجازات غير مدفوعة، أيام غياب، أنصاف أيام، إجمالي الأيام غير المدفوعة"
+      "reportFields": "حقول التقرير",
+      "visualization": "العرض المرئي",
+      "visualizations": {
+        "table": "جدول",
+        "pie": "مخطط دائري",
+        "line": "مخطط خطي",
+        "bar": "مخطط شريطي"
+      },
+      "chartSetup": "إعداد المخطط",
+      "groupBy": "التجميع حسب",
+      "measure": "المقياس",
+      "aggregation": "التجميع",
+      "timeGrain": "الفترة الزمنية",
+      "timeGrains": {
+        "day": "يوم",
+        "week": "أسبوع",
+        "month": "شهر"
+      },
+      "aggregations": {
+        "count": "العدد",
+        "sum": "المجموع",
+        "avg": "المتوسط",
+        "min": "الحد الأدنى",
+        "max": "الحد الأقصى"
+      },
+      "cancel": "إلغاء",
+      "submit": "إنشاء تقرير",
+      "toast": {
+        "nameRequired": "اسم التقرير مطلوب",
+        "fieldRequired": "حدد حقل تقرير واحد على الأقل",
+        "chartConfigRequired": "قم بإعداد المخطط",
+        "dateRangeRequired": "نطاق التاريخ مطلوب للمخططات الخطية",
+        "created": "تم إنشاء التقرير المخصص",
+        "failed": "فشل إنشاء التقرير",
+        "checkFilters": "تحقق من الفلاتر وحاول مرة أخرى."
+      }
+    },
+    "view": {
+      "preview": "معاينة أحدث تشغيل للتقرير.",
+      "chartSummary": "مجمّع حسب {{summary}}",
+      "singleBucketHint": "جميع السجلات في مجموعة واحدة ({{label}}). اختر حقل تجميع مختلفاً أو أضف تنوعاً أكبر في البيانات.",
+      "loadError": "فشل تحميل معاينة التقرير. حاول مرة أخرى.",
+      "noData": "لا توجد بيانات تطابق الفلاتر المحددة."
+    }
+  },
+  "documentData": {
+    "employeeDocuments": {
+      "title": "مستندات الموظفين",
+      "uploadDocument": "رفع مستند",
+      "table": {
+        "employee": "الموظف",
+        "documentCount": "المستندات",
+        "category": "الفئة",
+        "documentName": "اسم المستند",
+        "expiryDate": "أقرب انتهاء",
+        "compliance": "الامتثال",
+        "pendingApprovals": "بانتظار الموافقة",
+        "uploadedBy": "رفع بواسطة"
+      },
+      "stats": {
+        "compliant": "الموظفون الملتزمون",
+        "missing": "موظفون بمستندات ناقصة",
+        "expired": "مستندات منتهية",
+        "nearExpiry": "مستندات قريبة من الانتهاء"
+      }
+    },
+    "complianceTracking": {
+      "title": "تتبع الامتثال",
+      "riskAlerts": "المخاطر والتنبيهات",
+      "quickActions": "إجراءات سريعة",
+      "table": {
+        "employee": "الموظف",
+        "department": "القسم",
+        "missingDocument": "المستند الناقص",
+        "expiryDocument": "مستند منتهٍ",
+        "complianceStatus": "حالة الامتثال",
+        "lastReminder": "آخر تذكير"
+      },
+      "stats": {
+        "fullyCompliant": "ملتزمون بالكامل",
+        "nonCompliant": "غير ملتزمين",
+        "expiringSoon": "تنتهي قريباً",
+        "totalCompliance": "إجمالي الامتثال"
+      }
+    },
+    "documentCategories": {
+      "title": "فئات المستندات",
+      "addCategory": "إضافة فئة مستند",
+      "table": {
+        "categoryName": "اسم الفئة",
+        "type": "النوع",
+        "required": "مطلوب",
+        "expiryDateRequired": "تاريخ الانتهاء مطلوب",
+        "appliedTo": "ينطبق على",
+        "status": "الحالة"
+      },
+      "stats": {
+        "total": "إجمالي الفئات",
+        "required": "الفئات المطلوبة",
+        "expiryRequired": "تاريخ الانتهاء مطلوب",
+        "active": "الفئات النشطة"
+      }
     }
   },
   "profile": {

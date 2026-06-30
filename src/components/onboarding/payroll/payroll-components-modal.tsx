@@ -271,7 +271,6 @@ export function PayrollComponentsModal({
                 <Separator className="bg-muted" />
 
                 <div className="grid min-h-112.5 grid-cols-1 divide-y overflow-y-auto scrollbar-hide md:grid-cols-2 md:divide-x md:divide-y-0 rtl:md:divide-x-reverse max-h-[60vh]">
-                    {/* Allowances Column */}
                     <div className="p-8 space-y-6">
                         <h3 className="text-sm font-bold text-muted-foreground rtl:text-end uppercase tracking-widest">
                             {t('allowances')}
@@ -279,7 +278,6 @@ export function PayrollComponentsModal({
                         {renderComponentList(allowances, 'allowance')}
                     </div>
 
-                    {/* Deductions Column */}
                     <div className="p-8 space-y-6">
                         <h3 className="text-sm font-bold text-muted-foreground rtl:text-end uppercase tracking-widest">
                             {t('deductions')}

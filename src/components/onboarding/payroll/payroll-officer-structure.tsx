@@ -20,18 +20,17 @@ import {
     usePayrollConfig,
     useUpdatePayrollConfig,
     useUpsertPayrollComponents,
+    useAllPayrollComponents,
 } from '@/features/payroll/hooks/usePayroll';
 import { useProfile, useUpdateOnboardingComplete } from '@/features/auth/hooks/useAuth';
-import { PayrollComponentType, PayrollCycle } from '@/features/payroll/payroll.types';
-import { useAllowances } from '@/features/allowance/hooks/useAllowance';
-import { useDeductions } from '@/features/deduction/hooks/useDeduction';
+import { PayrollComponentType, PayrollCycle, isPercentageType } from '@/features/payroll/payroll.types';
 import { useToast } from '@/hooks/use-toast';
 import { useDisplayCurrency } from '@/features/settings/hooks/useDisplayCurrency';
 import {
     useCreateOvertimePoliciesBatch,
     useOvertimePolicies,
-} from '@/features/overtime-policy/hooks/useOvertimePolicy';
-import { OvertimeType } from '@/features/overtime-policy/overtime-policy.types';
+} from '@/features/payroll/overtime-policy/hooks/useOvertimePolicy';
+import { OvertimeType } from '@/features/payroll/overtime-policy/overtime-policy.types';
 import { cn } from '@/lib/utils';
 
 export function PayrollOfficerStructure() {
@@ -42,8 +41,8 @@ export function PayrollOfficerStructure() {
     const companyId = profile?.companyId;
 
     const { data: config, isLoading: isLoadingConfig } = usePayrollConfig(companyId);
-    const { data: allowancesData = [], isLoading: isLoadingAllowances } = useAllowances(companyId);
-    const { data: deductionsData = [], isLoading: isLoadingDeductions } = useDeductions(companyId);
+    const { data: componentsResponse, isLoading: isLoadingComponents } = useAllPayrollComponents(companyId);
+    const componentsData = useMemo(() => componentsResponse?.data ?? [], [componentsResponse?.data]);
     const { data: overtimePolicies, isLoading: isLoadingOvertime } = useOvertimePolicies(companyId);
     const { currencySymbol } = useDisplayCurrency(companyId);
 
@@ -67,26 +66,30 @@ export function PayrollOfficerStructure() {
     );
 
     const allowances = useMemo<PayrollComponent[]>(() => {
-        return allowancesData.map((a) => ({
-            id: a.id,
-            name: a.name,
-            desc:
-                a.description ||
-                (a.type === 'percentage' ? `${a.value}%` : `${currencySymbol}${a.value}`),
-            enabled: a.isActive,
-        }));
-    }, [allowancesData, currencySymbol]);
+        return componentsData
+            .filter((component) => component.category === PayrollComponentType.ALLOWANCE)
+            .map((a) => ({
+                id: a.id,
+                name: a.name,
+                desc:
+                    a.description ||
+                    (isPercentageType(a.type) ? `${a.value}%` : `${currencySymbol}${a.value}`),
+                enabled: a.isActive,
+            }));
+    }, [componentsData, currencySymbol]);
 
     const deductions = useMemo<PayrollComponent[]>(() => {
-        return deductionsData.map((d) => ({
-            id: d.id,
-            name: d.name,
-            desc:
-                d.description ||
-                (d.type === 'percentage' ? `${d.value}%` : `${currencySymbol}${d.value}`),
-            enabled: d.isActive,
-        }));
-    }, [deductionsData, currencySymbol]);
+        return componentsData
+            .filter((component) => component.category === PayrollComponentType.DEDUCTION)
+            .map((d) => ({
+                id: d.id,
+                name: d.name,
+                desc:
+                    d.description ||
+                    (isPercentageType(d.type) ? `${d.value}%` : `${currencySymbol}${d.value}`),
+                enabled: d.isActive,
+            }));
+    }, [componentsData, currencySymbol]);
 
     const overtimeRules = useMemo<OvertimeRules>(() => {
         if (!overtimePolicies || overtimePolicies.length === 0) {
@@ -98,7 +101,6 @@ export function PayrollOfficerStructure() {
             };
         }
 
-        // Map existing policies to the UI structure (finding by name or assuming order)
         const standard =
             overtimePolicies
                 .find((p) => p.name.toLowerCase().includes('standard'))
@@ -120,11 +122,11 @@ export function PayrollOfficerStructure() {
             standard,
             weekend,
             holiday,
-            nightShiftEnabled: true, // Assuming default or could be stored in metadata
+            nightShiftEnabled: true,
         };
     }, [overtimePolicies]);
 
-    if (isLoadingConfig || isLoadingAllowances || isLoadingDeductions || isLoadingOvertime) {
+    if (isLoadingConfig || isLoadingComponents || isLoadingOvertime) {
         return (
             <div className="flex h-64 items-center justify-center">
                 <Loader2 className="size-8 animate-spin text-primary" />
@@ -134,7 +136,6 @@ export function PayrollOfficerStructure() {
 
     return (
         <div className="mx-auto w-full max-w-4xl space-y-8">
-            {/* Alert Banner */}
             <div className="flex gap-4 rounded-xl border border-amber-500/35 bg-amber-500/10 p-4 rtl:flex-row-reverse">
                 <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-500 dark:bg-amber-400/20 dark:text-amber-300">
                     <AlertCircle className="size-4" />
@@ -144,7 +145,6 @@ export function PayrollOfficerStructure() {
                 </p>
             </div>
 
-            {/* Payroll Cycle & Processing */}
             <Card className="overflow-hidden rounded-2xl border-none shadow-none ring-1 ring-border">
                 <CardHeader className="border-b border-muted bg-muted/40 px-6 py-4">
                     <CardTitle className="text-sm font-bold text-foreground rtl:text-end">
@@ -187,7 +187,6 @@ export function PayrollOfficerStructure() {
                 </CardContent>
             </Card>
 
-            {/* Payroll Components */}
             <Card className="overflow-hidden rounded-2xl border-none shadow-none ring-1 ring-border">
                 <CardHeader className="border-b border-muted bg-muted/40 px-6 py-4">
                     <CardTitle className="text-sm font-bold text-foreground rtl:text-end">
@@ -206,7 +205,6 @@ export function PayrollOfficerStructure() {
                 </CardHeader>
                 <CardContent className="p-0">
                     <div className="grid grid-cols-1 divide-y md:grid-cols-2 md:divide-x md:divide-y-0 rtl:md:divide-x-reverse">
-                        {/* Allowances */}
                         <div className="p-8">
                             <h3 className="mb-6 text-sm font-bold text-muted-foreground rtl:text-end">
                                 {t('components.allowances')}
@@ -243,7 +241,6 @@ export function PayrollOfficerStructure() {
                             </div>
                         </div>
 
-                        {/* Deductions */}
                         <div className="p-8">
                             <h3 className="mb-6 text-sm font-bold text-muted-foreground rtl:text-end">
                                 {t('components.deductions')}
@@ -283,7 +280,6 @@ export function PayrollOfficerStructure() {
                 </CardContent>
             </Card>
 
-            {/* Overtime Rules */}
             <Card className="overflow-hidden rounded-2xl border-none shadow-none ring-1 ring-border">
                 <CardHeader className="border-b border-muted bg-muted/40 px-6 py-4">
                     <CardTitle className="text-sm font-bold text-foreground rtl:text-end">
@@ -355,7 +351,6 @@ export function PayrollOfficerStructure() {
                 </CardContent>
             </Card>
 
-            {/* Action Button */}
             <div className="flex justify-center pb-20 pt-4 sm:justify-end">
                 <Button
                     size="lg"
@@ -369,7 +364,6 @@ export function PayrollOfficerStructure() {
                             }
                             router.push('/onboarding-payroll-officer/finish');
                         } catch {
-                            // Even if onboarding update fails, we might still want to proceed or show error
                             router.push('/onboarding-payroll-officer/finish');
                         }
                     }}
@@ -410,27 +404,27 @@ export function PayrollOfficerStructure() {
                     try {
                         const inputs = [
                             ...data.allowances.map((a) => {
-                                const original = allowancesData.find((c) => c.id === a.id);
+                                const original = componentsData.find((c) => c.id === a.id);
                                 return {
                                     id: a.id.length > 20 ? a.id : undefined,
-                                    companyId: companyId!,
-                                    componentType: PayrollComponentType.ALLOWANCE,
+                                    ouId: companyId!,
+                                    category: PayrollComponentType.ALLOWANCE,
                                     name: a.name,
                                     isActive: a.enabled ?? true,
-                                    type: original?.type || 'fixed',
+                                    type: original?.type || 'FIXED',
                                     value: original?.value || 0,
                                     taxable: original?.taxable ?? true,
                                 };
                             }),
                             ...data.deductions.map((d) => {
-                                const original = deductionsData.find((c) => c.id === d.id);
+                                const original = componentsData.find((c) => c.id === d.id);
                                 return {
                                     id: d.id.length > 20 ? d.id : undefined,
-                                    companyId: companyId!,
-                                    componentType: PayrollComponentType.DEDUCTION,
+                                    ouId: companyId!,
+                                    category: PayrollComponentType.DEDUCTION,
                                     name: d.name,
                                     isActive: d.enabled ?? true,
-                                    type: original?.type || 'fixed',
+                                    type: original?.type || 'FIXED',
                                     value: original?.value || 0,
                                     recurring: original?.recurring ?? true,
                                 };

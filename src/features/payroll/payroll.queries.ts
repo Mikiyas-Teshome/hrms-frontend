@@ -1,6 +1,21 @@
-import { ALLOWANCE_FIELDS_FRAGMENT } from '../allowance/allowance.queries';
-import { DEDUCTION_FIELDS_FRAGMENT } from '../deduction/deduction.queries';
-import { OVERTIME_POLICY_FIELDS_FRAGMENT } from '../overtime-policy/overtime-policy.queries';
+import { OVERTIME_POLICY_FIELDS_FRAGMENT } from './overtime-policy/overtime-policy.queries';
+
+export const PAYROLL_COMPONENT_FIELDS_FRAGMENT = `
+  fragment PayrollComponentFields on PayrollComponentResponse {
+    id
+    ouId
+    name
+    description
+    category
+    type
+    value
+    taxable
+    recurring
+    isActive
+    createdAt
+    updatedAt
+  }
+`;
 
 export const PAYROLL_CONFIG_FIELDS_FRAGMENT = `
   fragment PayrollConfigFields on PayrollConfigResponse {
@@ -30,6 +45,10 @@ export const PAYROLL_RUN_FIELDS_FRAGMENT = `
     startDate
     endDate
     status
+    employeeCount
+    grossPay
+    netPay
+    currency
     createdAt
     updatedAt
   }
@@ -41,12 +60,99 @@ export const PAYSLIP_FIELDS_FRAGMENT = `
     companyId
     employeeId
     payrollRunId
+    currency
     basicSalary
     totalAllowances
     totalDeductions
+    totalOvertime
+    totalDutyOvertime
+    unpaidLeaveDeduction
+    loanDeduction
+    incomeTaxAmount
+    taxRuleId
+    taxRuleName
     grossPay
     netPay
     createdAt
+  }
+`;
+
+export const PAYSLIP_DETAIL_FIELDS_FRAGMENT = `
+  fragment PayslipDetailFields on PayslipDetailResponse {
+    id
+    companyId
+    employeeId
+    payrollRunId
+    currency
+    basicSalary
+    totalAllowances
+    totalDeductions
+    totalOvertime
+    totalDutyOvertime
+    unpaidLeaveDeduction
+    loanDeduction
+    incomeTaxAmount
+    taxRuleId
+    taxRuleName
+    grossPay
+    netPay
+    createdAt
+    periodStart
+    periodEnd
+    payrollEligible
+    ineligibilityReason
+    monthlyBasicSalary
+    allowances {
+      id
+      name
+      type
+      rawValue
+      amount
+    }
+    deductions {
+      id
+      name
+      type
+      rawValue
+      amount
+    }
+    lines {
+      code
+      label
+      category
+      amount
+      componentType
+      rawValue
+    }
+    attendance {
+      workingDays
+      presentDays
+      halfDays
+      absentDays
+      paidLeaveDays
+      unpaidLeaveDays
+      overtimeHours
+      attendanceRate
+    }
+    rates {
+      hourlyRate
+      dailyRate
+      scalingFactor
+      daysInPeriod
+      eligibleCalendarDays
+    }
+    tax {
+      taxRuleId
+      taxRuleName
+      taxableIncome
+      taxAmount
+      brackets {
+        minAmount
+        maxAmount
+        rate
+        taxAmount
+      }
+    }
   }
 `;
 
@@ -58,10 +164,10 @@ export const SALARY_STRUCTURE_FIELDS_FRAGMENT = `
     basicSalary
     currency
     allowances {
-      ...AllowanceFields
+      ...PayrollComponentFields
     }
     deductions {
-      ...DeductionFields
+      ...PayrollComponentFields
     }
     normalOvertimePolicy {
       ...OvertimePolicyFields
@@ -78,8 +184,7 @@ export const SALARY_STRUCTURE_FIELDS_FRAGMENT = `
     createdAt
     updatedAt
   }
-  ${ALLOWANCE_FIELDS_FRAGMENT}
-  ${DEDUCTION_FIELDS_FRAGMENT}
+  ${PAYROLL_COMPONENT_FIELDS_FRAGMENT}
   ${OVERTIME_POLICY_FIELDS_FRAGMENT}
 `;
 
@@ -128,60 +233,165 @@ export const GET_PAYROLL_RUNS_QUERY = `
   ${PAYROLL_RUN_FIELDS_FRAGMENT}
 `;
 
+export const GET_PAYROLL_RUNS_PAGINATED_QUERY = `
+  query GetPayrollRunsPaginated(
+    $companyId: String!
+    $filter: PayrollRunFilterInput
+    $pagination: PayrollRunPaginationInput
+    $displayCurrency: String
+  ) {
+    payrollRunsPaginated(companyId: $companyId, filter: $filter, pagination: $pagination, displayCurrency: $displayCurrency) {
+      data {
+        ...PayrollRunFields
+      }
+      metaData {
+        page
+        size
+        total
+        totalPages
+        hasNext
+        hasPrevious
+      }
+      summary {
+        totalRuns
+        completedRuns
+        pendingRuns
+        totalGrossPay
+      }
+    }
+  }
+  ${PAYROLL_RUN_FIELDS_FRAGMENT}
+`;
+
 export const GET_PAYSLIP_QUERY = `
   query GetPayslip($id: ID!) {
     payslip(id: $id) {
-      ...PayslipFields
+      ...PayslipDetailFields
     }
   }
-  ${PAYSLIP_FIELDS_FRAGMENT}
+  ${PAYSLIP_DETAIL_FIELDS_FRAGMENT}
 `;
 
-export const GET_PAYSLIPS_BY_EMPLOYEE_QUERY = `
-  query GetPayslipsByEmployee($employeeId: ID!) {
-    payslipsByEmployee(employeeId: $employeeId) {
-      ...PayslipFields
-    }
-  }
-  ${PAYSLIP_FIELDS_FRAGMENT}
-`;
-
-export const GET_PAYSLIPS_BY_PAYROLL_RUN_QUERY = `
-  query GetPayslipsByPayrollRun($payrollRunId: ID!) {
-    payslipsByPayrollRun(payrollRunId: $payrollRunId) {
-      ...PayslipFields
+export const GET_PAYSLIPS_PAGINATED_QUERY = `
+  query GetPayslipsPaginated(
+    $companyId: String!
+    $filter: PayslipFilterInput
+    $pagination: PayslipPaginationInput
+    $displayCurrency: String
+  ) {
+    payslipsPaginated(companyId: $companyId, filter: $filter, pagination: $pagination, displayCurrency: $displayCurrency) {
+      data {
+        ...PayslipFields
+      }
+      metaData {
+        page
+        size
+        total
+        totalPages
+        hasNext
+        hasPrevious
+      }
+      summary {
+        totalGrossPay
+        totalNetPay
+      }
     }
   }
   ${PAYSLIP_FIELDS_FRAGMENT}
 `;
 
 export const GET_SALARY_STRUCTURE_QUERY = `
+  query GetSalaryStructure($employeeId: ID!) {
+    salaryStructure(employeeId: $employeeId) {
+      ...SalaryStructureFields
+    }
+  }
   ${SALARY_STRUCTURE_FIELDS_FRAGMENT}
 `;
 
 export const GET_PAYROLL_COMPONENTS_QUERY = `
-  query GetPayrollComponents($companyId: String!, $isActive: Boolean) {
-    payrollComponents(companyId: $companyId, isActive: $isActive) {
-      __typename
-      ... on AllowanceResponse {
-        id
-        name
-        description
-        type
-        value
-        taxable
-        isActive
-        createdAt
+  query GetPayrollComponents(
+    $ouId: String!
+    $filter: PayrollComponentFilterInput
+    $pagination: PayrollComponentPaginationInput
+  ) {
+    payrollComponents(ouId: $ouId, filter: $filter, pagination: $pagination) {
+      data {
+        ...PayrollComponentFields
       }
-      ... on DeductionResponse {
+      metaData {
+        page
+        size
+        total
+        totalPages
+        hasNext
+        hasPrevious
+      }
+      summary {
+        activeCount
+        fixedCount
+        totalFixedValue
+      }
+    }
+  }
+  ${PAYROLL_COMPONENT_FIELDS_FRAGMENT}
+`;
+
+export const EMPLOYEE_PAYROLL_PREVIEW_QUERY = `
+  query EmployeePayrollPreview($input: PreviewEmployeePayrollInput!) {
+    employeePayrollPreview(input: $input) {
+      currency
+      periodStart
+      periodEnd
+      payrollEligible
+      ineligibilityReason
+      monthlyBasicSalary
+      basicSalary
+      totalAllowances
+      totalDeductions
+      totalOvertime
+      totalDutyOvertime
+      unpaidLeaveDeduction
+      loanDeduction
+      incomeTaxAmount
+      grossPay
+      netPay
+      allowances {
         id
         name
-        description
         type
-        value
-        recurring
-        isActive
-        createdAt
+        rawValue
+        amount
+        taxable
+      }
+      deductions {
+        id
+        name
+        type
+        rawValue
+        amount
+      }
+      tax {
+        taxRuleId
+        taxRuleName
+        taxableIncome
+        taxAmount
+        brackets {
+          minAmount
+          maxAmount
+          rate
+          taxAmount
+        }
+      }
+      attendance {
+        workingDays
+        presentDays
+        halfDays
+        absentDays
+        paidLeaveDays
+        unpaidLeaveDays
+        overtimeHours
+        attendanceRate
       }
     }
   }
@@ -214,10 +424,38 @@ export const MARK_PAYROLL_RUN_PAID_MUTATION = `
   ${PAYROLL_RUN_FIELDS_FRAGMENT}
 `;
 
+export const DELETE_PAYROLL_RUN_MUTATION = `
+  mutation DeletePayrollRun($id: ID!) {
+    deletePayrollRun(id: $id)
+  }
+`;
+
 export const GENERATE_PAYSLIP_MUTATION = `
   mutation GeneratePayslip($input: GeneratePayslipInput!) {
     generatePayslip(input: $input) {
       ...PayslipFields
+    }
+  }
+  ${PAYSLIP_FIELDS_FRAGMENT}
+`;
+
+export const REGENERATE_PAYSLIP_MUTATION = `
+  mutation RegeneratePayslip($input: GeneratePayslipInput!) {
+    regeneratePayslip(input: $input) {
+      ...PayslipFields
+    }
+  }
+  ${PAYSLIP_FIELDS_FRAGMENT}
+`;
+
+export const GENERATE_PAYROLL_RUN_PAYSLIPS_MUTATION = `
+  mutation GeneratePayrollRunPayslips($input: GeneratePayrollRunPayslipsInput!) {
+    generatePayrollRunPayslips(input: $input) {
+      generatedCount
+      skippedCount
+      payslips {
+        ...PayslipFields
+      }
     }
   }
   ${PAYSLIP_FIELDS_FRAGMENT}
@@ -278,27 +516,12 @@ export const ADD_DEDUCTION_TO_SALARY_STRUCTURE_MUTATION = `
 `;
 
 export const UPSERT_PAYROLL_COMPONENTS_MUTATION = `
-  mutation UpsertPayrollComponents($inputs: [UpsertPayrollComponentInput!]!) {
+  mutation UpsertPayrollComponents($inputs: [PayrollComponentInput!]!) {
     upsertPayrollComponents(inputs: $inputs) {
-      __typename
-      ... on AllowanceResponse {
-        id
-        name
-        type
-        value
-        taxable
-        isActive
-      }
-      ... on DeductionResponse {
-        id
-        name
-        type
-        value
-        recurring
-        isActive
-      }
+      ...PayrollComponentFields
     }
   }
+  ${PAYROLL_COMPONENT_FIELDS_FRAGMENT}
 `;
 
 export const REMOVE_DEDUCTION_FROM_SALARY_STRUCTURE_MUTATION = `
@@ -311,56 +534,26 @@ export const REMOVE_DEDUCTION_FROM_SALARY_STRUCTURE_MUTATION = `
 `;
 
 export const CREATE_PAYROLL_COMPONENT_MUTATION = `
-  mutation CreatePayrollComponent($input: CreatePayrollComponentInput!) {
+  mutation CreatePayrollComponent($input: PayrollComponentInput!) {
     createPayrollComponent(input: $input) {
-      __typename
-      ... on AllowanceResponse {
-        id
-        name
-        type
-        value
-        taxable
-        isActive
-      }
-      ... on DeductionResponse {
-        id
-        name
-        type
-        value
-        recurring
-        isActive
-      }
+      ...PayrollComponentFields
     }
   }
+  ${PAYROLL_COMPONENT_FIELDS_FRAGMENT}
 `;
 
 export const UPDATE_PAYROLL_COMPONENT_MUTATION = `
   mutation UpdatePayrollComponent($id: String!, $input: UpdatePayrollComponentInput!) {
     updatePayrollComponent(id: $id, input: $input) {
-      __typename
-      ... on AllowanceResponse {
-        id
-        name
-        type
-        value
-        taxable
-        isActive
-      }
-      ... on DeductionResponse {
-        id
-        name
-        type
-        value
-        recurring
-        isActive
-      }
+      ...PayrollComponentFields
     }
   }
+  ${PAYROLL_COMPONENT_FIELDS_FRAGMENT}
 `;
 
 export const DELETE_PAYROLL_COMPONENT_MUTATION = `
-  mutation DeletePayrollComponent($id: String!, $componentType: PayrollComponentType!) {
-    deletePayrollComponent(id: $id, componentType: $componentType)
+  mutation DeletePayrollComponent($id: String!, $category: PayrollComponentType!) {
+    deletePayrollComponent(id: $id, category: $category)
   }
 `;
 

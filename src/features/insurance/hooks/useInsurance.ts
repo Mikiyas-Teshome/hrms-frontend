@@ -14,17 +14,21 @@ import {
   InsuranceFilterInput,
 } from '../insurance.types';
 
-export const useInsurances = (filter: InsuranceFilterInput = {}) => {
+export const useInsurances = (
+  filter: InsuranceFilterInput = {},
+  options?: { enabled?: boolean },
+) => {
   return useQuery({
     queryKey: ['insurances', filter],
     queryFn: () => fetchInsurances(filter),
+    enabled: options?.enabled ?? true,
   });
 };
 
-export const useInsuranceStats = (companyOuId?: string) => {
+export const useInsuranceStats = (ouId?: string) => {
   return useQuery({
-    queryKey: ['insuranceStats', companyOuId],
-    queryFn: () => fetchInsuranceStats(companyOuId),
+    queryKey: ['insuranceStats', ouId],
+    queryFn: () => fetchInsuranceStats(ouId),
   });
 };
 

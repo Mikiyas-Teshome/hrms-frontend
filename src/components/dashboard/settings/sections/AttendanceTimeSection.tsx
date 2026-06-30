@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
-import { Loader2, Plus } from 'lucide-react';
+import { ArrowRight, Loader2, Plus } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -326,10 +327,16 @@ export function AttendanceTimeSection() {
 
                         <div className="border-t border-border" />
 
-                        <div className="flex flex-col gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-4">
-                            <Label className="text-sm font-semibold text-foreground">{t('attendance.timeTracking')}</Label>
-                            <p className="text-xs text-muted-foreground">{t('attendance.timeTrackingUnavailable')}</p>
-                        </div>
+                        <Link
+                            href="/dashboard/attendance/shifts"
+                            className="flex items-center justify-between gap-4 rounded-xl border border-border px-4 py-3 transition-colors hover:border-primary/40 hover:bg-primary/5"
+                        >
+                            <div>
+                                <p className="text-sm font-semibold text-foreground">{t('attendance.shiftManagementLink')}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{t('attendance.shiftManagementLinkDesc')}</p>
+                            </div>
+                            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        </Link>
 
                         <div className="pt-2">
                             <Button

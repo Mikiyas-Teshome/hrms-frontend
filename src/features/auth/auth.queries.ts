@@ -164,6 +164,51 @@ export const PROFILE_QUERY = `
       createdAt
       updatedAt
       lastLoginAt
+      avatarUrl
+      dashboardPreferences {
+        version
+        adminExecutive {
+          kpiSlugs
+          widgetSlugs
+          widgetConfigs
+        }
+      }
+    }
+  }
+`;
+
+export const UPDATE_DASHBOARD_PREFERENCES_MUTATION = `
+  mutation UpdateDashboardPreferences($input: UpdateDashboardPreferencesInput!) {
+    updateDashboardPreferences(input: $input) {
+      id
+      email
+      firstName
+      lastName
+      fullName
+      role
+      roleProfile {
+        name
+        permissionsMap
+      }
+      status
+      companyId
+      department
+      phoneNumber
+      position
+      isEmailVerified
+      onboardingComplete
+      onboardingStep
+      createdAt
+      updatedAt
+      lastLoginAt
+      dashboardPreferences {
+        version
+        adminExecutive {
+          kpiSlugs
+          widgetSlugs
+          widgetConfigs
+        }
+      }
     }
   }
 `;
@@ -366,6 +411,7 @@ export const UPDATE_AVATAR_MUTATION = `
   mutation UpdateAvatar($avatarUrl: String!) {
     updateAvatar(avatarUrl: $avatarUrl) {
       id
+      avatarUrl
     }
   }
 `;
@@ -511,6 +557,19 @@ export const UPDATE_USER_ONBOARDING_STEP_MUTATION = `
       lastLoginAt
       createdAt
       updatedAt
+    }
+  }
+`;
+
+export const INVITATION_ONBOARD_CONTEXT_QUERY = `
+  query InvitationOnboardContext($token: String!, $tenantId: String) {
+    invitationOnboardContext(token: $token, tenantId: $tenantId) {
+      tenantId
+      companyName
+      companyEmail
+      email
+      firstName
+      lastName
     }
   }
 `;

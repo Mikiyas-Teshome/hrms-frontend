@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Maximize } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,7 @@ interface LevelDef {
 
 interface HierarchyTreeBuilderProps {
   hierarchy?: OrgUnit[] | null;
+  isLoading?: boolean;
   levels: LevelDef[];
   nomenclature?: Array<{ label: string; type: string; language: string }>;
   onAddUnit: (levelIdx: number, parentId?: string) => void;
@@ -51,26 +52,9 @@ const LEVEL_COLORS = [
   { text: "text-[#9C2780]", border: "border-l-[#9C2780]", accent: "#9C2780" },
 ];
 
-const TypingText = ({ text }: { text: string }) => {
-  const [displayedText, setDisplayedText] = useState("");
-  
-  useEffect(() => {
-    let index = 0;
-    const interval = setInterval(() => {
-      setDisplayedText((prev) => prev + text.charAt(index));
-      index++;
-      if (index >= text.length) {
-        clearInterval(interval);
-      }
-    }, 30);
-    return () => clearInterval(interval);
-  }, [text]);
-
-  return <span>{displayedText}</span>;
-};
-
 export function HierarchyTreeBuilder({
   hierarchy,
+  isLoading = false,
   levels,
   nomenclature,
   onAddUnit,
@@ -81,7 +65,6 @@ export function HierarchyTreeBuilder({
   const [viewFull, setViewFull] = useState(false);
   const [expandAllInline, setExpandAllInline] = useState(false);
 
-  // Drag to scroll hook
   const useDragToScroll = () => {
     const ref = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -123,8 +106,22 @@ export function HierarchyTreeBuilder({
     };
   };
 
-  const mainDrag = useDragToScroll();
-  const fullDrag = useDragToScroll();
+  const {
+    ref: mainDragRef,
+    onMouseDown: onMainMouseDown,
+    onMouseMove: onMainMouseMove,
+    onMouseUp: onMainMouseUp,
+    onMouseLeave: onMainMouseLeave,
+    isDragging: isMainDragging,
+  } = useDragToScroll();
+  const {
+    ref: fullDragRef,
+    onMouseDown: onFullMouseDown,
+    onMouseMove: onFullMouseMove,
+    onMouseUp: onFullMouseUp,
+    onMouseLeave: onFullMouseLeave,
+    isDragging: isFullDragging,
+  } = useDragToScroll();
 
   const activeLevels = levels.filter((l, i) => i === 0 || l.isActive);
   const rootNode = hierarchy?.[0];
@@ -168,90 +165,92 @@ export function HierarchyTreeBuilder({
             t={t}
           />
         </div>
-      ) : (
+      ) : isLoading ? (
         <div className="text-slate-400 text-sm font-medium pl-4 flex items-center gap-2">
           <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0" />
-          <TypingText text={t("hierarchy.buildingDatabase")} />
+          <span>{t("hierarchy.buildingDatabase")}</span>
+        </div>
+      ) : (
+        <div className="text-slate-400 text-sm font-medium pl-4">
+          {t("hierarchy.builderNotReady")}
         </div>
       )}
     </div>
   );
 
   return (
-    <>
-      <div className="bg-card/50 border border-border shadow-sm rounded-[12px] p-8 space-y-10 flex flex-col h-[750px]">
-        <div className="flex items-center gap-3 bg-background px-3 py-1.5 rounded-full shadow-sm border border-border w-fit">
-          <div className="flex items-center gap-2">
-            <Switch
-              id="hierarchy-expand-all"
-              checked={expandAllInline}
-              onCheckedChange={setExpandAllInline}
-              aria-label={
-                expandAllInline
-                  ? t("builder.collapseAllTree")
-                  : t("builder.expandAllTree")
-              }
-              className="h-5 w-9 data-[state=checked]:bg-primary"
-            />
-            <label
-              htmlFor="hierarchy-expand-all"
-              className="text-sm font-medium text-foreground cursor-pointer select-none whitespace-nowrap"
-            >
-              {t("builder.expandAllLabel")}
-            </label>
-          </div>
-          <button
-            type="button"
-            onClick={() => setViewFull(true)}
-            className="p-2 hover:bg-muted rounded-full transition-all group cursor-pointer"
-            title={t("builder.viewFullScreen")}
-            aria-label={t("builder.viewFullScreen")}
-          >
-            <Maximize className="size-5 text-primary group-hover:scale-110 transition-transform" />
-          </button>
-        </div>
-        
-        <div 
-          ref={mainDrag.ref}
-          onMouseDown={mainDrag.onMouseDown}
-          onMouseMove={mainDrag.onMouseMove}
-          onMouseUp={mainDrag.onMouseUp}
-          onMouseLeave={mainDrag.onMouseLeave}
-          className={cn(
-            "flex-1 min-h-0 overflow-auto border border-transparent rounded-lg scrollbar-thin transition-colors",
-            mainDrag.isDragging ? "cursor-grabbing select-none" : "cursor-grab"
-          )}
-        >
-          {renderTree(expandAllInline)}
-        </div>
-      </div>
-
-      <Dialog open={viewFull} onOpenChange={setViewFull}>
-        <DialogContent className="max-w-[98vw] w-full max-h-[95vh] h-full bg-background p-0 overflow-hidden rounded-[12px] border-border flex flex-col">
-          <div className="sr-only">
-            <DialogTitle>{t("builder.fullScreenTitle")}</DialogTitle>
-            <DialogDescription>{t("builder.fullScreenDescription")}</DialogDescription>
-          </div>
-          <div 
-            ref={fullDrag.ref}
-            onMouseDown={fullDrag.onMouseDown}
-            onMouseMove={fullDrag.onMouseMove}
-            onMouseUp={fullDrag.onMouseUp}
-            onMouseLeave={fullDrag.onMouseLeave}
-            className={cn(
-              "flex-1 overflow-auto bg-muted/20 flex items-start justify-start p-12 w-full h-full transition-colors",
-              fullDrag.isDragging ? "cursor-grabbing select-none" : "cursor-grab"
-            )}
-          >
-            <div className="scale-[0.85] origin-top-left pointer-events-none">
-              <div className="pointer-events-auto">
-                {renderTree(expandAllInline)}
+      <>
+          <div className="bg-card/50 border border-border shadow-sm rounded-[12px] p-8 space-y-3 flex flex-col h-100  md:h-137.5">
+              <div className="flex items-center gap-3 bg-background px-3 py-1.5 rounded-full shadow-sm border border-border w-fit">
+                  <div className="flex items-center gap-2">
+                      <Switch
+                          id="hierarchy-expand-all"
+                          checked={expandAllInline}
+                          onCheckedChange={setExpandAllInline}
+                          aria-label={
+                              expandAllInline
+                                  ? t('builder.collapseAllTree')
+                                  : t('builder.expandAllTree')
+                          }
+                          className="h-5 w-9 data-[state=checked]:bg-primary"
+                      />
+                      <label
+                          htmlFor="hierarchy-expand-all"
+                          className="text-sm font-medium text-foreground cursor-pointer select-none whitespace-nowrap"
+                      >
+                          {t('builder.expandAllLabel')}
+                      </label>
+                  </div>
+                  <button
+                      type="button"
+                      onClick={() => setViewFull(true)}
+                      className="p-2 hover:bg-muted rounded-full transition-all group cursor-pointer"
+                      title={t('builder.viewFullScreen')}
+                      aria-label={t('builder.viewFullScreen')}
+                  >
+                      <Maximize className="size-5 text-primary group-hover:scale-110 transition-transform" />
+                  </button>
               </div>
-            </div>
+
+              <div
+                  ref={mainDragRef}
+                  onMouseDown={onMainMouseDown}
+                  onMouseMove={onMainMouseMove}
+                  onMouseUp={onMainMouseUp}
+                  onMouseLeave={onMainMouseLeave}
+                  className={cn(
+                      'flex-1 min-h-0 overflow-auto border border-transparent rounded-lg scrollbar-thin transition-colors',
+                      isMainDragging ? 'cursor-grabbing select-none' : 'cursor-grab',
+                  )}
+              >
+                  {renderTree(expandAllInline)}
+              </div>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+
+          <Dialog open={viewFull} onOpenChange={setViewFull}>
+              <DialogContent className="max-w-[98vw] w-full max-h-[95vh] h-full bg-background p-0 overflow-hidden rounded-[12px] border-border flex flex-col">
+                  <div className="sr-only">
+                      <DialogTitle>{t('builder.fullScreenTitle')}</DialogTitle>
+                      <DialogDescription>{t('builder.fullScreenDescription')}</DialogDescription>
+                  </div>
+                  <div
+                      ref={fullDragRef}
+                      onMouseDown={onFullMouseDown}
+                      onMouseMove={onFullMouseMove}
+                      onMouseUp={onFullMouseUp}
+                      onMouseLeave={onFullMouseLeave}
+                      className={cn(
+                          'flex-1 overflow-auto bg-muted/20 flex items-start justify-start p-12 w-full h-full transition-colors',
+                          isFullDragging ? 'cursor-grabbing select-none' : 'cursor-grab',
+                      )}
+                  >
+                      <div className="scale-[0.85] origin-top-left pointer-events-none">
+                          <div className="pointer-events-auto">{renderTree(expandAllInline)}</div>
+                      </div>
+                  </div>
+              </DialogContent>
+          </Dialog>
+      </>
   );
 }
 
@@ -299,116 +298,124 @@ function ChildrenColumn({
   const hasAddButton = depth + 1 < activeLevels.length;
 
   return (
-    <div className="flex flex-row items-start shrink-0">
-      {/* Stem from parent card */}
-      <div
-        className="w-[20px] h-[2px] bg-primary/20 rounded-full shrink-0"
-        style={{ marginTop: CARD_CENTER_PX }}
-      />
+      <div className="flex flex-row items-start shrink-0">
+          <div
+              className="w-5 h-0.5 bg-primary/20 rounded-full shrink-0"
+              style={{ marginTop: CARD_CENTER_PX }}
+          />
 
-      {/* Column container */}
-      <div className="flex flex-col relative h-fit">
-        {/* Child Cards Column */}
-        {children.map((child, index) => {
-          const isSelected = child.id === selectedId;
-          const childColor = getColor(depth + 1);
-          const isFirst = index === 0;
-          const isLastChild = index === children.length - 1;
+          <div className="flex flex-col relative h-fit">
+              {children.map((child, index) => {
+                  const isSelected = child.id === selectedId;
+                  const childColor = getColor(depth + 1);
+                  const isFirst = index === 0;
+                  const isLastChild = index === children.length - 1;
 
-          return (
-            <div
-              key={child.id}
-              className="flex flex-row items-start relative pb-5"
-              style={{ minHeight: CARD_HEIGHT_PX }}
-            >
-              {(!isLastChild || hasAddButton) && (
-                <div
-                  className="absolute left-0 w-[2.5px] bg-primary/20 rounded-full"
-                  style={{ top: CARD_CENTER_PX, bottom: 0 }}
-                />
+                  return (
+                      <div
+                          key={child.id}
+                          className="flex flex-row items-start relative pb-5"
+                          style={{ minHeight: CARD_HEIGHT_PX }}
+                      >
+                          {(!isLastChild || hasAddButton) && (
+                              <div
+                                  className="absolute left-0 w-[2.5px] bg-primary/20 rounded-full"
+                                  style={{ top: CARD_CENTER_PX, bottom: 0 }}
+                              />
+                          )}
+                          {!isFirst && (
+                              <div
+                                  className="absolute left-0 w-[2.5px] bg-primary/20 rounded-full"
+                                  style={{ top: 0, height: CARD_CENTER_PX }}
+                              />
+                          )}
+
+                          <div
+                              className="w-5 h-0.5 bg-primary/20 rounded-full shrink-0"
+                              style={{ marginTop: CARD_CENTER_PX }}
+                          />
+
+                          <div className="flex flex-row items-start">
+                              <div
+                                  className={cn(
+                                      'transition-all duration-300 shrink-0',
+                                      expandAll
+                                          ? 'opacity-100'
+                                          : cn(
+                                                'cursor-pointer',
+                                                !isSelected
+                                                    ? 'opacity-40 grayscale-20 hover:opacity-70'
+                                                    : 'opacity-100',
+                                            ),
+                                  )}
+                                  onClick={expandAll ? undefined : () => setSelectedId(child.id)}
+                              >
+                                  <NodeCard
+                                      node={child}
+                                      depth={depth + 1}
+                                      color={childColor}
+                                      label={getLabel(child.type, depth + 1)}
+                                      onEdit={() => onEditUnit(child.id)}
+                                      onDelete={() => onDeleteUnit(child.id)}
+                                      t={t}
+                                  />
+                              </div>
+
+                              {(expandAll || isSelected) && (
+                                  <ChildrenColumn
+                                      parentNode={child}
+                                      depth={depth + 1}
+                                      levels={levels}
+                                      activeLevels={activeLevels}
+                                      getColor={getColor}
+                                      getLabel={getLabel}
+                                      onAddUnit={onAddUnit}
+                                      onEditUnit={onEditUnit}
+                                      onDeleteUnit={onDeleteUnit}
+                                      expandAll={expandAll}
+                                      t={t}
+                                  />
+                              )}
+                          </div>
+                      </div>
+                  );
+              })}
+
+              {hasAddButton && (
+                  <div
+                      className={cn(
+                          'flex flex-row items-start relative h-12',
+                          children.length === 0 ? 'mt-[11.5px]' : '',
+                      )}
+                  >
+                      {children.length > 0 && (
+                          <div
+                              className="absolute left-0 w-[2.5px] bg-primary/20 rounded-full"
+                              style={{ top: 0, height: '24px' }}
+                          />
+                      )}
+                      <div className="w-5 h-0.5 bg-primary/20 rounded-full shrink-0 mt-6" />
+                      <button
+                          onClick={() => {
+                              const levelDef = activeLevels[depth + 1];
+                              const realLevelIdx = levels.findIndex(
+                                  (l: LevelDef) => l.type === levelDef.type,
+                              );
+                              onAddUnit(realLevelIdx, parentNode.id);
+                          }}
+                          className="w-42.5 h-12 rounded-[16px] border-2 border-dashed border-primary/30 bg-background flex items-center justify-center gap-2 hover:bg-muted hover:border-primary/50 transition-all shrink-0 cursor-pointer"
+                      >
+                          <Plus className="size-4.5 text-primary" />
+                          <span className="text-[13px] font-medium text-muted-foreground">
+                              {t('builder.addLevel', {
+                                  type: getLabel(activeLevels[depth + 1]?.type, depth + 1),
+                              })}
+                          </span>
+                      </button>
+                  </div>
               )}
-              {!isFirst && (
-                <div
-                  className="absolute left-0 w-[2.5px] bg-primary/20 rounded-full"
-                  style={{ top: 0, height: CARD_CENTER_PX }}
-                />
-              )}
-
-              <div
-                className="w-[20px] h-[2px] bg-primary/20 rounded-full shrink-0"
-                style={{ marginTop: CARD_CENTER_PX }}
-              />
-              
-              <div className="flex flex-row items-start">
-                <div
-                  className={cn(
-                    "transition-all duration-300 shrink-0",
-                    expandAll
-                      ? "opacity-100"
-                      : cn(
-                          "cursor-pointer",
-                          !isSelected ? "opacity-40 grayscale-[20%] hover:opacity-70" : "opacity-100"
-                        )
-                  )}
-                  onClick={expandAll ? undefined : () => setSelectedId(child.id)}
-                >
-                  <NodeCard
-                    node={child}
-                    depth={depth + 1}
-                    color={childColor}
-                    label={getLabel(child.type, depth + 1)}
-                    onEdit={() => onEditUnit(child.id)}
-                    onDelete={() => onDeleteUnit(child.id)}
-                    t={t}
-                  />
-                </div>
-
-                {(expandAll || isSelected) && (
-                  <ChildrenColumn
-                    parentNode={child}
-                    depth={depth + 1}
-                    levels={levels}
-                    activeLevels={activeLevels}
-                    getColor={getColor}
-                    getLabel={getLabel}
-                    onAddUnit={onAddUnit}
-                    onEditUnit={onEditUnit}
-                    onDeleteUnit={onDeleteUnit}
-                    expandAll={expandAll}
-                    t={t}
-                  />
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Add level button row */}
-        {hasAddButton && (
-          <div className={cn("flex flex-row items-start relative h-12", children.length === 0 ? "mt-[11.5px]" : "")}>
-            {children.length > 0 && (
-              <div className="absolute left-0 w-[2.5px] bg-primary/20 rounded-full" style={{ top: 0, height: '24px' }} />
-            )}
-            <div className="w-5 h-0.5 bg-primary/20 rounded-full shrink-0 mt-6" />
-            <button
-              onClick={() => {
-                const levelDef = activeLevels[depth + 1];
-                const realLevelIdx = levels.findIndex((l: LevelDef) => l.type === levelDef.type);
-                onAddUnit(realLevelIdx, parentNode.id);
-              }}
-              className="w-42.5 h-12 rounded-[16px] border-2 border-dashed border-primary/30 bg-background flex items-center justify-center gap-2 hover:bg-muted hover:border-primary/50 transition-all shrink-0 cursor-pointer"
-            >
-              <Plus className="size-4.5 text-primary" />
-              <span className="text-[13px] font-medium text-muted-foreground">
-                {t("builder.addLevel", {
-                  type: getLabel(activeLevels[depth + 1]?.type, depth + 1),
-                })}
-              </span>
-            </button>
           </div>
-        )}
       </div>
-    </div>
   );
 }
 

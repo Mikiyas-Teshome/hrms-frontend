@@ -6,23 +6,54 @@ import { FormSelect } from '@/components/ui/FormSelect';
 import { DatePicker } from '@/components/ui/date-picker';
 import { NationalitySelect } from '@/components/ui/NationalitySelect';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { ProfileAvatarUpload } from '@/components/onboarding/shared/profile-avatar-upload';
+import { useToast } from '@/hooks/use-toast';
 import { OnboardingFormValues } from '../staff-onboarding-form';
 
 interface PersonalInfoTabProps {
     register: UseFormRegister<OnboardingFormValues>;
     control: Control<OnboardingFormValues>;
     errors: FieldErrors<OnboardingFormValues>;
-    onNext: () => void;
+    avatarUrl: string | null;
+    onAvatarFileChange: (file: File) => void;
+    onAvatarClear: () => void;
+    isAvatarUploading?: boolean;
 }
 
-export function PersonalInfoTab({ register, control, errors, onNext }: PersonalInfoTabProps) {
+export function PersonalInfoTab({
+    register,
+    control,
+    errors,
+    avatarUrl,
+    onAvatarFileChange,
+    onAvatarClear,
+    isAvatarUploading = false,
+}: PersonalInfoTabProps) {
     const { t } = useTranslation(['staffSignup', 'onboarding', 'common']);
+    const { toast } = useToast();
 
     return (
         <>
-            {/* Names and Identity */}
+            <div className="space-y-3 rounded-xl border border-border/60 bg-muted/15 p-4">
+                <Label className="text-sm font-medium text-foreground">
+                    {t('staffSignup:onboarding.avatar.label')}
+                </Label>
+                <ProfileAvatarUpload
+                    initialUrl={avatarUrl}
+                    isUploading={isAvatarUploading}
+                    onFileSelect={(file) => onAvatarFileChange(file)}
+                    onClear={onAvatarClear}
+                    onUploadError={(message) =>
+                        toast({
+                            title: t('staffSignup:onboarding.operationFailed'),
+                            description: message,
+                            variant: 'destructive',
+                        })
+                    }
+                />
+            </div>
+
             <div className="space-y-6">
                 <div className="flex items-center gap-2 pb-2 border-b border-border/50">
                     <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
@@ -149,7 +180,6 @@ export function PersonalInfoTab({ register, control, errors, onNext }: PersonalI
                 </div>
             </div>
 
-            {/* Reach Out */}
             <div className="space-y-6">
                 <div className="flex items-center gap-2 pb-2 border-b border-border/50">
                     <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
@@ -183,7 +213,6 @@ export function PersonalInfoTab({ register, control, errors, onNext }: PersonalI
                 </div>
             </div>
 
-            {/* Emergency Contact */}
             <div className="space-y-6">
                 <div className="flex items-center gap-2 pb-2 border-b border-border/50">
                     <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
@@ -226,13 +255,6 @@ export function PersonalInfoTab({ register, control, errors, onNext }: PersonalI
                 </div>
             </div>
 
-            <Button
-                type="button"
-                onClick={onNext}
-                className="h-9 w-full rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm shadow-sm transition-all active:scale-[0.98]"
-            >
-                {t('onboarding.continue')}
-            </Button>
         </>
     );
 }

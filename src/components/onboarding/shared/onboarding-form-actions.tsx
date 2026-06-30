@@ -9,6 +9,7 @@ interface OnboardingFormActionsProps {
     onContinue?: () => void;
     backLabel: string;
     continueLabel: string;
+    continueLabelShort?: string;
     isSubmitting?: boolean;
     continueType?: 'button' | 'submit';
     showBorder?: boolean;
@@ -20,6 +21,7 @@ export function OnboardingFormActions({
     onContinue,
     backLabel,
     continueLabel,
+    continueLabelShort,
     isSubmitting = false,
     continueType = 'submit',
     showBorder = false,
@@ -28,7 +30,7 @@ export function OnboardingFormActions({
     return (
         <div
             className={cn(
-                'flex items-center justify-between pt-8',
+                'flex min-w-0 items-center justify-between gap-3 pt-8',
                 showBorder && 'border-t border-muted',
                 className,
             )}
@@ -37,7 +39,7 @@ export function OnboardingFormActions({
                 type="button"
                 variant="ghost"
                 onClick={onBack}
-                className="cursor-pointer flex items-center gap-2 transition-transform hover:-translate-x-1 rtl:hover:translate-x-1 rtl:flex-row-reverse"
+                className="shrink-0 cursor-pointer flex items-center gap-2 transition-transform hover:-translate-x-1 rtl:hover:translate-x-1 rtl:flex-row-reverse"
             >
                 <ArrowLeft className="cursor-pointer size-4 rtl:rotate-180" />
                 {backLabel}
@@ -47,9 +49,10 @@ export function OnboardingFormActions({
                 size="lg"
                 onClick={onContinue}
                 disabled={isSubmitting}
-                className="cursor-pointer px-8 bg-primary hover:bg-primary/90"
+                className="min-w-0 shrink cursor-pointer px-4 sm:px-8 bg-primary hover:bg-primary/90"
             >
-                {continueLabel}
+                <span className="sm:hidden">{continueLabelShort ?? continueLabel}</span>
+                <span className="hidden sm:inline">{continueLabel}</span>
             </Button>
         </div>
     );

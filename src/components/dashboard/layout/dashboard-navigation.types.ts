@@ -4,6 +4,7 @@ export type DashboardNavigationActionId = 'add-employee';
 
 export type DashboardNavigationSubItemConfig = {
     titleKey: string;
+    title?: string;
     titleDefault?: string;
     url: string;
     module?: string;
@@ -23,6 +24,7 @@ export type DashboardNavigationItemConfig = {
     action?: string;
     keywords?: string[];
     searchable?: boolean;
+    requiresSettingsAccess?: boolean;
     items?: DashboardNavigationSubItemConfig[];
 };
 

@@ -20,17 +20,22 @@ export function VerificationSuccess({
 }: VerificationSuccessProps = {}) {
   const { t } = useTranslation("verification");
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, reloadSession } = useAuth();
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
+    if (isAuthenticated) {
+      await reloadSession();
+    }
+
     if (redirectTo) {
       router.push(redirectTo);
       return;
     }
+
     if (isAuthenticated) {
-        router.push('/dashboard');
+      router.push('/dashboard');
     } else {
-        router.push("/login");
+      router.push('/login');
     }
   };
 
@@ -58,7 +63,7 @@ export function VerificationSuccess({
                   </svg>
 
                   <div className="flex flex-col items-start gap-2 self-stretch">
-                      <h1 className="self-stretch text-[32px] text-foreground font-semibold leading-[130%] text-start">
+                      <h1 className="self-stretch text-xl md:text-[32px] text-foreground font-semibold leading-[130%] text-start">
                           {title ?? t('success.title')}
                       </h1>
 

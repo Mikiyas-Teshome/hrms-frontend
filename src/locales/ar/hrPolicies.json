@@ -44,28 +44,33 @@
   },
   "leavePolicies": {
     "title": "سياسات الإجازات",
-    "addNew": "أضف نوع إجازة جديد",
+    "addNew": "إضافة سياسة إجازة",
     "days": "الأيام",
-    "addLeaveType": {
-      "title": "أضف نوع إجازة",
-      "titleUpdate": "تعديل نوع الإجازة",
-      "leaveInfo": "معلومات الإجازة",
-      "leaveName": "اسم الإجازة",
-      "leaveNamePlaceholder": "أدخل اسم الإجازة",
+    "addLeavePolicy": {
+      "title": "إضافة سياسة إجازة",
+      "titleUpdate": "تعديل سياسة الإجازة",
+      "policyInfo": "معلومات السياسة",
+      "policyName": "اسم السياسة",
+      "policyNamePlaceholder": "أدخل اسم السياسة",
+      "code": "الرمز",
+      "codePlaceholder": "اختر الرمز",
       "status": "الحالة",
       "statusActive": "نشط",
       "statusInactive": "غير نشط",
       "maxDays": "الحد الأقصى للأيام في السنة",
       "maxDaysPlaceholder": "٠",
-      "condition": "الحالة",
-      "conditionPaid": "مدفوع",
-      "conditionUnpaid": "غير مدفوع",
+      "entitlementGrantMode": "طريقة منح الاستحقاق",
+      "grantModeYearly": "تخصيص سنوي",
+      "grantModeMonthly": "استحقاق شهري",
+      "grantModeManual": "يدوي",
+      "paidLeave": "إجازة مدفوعة",
+      "carryForward": "الترحيل",
       "description": "الوصف",
       "descriptionPlaceholder": "أضف وصفاً",
       "actions": {
         "cancel": "إلغاء",
-        "save": "حفظ نوع الإجازة",
-        "saveUpdate": "تحديث نوع الإجازة"
+        "save": "حفظ سياسة الإجازة",
+        "saveUpdate": "تحديث سياسة الإجازة"
       }
     },
     "types": {
@@ -116,6 +121,9 @@
     "shiftStartRequired": "وقت بدء النوبة مطلوب",
     "shiftEndRequired": "وقت نهاية النوبة مطلوب",
     "holidayNameRequired": "اسم العطلة مطلوب",
-    "holidayDateRequired": "تاريخ العطلة مطلوب"
+    "holidayDateRequired": "تاريخ العطلة مطلوب",
+    "policyNameRequired": "اسم السياسة مطلوب",
+    "policyCodeRequired": "رمز السياسة مطلوب",
+    "maxDaysRequired": "الحد الأقصى للأيام في السنة مطلوب"
   }
 }

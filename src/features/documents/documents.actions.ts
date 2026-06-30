@@ -8,17 +8,21 @@ import {
     DocumentCategoryListResponse,
     EmployeeDocumentFilterInput,
     EmployeeDocumentListResponse,
+    EmployeeDocumentOwnerFilterInput,
+    EmployeeDocumentOwnerListResponse,
     EmployeeDocumentStats,
     DocumentCategoryStats,
     UpdateEmployeeDocumentInput,
     ComplianceDashboardStats,
     ComplianceAlert,
+    EmployeeComplianceFilterInput,
     EmployeeComplianceListResponse,
 } from './documents.types';
 import {
     CREATE_DOCUMENT_CATEGORY_MUTATION,
     DELETE_DOCUMENT_CATEGORY_MUTATION,
     DELETE_DOCUMENT_MUTATION,
+    GET_EMPLOYEE_DOCUMENT_OWNERS_QUERY,
     GET_EMPLOYEE_DOCUMENTS_QUERY,
     GET_EMPLOYEE_DOCUMENT_STATS_QUERY,
     GET_DOCUMENT_CATEGORIES_PAGED_QUERY,
@@ -33,11 +37,52 @@ import {
     SEND_COMPLIANCE_REMINDER_MUTATION,
 } from './documents.queries';
 import { DocumentCategory } from './documents.types';
+import {
+    getDocumentAssetFileApiUrl,
+    getDocumentAssetUploadApiUrl,
+    getDocumentFileApiUrl,
+    getDocumentReplaceFileApiUrl,
+    getDocumentUploadApiUrl,
+} from './document-api-url';
+import {
+    encodeAssetReference,
+    encodeDocumentReference,
+    parseStoredMediaReference,
+} from './media-reference.util';
 import { ActionResult, safeAction } from '@/lib/safe-action';
 
+export async function fetchEmployeeDocumentOwners(params?: {
+    pagination?: { page?: number; size?: number };
+    filter?: EmployeeDocumentOwnerFilterInput;
+}): Promise<EmployeeDocumentOwnerListResponse> {
+    try {
+        const data = await gqlRequest<{ employeeDocumentOwners: EmployeeDocumentOwnerListResponse }>(
+            GraphQLService.DOCUMENT,
+            GET_EMPLOYEE_DOCUMENT_OWNERS_QUERY,
+            {
+                pagination: params?.pagination,
+                filter: params?.filter,
+            },
+        );
+        return data.employeeDocumentOwners;
+    } catch (error) {
+        console.error('Failed to fetch employee document owners:', error);
+        return {
+            data: [],
+            metaData: {
+                page: params?.pagination?.page ?? 1,
+                size: params?.pagination?.size ?? 10,
+                total: 0,
+                totalPages: 0,
+                hasNext: false,
+                hasPrevious: false,
+            },
+        };
+    }
+}
+
 export async function fetchEmployeeDocuments(params?: {
-    limit?: number;
-    offset?: number;
+    pagination?: { page?: number; size?: number };
     filter?: EmployeeDocumentFilterInput;
 }): Promise<EmployeeDocumentListResponse> {
     try {
@@ -45,8 +90,7 @@ export async function fetchEmployeeDocuments(params?: {
             GraphQLService.DOCUMENT,
             GET_EMPLOYEE_DOCUMENTS_QUERY,
             {
-                limit: params?.limit,
-                offset: params?.offset,
+                pagination: params?.pagination,
                 filter: params?.filter,
             },
         );
@@ -55,11 +99,13 @@ export async function fetchEmployeeDocuments(params?: {
         console.error('Failed to fetch employee documents:', error);
         return {
             data: [],
-            pagination: {
-                page: 1,
-                limit: params?.limit ?? 10,
+            metaData: {
+                page: params?.pagination?.page ?? 1,
+                size: params?.pagination?.size ?? 10,
                 total: 0,
-                totalPages: 1,
+                totalPages: 0,
+                hasNext: false,
+                hasPrevious: false,
             },
         };
     }
@@ -98,8 +144,7 @@ export async function fetchDocumentCategories(): Promise<DocumentCategory[]> {
 }
 
 export async function fetchDocumentCategoriesPaged(params?: {
-    limit?: number;
-    offset?: number;
+    pagination?: { page?: number; size?: number };
     filter?: DocumentCategoryFilterInput;
 }): Promise<DocumentCategoryListResponse> {
     try {
@@ -107,8 +152,7 @@ export async function fetchDocumentCategoriesPaged(params?: {
             GraphQLService.DOCUMENT,
             GET_DOCUMENT_CATEGORIES_PAGED_QUERY,
             {
-                limit: params?.limit,
-                offset: params?.offset,
+                pagination: params?.pagination,
                 filter: params?.filter,
             },
         );
@@ -117,11 +161,13 @@ export async function fetchDocumentCategoriesPaged(params?: {
         console.error('Failed to fetch paged document categories:', error);
         return {
             data: [],
-            pagination: {
-                page: 1,
-                limit: params?.limit ?? 10,
+            metaData: {
+                page: params?.pagination?.page ?? 1,
+                size: params?.pagination?.size ?? 10,
                 total: 0,
-                totalPages: 1,
+                totalPages: 0,
+                hasNext: false,
+                hasPrevious: false,
             },
         };
     }
@@ -194,6 +240,69 @@ export async function fetchDocumentDownloadUrl(id: string): Promise<ActionResult
     });
 }
 
+export async function fetchDocumentFilePreview(
+    id: string,
+): Promise<ActionResult<{ dataUrl: string; contentType: string }>> {
+    return fetchAuthenticatedFilePreview(getDocumentFileApiUrl(id));
+}
+
+export async function fetchAssetFilePreview(
+    assetId: string,
+): Promise<ActionResult<{ dataUrl: string; contentType: string }>> {
+    return fetchAuthenticatedFilePreview(getDocumentAssetFileApiUrl(assetId));
+}
+
+export async function fetchStoredMediaPreview(
+    reference?: string | null,
+): Promise<ActionResult<{ dataUrl: string; contentType: string }>> {
+    const parsed = parseStoredMediaReference(reference);
+    if (!parsed) {
+        throw new Error('Media reference is missing.');
+    }
+
+    if (parsed.kind === 'document') {
+        return fetchDocumentFilePreview(parsed.id);
+    }
+
+    if (parsed.kind === 'asset') {
+        return fetchAssetFilePreview(parsed.id);
+    }
+
+    throw new Error('Legacy media URLs must be re-uploaded to preview securely.');
+}
+
+async function fetchAuthenticatedFilePreview(
+    url: string,
+): Promise<ActionResult<{ dataUrl: string; contentType: string }>> {
+    return safeAction(async () => {
+        const cookieStore = await cookies();
+        const token = cookieStore.get('hrms.accessToken')?.value;
+        if (!token) {
+            throw new Error('Not authenticated. Please log in.');
+        }
+
+        const response = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            const message = await response.text();
+            throw new Error(message || `Failed to load file (${response.status})`);
+        }
+
+        const contentType = response.headers.get('content-type') || 'application/octet-stream';
+        const buffer = await response.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        return {
+            dataUrl: `data:${contentType};base64,${base64}`,
+            contentType,
+        };
+    });
+}
+
 export async function deleteEmployeeDocument(id: string): Promise<ActionResult<boolean>> {
     return safeAction(async () => {
         const data = await gqlRequest<{ deleteDocument: boolean }>(
@@ -224,25 +333,46 @@ export type UploadedDocumentMetadata = {
     fileName?: string;
 };
 
-export async function uploadEmployeeDocument(
+export async function replaceEmployeeDocumentFile(
+    id: string,
     formData: FormData,
 ): Promise<ActionResult<UploadedDocumentMetadata>> {
     return safeAction(async () => {
-        const baseUrl = process.env.DOCUMENT_SERVICE_URL;
-        if (!baseUrl) {
-            throw new Error('DOCUMENT_SERVICE_URL is not defined in environment variables.');
-        }
-        const normalizedBaseUrl = baseUrl.endsWith('/graphql')
-            ? baseUrl.slice(0, -'/graphql'.length)
-            : baseUrl;
-
         const cookieStore = await cookies();
         const token = cookieStore.get('hrms.accessToken')?.value;
         if (!token) {
             throw new Error('Not authenticated. Please log in.');
         }
 
-        const response = await fetch(`${normalizedBaseUrl}/api/documents/upload`, {
+        const response = await fetch(getDocumentReplaceFileApiUrl(id), {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const message = await response.text();
+            throw new Error(message || `Replace failed with status ${response.status}`);
+        }
+
+        const json = (await response.json()) as { id?: string; fileName?: string };
+        return { id: json.id ?? id, fileName: json.fileName };
+    });
+}
+
+export async function uploadEmployeeDocument(
+    formData: FormData,
+): Promise<ActionResult<UploadedDocumentMetadata>> {
+    return safeAction(async () => {
+        const cookieStore = await cookies();
+        const token = cookieStore.get('hrms.accessToken')?.value;
+        if (!token) {
+            throw new Error('Not authenticated. Please log in.');
+        }
+
+        const response = await fetch(getDocumentUploadApiUrl(), {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -273,14 +403,9 @@ export async function uploadDocumentAndGetUrl(
             throw new Error(uploadResult.error);
         }
 
-        const downloadResult = await fetchDocumentDownloadUrl(uploadResult.data.id);
-        if (!downloadResult.success) {
-            throw new Error(downloadResult.error);
-        }
-
         return {
             id: uploadResult.data.id,
-            url: downloadResult.data,
+            url: encodeDocumentReference(uploadResult.data.id),
             fileName: uploadResult.data.fileName,
         };
     });
@@ -290,21 +415,13 @@ export async function uploadLogo(
     formData: FormData,
 ): Promise<{ url?: string; error?: string }> {
     try {
-        const baseUrl = process.env.DOCUMENT_SERVICE_URL;
-        if (!baseUrl) {
-            return { error: 'DOCUMENT_SERVICE_URL is not defined in environment variables.' };
-        }
-        const normalizedBaseUrl = baseUrl.endsWith('/graphql')
-            ? baseUrl.slice(0, -'/graphql'.length)
-            : baseUrl;
-
         const cookieStore = await cookies();
         const token = cookieStore.get('hrms.accessToken')?.value;
         if (!token) {
             return { error: 'Not authenticated. Please log in.' };
         }
 
-        const response = await fetch(`${normalizedBaseUrl}/api/documents/upload/asset`, {
+        const response = await fetch(getDocumentAssetUploadApiUrl(), {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -317,14 +434,12 @@ export async function uploadLogo(
             return { error: message || `Upload failed with status ${response.status}` };
         }
 
-        const json = (await response.json()) as { url?: string };
-        const url = json.url;
-
-        if (!url) {
-            return { error: 'Upload succeeded but no URL was returned by the server.' };
+        const json = (await response.json()) as { id?: string; url?: string };
+        if (!json.id) {
+            return { error: 'Upload succeeded but no asset id was returned by the server.' };
         }
 
-        return { url };
+        return { url: encodeAssetReference(json.id) };
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Unexpected upload error.';
         return { error: message };
@@ -363,22 +478,16 @@ export async function fetchComplianceAlerts(): Promise<ComplianceAlert[]> {
 }
 
 export async function fetchEmployeeComplianceList(params?: {
-    limit?: number;
-    offset?: number;
-    search?: string;
-    complianceStatus?: string;
-    department?: string;
+    pagination?: { page?: number; size?: number };
+    filter?: EmployeeComplianceFilterInput;
 }): Promise<EmployeeComplianceListResponse> {
     try {
         const data = await gqlRequest<{ employeeComplianceList: EmployeeComplianceListResponse }>(
             GraphQLService.DOCUMENT,
             GET_EMPLOYEE_COMPLIANCE_LIST_QUERY,
             {
-                limit: params?.limit,
-                offset: params?.offset,
-                search: params?.search,
-                complianceStatus: params?.complianceStatus,
-                department: params?.department,
+                pagination: params?.pagination,
+                filter: params?.filter,
             },
         );
         return data.employeeComplianceList;
@@ -386,11 +495,13 @@ export async function fetchEmployeeComplianceList(params?: {
         console.error('Failed to fetch employee compliance list:', error);
         return {
             data: [],
-            pagination: {
-                page: 1,
-                limit: params?.limit ?? 10,
+            metaData: {
+                page: params?.pagination?.page ?? 1,
+                size: params?.pagination?.size ?? 10,
                 total: 0,
-                totalPages: 1,
+                totalPages: 0,
+                hasNext: false,
+                hasPrevious: false,
             },
         };
     }

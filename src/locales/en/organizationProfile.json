@@ -17,9 +17,9 @@
     "city": "City (HQ location)",
     "cityPlaceholder": "e.g. Dubai",
     "timezone": "Time zone",
-    "timezonePlaceholder": "e.g. Dubai - United Arab Emirates (GMT+4)",
+    "timezonePlaceholder": "Select timezone",
     "currency": "Currency",
-    "currencyPlaceholder": "e.g. DRM",
+    "currencyPlaceholder": "e.g. AED",
     "websitePlaceholder": "e.g. https://www.company.com",
     "emailPlaceholder": "e.g. contact@company.com",
     "logo": "Upload your logo",
@@ -41,7 +41,8 @@
   },
   "actions": {
     "back": "Back",
-    "continue": "Continue to organization setup"
+    "continue": "Continue to organization setup",
+    "continueShort": "Continue to org setup"
   },
   "errors": {
     "cityRequired": "Please select your city",

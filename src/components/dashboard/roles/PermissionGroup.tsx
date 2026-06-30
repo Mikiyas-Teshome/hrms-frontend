@@ -6,7 +6,14 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { PermissionScope } from '@/features/roles/roles.types';
-import { SCOPE_PRIORITY } from '@/features/roles/permission-scope.util';
+import { capPermissionScope, SCOPE_PRIORITY } from '@/features/roles/permission-scope.util';
+
+export const PERMISSION_SCOPE_DISPLAY_ORDER: PermissionScope[] = [
+    PermissionScope.ALL,
+    PermissionScope.COMPANY,
+    PermissionScope.DEPARTMENT,
+    PermissionScope.OWN,
+];
 
 export interface Permission {
     id: string;
@@ -19,9 +26,10 @@ interface PermissionGroupProps {
     selectedIds: string[];
     onToggleAll: (checked: boolean) => void;
     onTogglePermission: (id: string, checked: boolean) => void;
-    scope?: PermissionScope;
-    maxScope?: PermissionScope;
-    onScopeChange?: (scope: PermissionScope) => void;
+    permissionScopes?: Record<string, PermissionScope>;
+    defaultScope?: PermissionScope;
+    resolveAllowedScopes?: (permissionId: string) => PermissionScope[];
+    onPermissionScopeChange?: (permissionId: string, scope: PermissionScope) => void;
     className?: string;
 }
 
@@ -31,22 +39,45 @@ const PermissionGroup: React.FC<PermissionGroupProps> = ({
     selectedIds,
     onToggleAll,
     onTogglePermission,
-    scope = PermissionScope.COMPANY,
-    maxScope = PermissionScope.ALL,
-    onScopeChange,
+    permissionScopes = {},
+    defaultScope = PermissionScope.COMPANY,
+    resolveAllowedScopes,
+    onPermissionScopeChange,
     className,
 }) => {
     const { t } = useTranslation('roles');
-    const scopeOptions = [
-        { id: PermissionScope.ALL, label: t('scopeAll') },
-        { id: PermissionScope.COMPANY, label: t('scopeCompany') },
-        { id: PermissionScope.DEPARTMENT, label: t('scopeDepartment') },
-        { id: PermissionScope.OWN, label: t('scopeOwn') },
-    ].filter((option) => SCOPE_PRIORITY.indexOf(option.id) <= SCOPE_PRIORITY.indexOf(maxScope));
+    const scopeLabels: Record<PermissionScope, string> = {
+        [PermissionScope.ALL]: t('scopeAll'),
+        [PermissionScope.COMPANY]: t('scopeCompany'),
+        [PermissionScope.DEPARTMENT]: t('scopeDepartment'),
+        [PermissionScope.OWN]: t('scopeOwn'),
+    };
     const allChecked =
         permissions.length > 0 && permissions.every((p) => selectedIds.includes(p.id));
     const someChecked = permissions.some((p) => selectedIds.includes(p.id)) && !allChecked;
     const selectedCount = permissions.filter((p) => selectedIds.includes(p.id)).length;
+
+    const scopeOptionsForPermission = (permissionId: string) => {
+        const allowedScopes =
+            resolveAllowedScopes?.(permissionId) ?? [...PERMISSION_SCOPE_DISPLAY_ORDER];
+        return PERMISSION_SCOPE_DISPLAY_ORDER.filter((scope) => allowedScopes.includes(scope)).map(
+            (scope) => ({
+                id: scope,
+                label: scopeLabels[scope],
+            }),
+        );
+    };
+
+    const maxScopeForPermission = (permissionId: string) => {
+        const allowedScopes =
+            resolveAllowedScopes?.(permissionId) ?? [...PERMISSION_SCOPE_DISPLAY_ORDER];
+        return allowedScopes.reduce<PermissionScope | null>((maxScope, scope) => {
+            if (!maxScope || SCOPE_PRIORITY.indexOf(scope) > SCOPE_PRIORITY.indexOf(maxScope)) {
+                return scope;
+            }
+            return maxScope;
+        }, null);
+    };
 
     return (
         <div
@@ -55,7 +86,6 @@ const PermissionGroup: React.FC<PermissionGroupProps> = ({
                 className,
             )}
         >
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 bg-muted/50 border-b border-border/80">
                 <div className="flex items-center gap-3">
                     <Checkbox
@@ -76,63 +106,77 @@ const PermissionGroup: React.FC<PermissionGroupProps> = ({
                 </span>
             </div>
 
-            {/* Body */}
-            <div className="p-6">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-y-6 gap-x-3">
-                    {permissions.map((permission) => (
-                        <div key={permission.id} className="flex items-center gap-3">
-                            <Checkbox
-                                id={permission.id}
-                                checked={selectedIds.includes(permission.id)}
-                                onCheckedChange={(checked) =>
-                                    onTogglePermission(permission.id, !!checked)
-                                }
-                                className="rounded-[4px] cursor-pointer w-4 h-4border-border shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                            />
-                            <label
-                                htmlFor={permission.id}
-                                className="text-sm text-foreground font-medium leading-none cursor-pointer "
-                            >
-                                {permission.label}
-                            </label>
-                        </div>
-                    ))}
-                </div>
-            </div>
+            <div className="p-6 space-y-4">
+                {permissions.map((permission) => {
+                    const isSelected = selectedIds.includes(permission.id);
+                    const maxScope = maxScopeForPermission(permission.id) ?? PermissionScope.ALL;
+                    const scopeOptions = scopeOptionsForPermission(permission.id);
+                    const currentScope = capPermissionScope(
+                        permissionScopes[permission.id] ?? defaultScope,
+                        maxScope,
+                    );
 
-            {/* Permission Scope Section */}
-            <div className="px-6 pb-6">
-                <div className="flex items-center justify-start gap-8 p-3 px-6 bg-muted/30 border border-border/50 rounded-lg self-stretch overflow-x-auto no-scrollbar">
-                    <div className="flex items-center min-w-28.75 shrink-0">
-                        <span className="text-sm font-semibold text-foreground">
-                            {t('permissionScope')}
-                        </span>
-                    </div>
-
-                    <div className="flex-1">
-                        <RadioGroup 
-                            value={scope} 
-                            onValueChange={(val) => onScopeChange?.(val as PermissionScope)}
-                            className="flex items-center gap-6 sm:gap-10"
+                    return (
+                        <div
+                            key={permission.id}
+                            className={cn(
+                                'rounded-lg border border-border/50 overflow-hidden',
+                                isSelected ? 'bg-muted/20' : 'bg-transparent',
+                            )}
                         >
-                            {scopeOptions.map((option) => (
-                                <div key={option.id} className="flex items-center gap-3">
-                                    <RadioGroupItem 
-                                        value={option.id} 
-                                        id={`${title}-${option.id}`}
-                                        className="w-4 h-4 border-primary text-primary focus-visible:ring-primary"
-                                    />
-                                    <label
-                                        htmlFor={`${title}-${option.id}`}
-                                        className="text-sm font-medium text-foreground/90 cursor-pointer whitespace-nowrap"
+                            <div className="flex items-center gap-3 px-4 py-3">
+                                <Checkbox
+                                    id={permission.id}
+                                    checked={isSelected}
+                                    onCheckedChange={(checked) =>
+                                        onTogglePermission(permission.id, !!checked)
+                                    }
+                                    className="rounded-[4px] cursor-pointer w-4 h-4 border-border shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                                />
+                                <label
+                                    htmlFor={permission.id}
+                                    className="text-sm text-foreground font-medium leading-none cursor-pointer "
+                                >
+                                    {permission.label}
+                                </label>
+                            </div>
+
+                            {isSelected && onPermissionScopeChange && scopeOptions.length > 0 && (
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 px-4 pb-4 pt-0 ml-7 overflow-x-auto no-scrollbar">
+                                    <span className="text-xs font-semibold text-foreground shrink-0">
+                                        {t('permissionScope')}
+                                    </span>
+                                    <RadioGroup
+                                        value={currentScope}
+                                        onValueChange={(value) =>
+                                            onPermissionScopeChange(
+                                                permission.id,
+                                                capPermissionScope(value as PermissionScope, maxScope),
+                                            )
+                                        }
+                                        className="flex flex-wrap items-center gap-4 sm:gap-6"
                                     >
-                                        {option.label}
-                                    </label>
+                                        {scopeOptions.map((option) => (
+                                            <div key={option.id} className="flex items-center gap-2">
+                                                <RadioGroupItem
+                                                    value={option.id}
+                                                    id={`${permission.id}-${option.id}`}
+                                                    className="w-4 h-4 border-primary text-primary focus-visible:ring-primary"
+                                                />
+                                                <label
+                                                    htmlFor={`${permission.id}-${option.id}`}
+                                                    className="text-sm font-medium text-foreground/90 cursor-pointer whitespace-nowrap"
+                                                >
+                                                    {option.label}
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </RadioGroup>
                                 </div>
-                            ))}
-                        </RadioGroup>
-                    </div>
-                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

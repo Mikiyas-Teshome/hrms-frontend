@@ -6,6 +6,8 @@
   "activeContracts": "Active contracts",
   "signedByEmployees": "Signed by employees",
   "renewableContracts": "Renewable contracts",
+  "filterCompany": "Filter by Company",
+  "company": "Company",
   "contractType": "Contract type",
   "duration": "Duration",
   "probation": "Probation",

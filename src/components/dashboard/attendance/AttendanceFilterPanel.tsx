@@ -108,8 +108,6 @@ export function AttendanceFilterPanel({
         name: 'subDivisionOuId',
     });
 
-    // Reset logic: we don't auto-reset children anymore to allow independent filtering
-    // across the hierarchy, as per the hybrid model requirement.
     const handleReset = () => {
         reset({
             companyOuId: 'all',
@@ -210,7 +208,6 @@ export function AttendanceFilterPanel({
             )}
         >
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 px-6 gap-x-4 gap-y-6 w-full">
-                {/* Company Filter */}
                 {canSelectCompany && (
                     <div className="w-full">
                         <FormSelect
@@ -229,7 +226,6 @@ export function AttendanceFilterPanel({
                     </div>
                 )}
 
-                {/* Division Filter */}
                 {!isOwnScopeOnly && filteredDivisions.length > 0 && (
                     <div className="w-full">
                         <FormSelect
@@ -248,7 +244,6 @@ export function AttendanceFilterPanel({
                     </div>
                 )}
 
-                {/* Sub-division Filter */}
                 {!isOwnScopeOnly && filteredSubDivisions.length > 0 && (
                     <div className="w-full">
                         <FormSelect
@@ -267,7 +262,6 @@ export function AttendanceFilterPanel({
                     </div>
                 )}
 
-                {/* Department Filter */}
                 {!isOwnScopeOnly && filteredDepartments.length > 0 && (
                     <div className="w-full">
                         <FormSelect
@@ -286,7 +280,6 @@ export function AttendanceFilterPanel({
                     </div>
                 )}
 
-                {/* Shift Type Filter */}
                 <div className="w-full">
                     <FormSelect
                         id="filter-shifttype"
@@ -298,10 +291,10 @@ export function AttendanceFilterPanel({
                         containerClassName="w-full space-y-4"
                         options={[
                             { label: t('attendance.all', 'All'), value: 'all' },
-                            ...Object.values(ShiftType).map(s => ({ 
-                                label: s.charAt(0) + s.slice(1).toLowerCase(), 
-                                value: s 
-                            }))
+                            ...Object.values(ShiftType).map((s) => ({
+                                label: t(`attendance.shiftTypes.${s}`, s.charAt(0) + s.slice(1).toLowerCase()),
+                                value: s,
+                            })),
                         ]}
                     />
                 </div>
@@ -319,7 +312,7 @@ export function AttendanceFilterPanel({
                             options={[
                                 { label: t('attendance.all', 'All'), value: 'all' },
                                 ...OVERTIME_STATUS_OPTIONS.map((s) => ({
-                                    label: s.charAt(0) + s.slice(1).toLowerCase(),
+                                    label: t(`attendance.overtimeStatusLabels.${s}`, s.charAt(0) + s.slice(1).toLowerCase()),
                                     value: s,
                                 })),
                             ]}
@@ -338,7 +331,7 @@ export function AttendanceFilterPanel({
                             options={[
                                 { label: t('attendance.all', 'All'), value: 'all' },
                                 ...Object.values(AttendanceStatus).map((s) => ({
-                                    label: s.charAt(0) + s.slice(1).toLowerCase().replace('_', ' '),
+                                    label: t(`attendance.statusLabels.${s}`, s.charAt(0) + s.slice(1).toLowerCase().replace('_', ' ')),
                                     value: s,
                                 })),
                             ]}
@@ -346,7 +339,6 @@ export function AttendanceFilterPanel({
                     </div>
                 )}
 
-                {/* Contract Type Filter */}
                 {!isOwnScopeOnly && (
                     <div className="w-full">
                         <FormSelect

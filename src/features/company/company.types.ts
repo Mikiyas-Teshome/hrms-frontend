@@ -89,6 +89,17 @@ export interface FirebaseConfigInput {
     firebaseMessagingSenderId: string;
     firebaseProjectId: string;
     firebaseServerKey?: string | null;
+    firebaseServiceAccount?: string | null;
+    firebaseVapidKey?: string | null;
+}
+
+export interface CompanyFirebaseWebConfig {
+    configured: boolean;
+    firebaseApiKey?: string | null;
+    firebaseAppId?: string | null;
+    firebaseProjectId?: string | null;
+    firebaseMessagingSenderId?: string | null;
+    firebaseVapidKey?: string | null;
 }
 
 export interface SmtpConfigInput {

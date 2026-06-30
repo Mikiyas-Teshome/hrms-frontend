@@ -55,7 +55,6 @@ export function PayrollCycleModal({
                 </DialogHeader>
 
                 <div className="space-y-10">
-                    {/* Payroll Cycle Radio Group */}
                     <RadioGroup
                         value={cycle}
                         onValueChange={setCycle}
@@ -85,7 +84,6 @@ export function PayrollCycleModal({
                         ))}
                     </RadioGroup>
 
-                    {/* Processing Day & Warning */}
                     <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
                         <div className="space-y-2.5">
                             <Label className="text-sm font-bold text-foreground rtl:text-end block">
@@ -127,7 +125,6 @@ export function PayrollCycleModal({
                     </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex items-center justify-between pt-4 rtl:flex-row-reverse">
                     <Button
                         variant="outline"

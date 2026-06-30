@@ -40,6 +40,7 @@ export interface ShiftTemplate {
     type: ShiftType;
     updatedAt: string;
     workingDays: number[];
+    overtimePayable?: boolean;
 }
 
 export interface EmployeeShift {
@@ -67,7 +68,6 @@ export interface AttendanceRecord {
     overtimeStatus?: string;
     updatedAt: string;
     userId: string;
-    // New fields from backend update
     shiftType?: string | null;
     contractType?: string | null;
     employmentType?: string | null;
@@ -164,8 +164,6 @@ export interface AttendanceFilterOptions {
     contractTypes: string[];
 }
 
-// Input Types
-
 export interface CreateEmployeeShiftInput {
     companyOuId?: string | null;
     endDate?: string | null;
@@ -226,6 +224,7 @@ export interface CreateShiftTemplateInput {
     isActive?: boolean;
     name: string;
     overtimeAllowed?: boolean;
+    overtimePayable?: boolean;
     startTime: string;
     type: ShiftType;
     workingDays: number[];
@@ -240,6 +239,7 @@ export interface UpdateShiftTemplateInput {
     isActive?: boolean;
     name?: string;
     overtimeAllowed?: boolean;
+    overtimePayable?: boolean;
     startTime?: string;
     type?: ShiftType;
     workingDays?: number[];

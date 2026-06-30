@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FormField } from '@/components/ui/FormField';
 import { FormSelect } from '@/components/ui/FormSelect';
 import { useContracts } from '@/features/contracts/hooks/useContracts';
+import { useProfile } from '@/features/auth/hooks/useAuth';
 import {
     useAssignEmployeeContract,
     useUpdateDraftEmployeeContract,
@@ -27,7 +28,11 @@ import {
 } from '@/features/contracts/hooks/useEmployeeContracts';
 import { EmployeeContract } from '@/features/contracts/employee-contract.types';
 import { ContractStatus } from '@/features/contracts/contracts.types';
-import { EMPLOYMENT_TYPE_OPTIONS } from '@/features/employee/employee.types';
+import {
+    buildContractsById,
+    useContractEmploymentTypeSync,
+} from '@/features/contracts/hooks/useContractEmploymentTypeSync';
+import { ContractEmploymentTypeField } from '@/components/dashboard/employees/ContractEmploymentTypeField';
 import { useDisplayCurrency } from '@/features/settings/hooks/useDisplayCurrency';
 
 interface UpdateEmployeeContractSheetProps {
@@ -49,7 +54,12 @@ export default function UpdateEmployeeContractSheet({
     const { toast } = useToast();
     const isRtl = i18n.language === 'ar';
 
-    const { data: contractsResponse, isLoading: contractsLoading } = useContracts();
+    const { data: profile } = useProfile();
+    const contractsOuId = profile?.companyId ?? '';
+    const { data: contractsResponse, isLoading: contractsLoading } = useContracts(
+        contractsOuId ? { ouId: contractsOuId, limit: 100 } : undefined,
+        { enabled: Boolean(contractsOuId) },
+    );
     const assignMutation = useAssignEmployeeContract();
     const updateDraftMutation = useUpdateDraftEmployeeContract();
     const renewMutation = useRenewEmployeeContract();
@@ -64,6 +74,11 @@ export default function UpdateEmployeeContractSheet({
             value: c.id,
         })) || [];
     }, [contractsResponse]);
+
+    const contractsById = useMemo(
+        () => buildContractsById(contractsResponse?.data),
+        [contractsResponse],
+    );
 
     const updateContractSchema = useMemo(() => {
         return z.object({
@@ -85,6 +100,11 @@ export default function UpdateEmployeeContractSheet({
             jobTitle: '',
         },
     });
+
+    const { syncEmploymentTypeFromContract } = useContractEmploymentTypeSync(form, contractsById);
+
+    const selectedContractId = form.watch('contractId');
+    const selectedEmploymentType = form.watch('employmentType');
 
     useEffect(() => {
         if (open) {
@@ -182,7 +202,21 @@ export default function UpdateEmployeeContractSheet({
                                     name="contractId"
                                     error={form.formState.errors.contractId}
                                     options={contractOptions}
+                                    onChange={(contractId) => syncEmploymentTypeFromContract(contractId)}
                                     t={(key) => t(key)}
+                                />
+
+                                <ContractEmploymentTypeField
+                                    label={t('employmentType', 'Employment type')}
+                                    selectedContractId={selectedContractId}
+                                    employmentType={selectedEmploymentType}
+                                    register={form.register}
+                                    selectContractFirstLabel={t('selectContractFirst', 'Select a contract first')}
+                                    employmentTypeFromContractLabel={t(
+                                        'employmentTypeFromContract',
+                                        'Set from selected contract',
+                                    )}
+                                    t={t}
                                 />
 
                                 <FormField
@@ -193,20 +227,6 @@ export default function UpdateEmployeeContractSheet({
                                     register={form.register}
                                     name="salary"
                                     error={form.formState.errors.salary}
-                                    t={(key) => t(key)}
-                                />
-
-                                <FormSelect
-                                    id="employmentType"
-                                    label={t('employmentType', 'Employment type')}
-                                    placeholder={t('selectEmploymentType', 'Select employment type')}
-                                    control={form.control as any}
-                                    name="employmentType"
-                                    error={form.formState.errors.employmentType}
-                                    options={EMPLOYMENT_TYPE_OPTIONS.map((opt) => ({
-                                        label: t(opt.value, opt.label),
-                                        value: opt.value,
-                                    }))}
                                     t={(key) => t(key)}
                                 />
 

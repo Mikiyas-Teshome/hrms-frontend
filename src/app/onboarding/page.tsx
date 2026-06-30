@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { StepIndicator } from '@/components/onboarding/shared/step-indicator';
 import { OnboardingHeader } from '@/components/onboarding/shared/onboarding-header';
@@ -47,6 +47,7 @@ export default function OnboardingPage() {
   const profileStep = user ? clampOnboardingStep(user.onboardingStep) : 1;
   const [stepOverride, setStepOverride] = useState<number | null>(null);
   const currentStep = stepOverride ?? profileStep;
+  const isCompletingRef = useRef(false);
 
   useEffect(() => {
     if (isProfileLoading || isFetching) {
@@ -59,6 +60,9 @@ export default function OnboardingPage() {
     }
 
     if (!requiresTenantOnboarding(user)) {
+      if (isCompletingRef.current) {
+        return;
+      }
       router.replace('/dashboard');
     }
   }, [isProfileLoading, isFetching, user, router]);
@@ -90,15 +94,19 @@ export default function OnboardingPage() {
       return;
     }
 
+    isCompletingRef.current = true;
     try {
       const res = await updateOnboarding({
         userId: user.id,
         onboardingComplete: true,
       });
       if (res) {
-        router.push('/setup-success');
+        router.replace('/setup-success');
+      } else {
+        isCompletingRef.current = false;
       }
     } catch (err: unknown) {
+      isCompletingRef.current = false;
       const message =
         err instanceof Error ? err.message : 'Failed to complete onboarding. Please try again.';
       toast({
@@ -114,7 +122,7 @@ export default function OnboardingPage() {
       await persistStep(currentStep - 1);
       return;
     }
-    router.push('/dashboard');
+    router.replace('/dashboard');
   }, [currentStep, persistStep, router]);
 
   const handleSaveAndExit = useCallback(async () => {
@@ -128,7 +136,7 @@ export default function OnboardingPage() {
         title: tCompanyProfile('success.saveTitle'),
         description: tCompanyProfile('success.saveDescription'),
       });
-      router.push('/dashboard');
+      router.replace('/dashboard');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to save progress.';
       toast({
@@ -186,23 +194,23 @@ export default function OnboardingPage() {
   }
 
   return (
-    <OnboardingProvider>
-      <div className="min-h-screen">
-        <PublicHeader showSave={true} onSave={handleSaveAndExit} />
-        <main className="px-6 py-12 sm:px-10 lg:py-4 lg:my-2">
-          <div className="mx-auto flex max-w-4xl flex-col gap-2.5">
-            <div className="flex flex-col py-4 gap-6">
-              <OnboardingHeader title={config.title} subtitle={config.subtitle} />
-              <StepIndicator
-                currentStep={currentStep}
-                totalSteps={TOTAL_TENANT_ONBOARDING_STEPS}
-              />
-            </div>
+      <OnboardingProvider>
+          <div className="min-h-screen">
+              <PublicHeader showSave={true} onSave={handleSaveAndExit} />
+              <main className="px-2 sm:px-6 py-12 md:px-10 lg:py-4 lg:my-2">
+                  <div className="mx-auto flex max-w-4xl flex-col gap-2.5">
+                      <div className="flex flex-col py-4 gap-6">
+                          <OnboardingHeader title={config.title} subtitle={config.subtitle} />
+                          <StepIndicator
+                              currentStep={currentStep}
+                              totalSteps={TOTAL_TENANT_ONBOARDING_STEPS}
+                          />
+                      </div>
 
-            {config.form || config.content}
+                      {config.form || config.content}
+                  </div>
+              </main>
           </div>
-        </main>
-      </div>
-    </OnboardingProvider>
+      </OnboardingProvider>
   );
 }

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, MoreVertical, Eye, Trash2, PencilLine, RefreshCw, ListFilter } from 'lucide-react';
 import { insuranceStats } from '@/data/benefits';
 import SummaryStatList from '@/components/dashboard/shared/SummaryStatList';
+import { SummaryStatListSkeleton } from '@/components/common/SummaryStatSkeleton';
 import { UniversalDataTable, ColumnConfig } from '@/components/ui/universal-data-table';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -49,7 +50,7 @@ const InsurancePage = () => {
     }>({});
     const form = useForm({
         defaultValues: {
-            companyId: '',
+            ouId: '',
         },
     });
     const filterForm = useForm({
@@ -60,16 +61,16 @@ const InsurancePage = () => {
         },
     });
 
-    const selectedCompanyId = useWatch({
+    const selectedOuId = useWatch({
         control: form.control,
-        name: 'companyId',
+        name: 'ouId',
     });
 
     const { companies: companiesData, isLoading: isLoadingCompanies } = useCompanyOptions();
 
     useEffect(() => {
-        if (companiesData?.length && !form.getValues('companyId')) {
-            form.setValue('companyId', companiesData[0].id);
+        if (companiesData?.length && !form.getValues('ouId')) {
+            form.setValue('ouId', companiesData[0].id);
         }
     }, [companiesData, form]);
 
@@ -77,7 +78,7 @@ const InsurancePage = () => {
         page: currentPage,
         limit: pageSize,
         search: debouncedSearch || undefined,
-        companyOuId: selectedCompanyId || undefined,
+        ouId: selectedOuId || undefined,
         sortBy: mapInsuranceSortBy(sortColumn) ?? 'createdAt',
         sortOrder: sortDirection === 'asc' ? 'ASC' : 'DESC',
         status: appliedFilters.status,
@@ -103,7 +104,11 @@ const InsurancePage = () => {
         setCurrentPage(1);
     };
 
-    const { data: statsData } = useInsuranceStats(selectedCompanyId || undefined);
+    const { data: statsData, isLoading: isLoadingStats } = useInsuranceStats(
+        selectedOuId || undefined,
+    );
+
+    const isStatsLoading = !selectedOuId || isLoadingStats;
 
     const deleteMutation = useDeleteInsurance();
     const updateStatusMutation = useUpdateInsuranceStatus();
@@ -360,7 +365,7 @@ const InsurancePage = () => {
                         id="company-selector"
                         placeholder={isLoadingCompanies ? t("setup.loadingCompanies", { defaultValue: "Loading..." }) : "Filter by Company"}
                         control={form.control}
-                        name="companyId"
+                        name="ouId"
                         options={companiesData?.map((company) => ({ label: company.name, value: company.id })) || []}
                         t={t}
                         containerClassName="w-[200px]"
@@ -381,16 +386,20 @@ const InsurancePage = () => {
                 </div>
             </div>
 
-            <SummaryStatList
-                stats={dynamicStats.map((stat) => ({
-                    title: t(`benefits.insurance.stats.${stat.id}`),
-                    value: stat.value,
-                    icon: stat.icon,
-                    iconBgColor: stat.bgColor,
-                    iconColor: stat.color,
-                    borderColor: stat.borderColor,
-                }))}
-            />
+            {isStatsLoading ? (
+                <SummaryStatListSkeleton count={insuranceStats.length} />
+            ) : (
+                <SummaryStatList
+                    stats={dynamicStats.map((stat) => ({
+                        title: t(`benefits.insurance.stats.${stat.id}`),
+                        value: stat.value,
+                        icon: stat.icon,
+                        iconBgColor: stat.bgColor,
+                        iconColor: stat.color,
+                        borderColor: stat.borderColor,
+                    }))}
+                />
+            )}
 
             <div className="w-full">
                 <UniversalDataTable

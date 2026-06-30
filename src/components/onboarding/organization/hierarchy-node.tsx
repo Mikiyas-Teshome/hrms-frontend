@@ -38,7 +38,6 @@ export const HierarchyNode = ({
         index === 0 && "min-w-max pb-4"
       )}
     >
-      {/* Row: Icon + Card */}
       <div className="relative flex flex-row items-center gap-3 self-stretch z-[1]">
         {isLast && (
           <div
@@ -51,7 +50,6 @@ export const HierarchyNode = ({
           />
         )}
 
-        {/* Icon circle */}
         <div
           className="shrink-0 w-12 h-12 rounded-full bg-primary flex items-center justify-center z-[2]"
           style={{
@@ -61,7 +59,6 @@ export const HierarchyNode = ({
           <Icon className="size-6 text-white" />
         </div>
 
-        {/* Card */}
         <div
           className={cn(
             "flex-1 min-w-[200px] sm:min-w-[300px] flex flex-row justify-between items-center gap-4 px-4 py-4 rounded-[16px] border transition-all",
@@ -70,7 +67,6 @@ export const HierarchyNode = ({
               : "bg-muted/30 border-border/50 opacity-40 grayscale"
           )}
         >
-          {/* Left: label + input */}
           <div className="flex flex-col gap-2 min-w-0">
             <span className="text-[10px] font-bold text-primary dark:text-[#136DEC] uppercase tracking-[1px] leading-[15px] font-inter">
               {t("hierarchy.level", { number: index + 1 })}
@@ -97,7 +93,6 @@ export const HierarchyNode = ({
             </div>
           </div>
 
-          {/* Right: Switch */}
           <Switch
             checked={index === 0 ? true : isActive}
             onCheckedChange={(checked) => handleLevelToggle(index, checked)}
@@ -110,7 +105,6 @@ export const HierarchyNode = ({
         </div>
       </div>
 
-      {/* Nested child level node — Indented by var(--indent-size) to the right */}
       {inner && (
         <div className="w-full pl-[var(--indent-size)] relative">
           <div

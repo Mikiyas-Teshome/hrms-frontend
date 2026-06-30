@@ -38,10 +38,10 @@ export function mapCalendarTypeToPreset(type: CalendarType): WorkingHoursPreset 
     return 'standard';
 }
 
-export function buildShiftTimesForDate(date: string) {
+export function buildShiftTimesForDate() {
     return {
-        startTime: new Date(`${date}T09:00:00`).toISOString(),
-        endTime: new Date(`${date}T17:00:00`).toISOString(),
+        startTime: '1970-01-01T09:00:00.000Z',
+        endTime: '1970-01-01T17:00:00.000Z',
     };
 }
 
@@ -58,8 +58,7 @@ export function buildShiftTemplatePayload(
     companyOuId: string,
     existing?: ShiftTemplate | null,
 ) {
-    const currentDate = new Date().toISOString().split('T')[0];
-    const { startTime, endTime } = buildShiftTimesForDate(currentDate);
+    const { startTime, endTime } = buildShiftTimesForDate();
     const presetConfig =
         preset === 'custom' && existing
             ? { workingDays: existing.workingDays, name: existing.name }

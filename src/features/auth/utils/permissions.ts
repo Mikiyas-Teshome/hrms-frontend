@@ -1,5 +1,36 @@
 import { PermissionsMap } from "@/features/roles/roles.types";
 
+export const hasModuleAccess = (
+  permissionsMap: PermissionsMap | null | undefined,
+  module: string,
+  options?: { action?: string; actionsAny?: string[] },
+): boolean => {
+  if (!permissionsMap) {
+    return false;
+  }
+
+  if (permissionsMap["all"]?.["manage"]) {
+    return true;
+  }
+
+  const modulePerms = permissionsMap[module];
+  if (!modulePerms) {
+    return false;
+  }
+
+  const checkAction = (action: string) =>
+    !!modulePerms[action] ||
+    !!modulePerms["manage"] ||
+    (action === "read" && Object.keys(modulePerms).length > 0);
+
+  const actionsAny = options?.actionsAny;
+  if (actionsAny?.length) {
+    return actionsAny.some((action) => checkAction(action));
+  }
+
+  return checkAction(options?.action ?? "read");
+};
+
 export const hasPermission = (
   permissionsMap: PermissionsMap | null | undefined,
   module: string,
@@ -7,17 +38,14 @@ export const hasPermission = (
 ): boolean => {
   if (!permissionsMap) return false;
   
-  // Wildcard: 'all' module with 'manage' action grants everything
   if (permissionsMap["all"]?.["manage"]) {
     return true;
   }
 
-  // Check for 'manage' action on the specific module
   if (permissionsMap[module]?.["manage"]) {
     return true;
   }
 
-  // Direct check: permissionsMap[module][action]
   if (permissionsMap[module]?.[action]) {
     return true;
   }

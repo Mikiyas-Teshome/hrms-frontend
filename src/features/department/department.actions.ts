@@ -49,7 +49,7 @@ export async function createDepartment(input: CreateDepartmentInput): Promise<De
     CREATE_DEPARTMENT_MUTATION,
     { input }
   );
-  revalidatePath('/dashboard/settings/departments'); // Assuming a settings or similar route exists
+  revalidatePath('/dashboard/settings/departments');
   return data.createDepartment;
 }
 

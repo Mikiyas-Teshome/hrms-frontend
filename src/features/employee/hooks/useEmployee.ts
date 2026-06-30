@@ -10,10 +10,12 @@ import {
   fetchMyEmployeeProfile,
   initiateTransfer,
   inviteEmployee,
+  inviteEmployees,
   fetchEmployeeTransferHistory,
   recordTransfer,
   updateEmployeeStatus,
 } from '../employee.actions';
+import { MY_EMPLOYEE_QUERY_KEY } from '../employee.constants';
 import {
   CreateEmployeeInput,
   UpdateEmployeeInput,
@@ -23,6 +25,7 @@ import {
   PaginationInput,
   TransferEmployeeInput,
   CreateInvitationInput,
+  BulkInviteEmployeesInput,
   RecordTransferInput,
   UpdateEmployeeStatusInput,
 } from '../employee.types';
@@ -82,7 +85,7 @@ export const useUpdateMyEmployeeProfile = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
-      queryClient.invalidateQueries({ queryKey: ['employee', 'profile'] });
+      queryClient.invalidateQueries({ queryKey: MY_EMPLOYEE_QUERY_KEY });
     },
   });
 };
@@ -98,7 +101,7 @@ export const useUpdateEmployee = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['employee', variables.id] });
-      queryClient.invalidateQueries({ queryKey: ['employee', 'profile'] });
+      queryClient.invalidateQueries({ queryKey: MY_EMPLOYEE_QUERY_KEY });
     },
   });
 };
@@ -119,7 +122,7 @@ export const useDeleteEmployee = () => {
 
 export const useMyEmployeeProfile = (options?: { enabled?: boolean }) => {
   return useQuery({
-    queryKey: ['employee', 'profile'],
+    queryKey: MY_EMPLOYEE_QUERY_KEY,
     queryFn: () => fetchMyEmployeeProfile(),
     enabled: options?.enabled ?? true,
   });
@@ -149,6 +152,26 @@ export const useInviteEmployee = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
+      window.setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['employees'] });
+      }, 2500);
+    },
+  });
+};
+
+export const useInviteEmployees = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: BulkInviteEmployeesInput) => {
+      const result = await inviteEmployees(input);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      window.setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['employees'] });
+      }, 2500);
     },
   });
 };

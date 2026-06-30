@@ -2,7 +2,6 @@ import i18n from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
 
-// English translations
 import addMembersEn from '../locales/en/addMembers.json';
 import billingEn from '../locales/en/billing.json';
 import companyEn from '../locales/en/company.json';
@@ -42,9 +41,12 @@ import entitlementEn from '../locales/en/entitlement.json';
 import contractsInsurancesEn from '../locales/en/contractsInsurances.json';
 import settingsEn from '../locales/en/settings.json';
 import documentEn from '../locales/en/document.json';
+import payrollEn from '../locales/en/payroll.json';
+import termsEn from '../locales/en/terms.json';
+import privacyEn from '../locales/en/privacy.json';
+import landingEn from '../locales/en/landing.json';
 
 
-// Arabic translations
 import addMembersAr from '../locales/ar/addMembers.json';
 import billingAr from '../locales/ar/billing.json';
 import companyAr from '../locales/ar/company.json';
@@ -84,6 +86,10 @@ import entitlementAr from '../locales/ar/entitlement.json';
 import contractsInsurancesAr from '../locales/ar/contractsInsurances.json';
 import settingsAr from '../locales/ar/settings.json';
 import documentAr from '../locales/ar/document.json';
+import payrollAr from '../locales/ar/payroll.json';
+import termsAr from '../locales/ar/terms.json';
+import privacyAr from '../locales/ar/privacy.json';
+import landingAr from '../locales/ar/landing.json';
 
 
 const resources = {
@@ -127,6 +133,10 @@ const resources = {
     contractsInsurances: contractsInsurancesEn,
     settings: settingsEn,
     document: documentEn,
+    payroll: payrollEn,
+    terms: termsEn,
+    privacy: privacyEn,
+    landing: landingEn,
   },
   ar: {
     addMembers: addMembersAr,
@@ -168,6 +178,10 @@ const resources = {
     contractsInsurances: contractsInsurancesAr,
     settings: settingsAr,
     document: documentAr,
+    payroll: payrollAr,
+    terms: termsAr,
+    privacy: privacyAr,
+    landing: landingAr,
   },
 };
 
@@ -191,7 +205,6 @@ i18n
 export const changeLanguage = (lang: 'en' | 'ar') => {
   i18n.changeLanguage(lang);
   document.cookie = `hrms_language=${lang}; path=/; max-age=31536000; SameSite=Lax`;
-  // Update HTML dir attribute for RTL support
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   document.documentElement.lang = lang;
 };

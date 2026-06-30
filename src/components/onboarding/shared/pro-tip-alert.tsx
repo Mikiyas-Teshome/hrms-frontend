@@ -12,31 +12,27 @@ interface ProTipAlertProps {
 
 export function ProTipAlert({ title, description, buttonText, onClick }: ProTipAlertProps) {
     return (
-        <div className="flex flex-row items-center justify-between px-4 py-3 gap-3 rounded-[12px] bg-[#136DEC0D] border border-[#136DEC1A] w-full min-h-[95.5px]">
-            <div className="flex flex-row items-start gap-3 flex-1">
-                <div className="flex shrink-0 w-4.5 h-[69.5px] items-start pt-px">
-                    <Lightbulb className="w-4.5 h-4.5 text-[#136DEC]" />
-                </div>
+        <div className="flex w-full flex-col gap-4 rounded-[12px] border border-[#136DEC1A] bg-[#136DEC0D] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-3">
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+                <Lightbulb className="mt-0.5 size-[18px] shrink-0 text-[#136DEC]" />
 
-                <div className="flex flex-col items-start gap-[2.88px] flex-1">
-                    <h4 className="text-sm font-bold text-[#136DEC] leading-5 m-0">{title}</h4>
-                    <div className="text-sm font-normal leading-5.75 text-foreground/80">
+                <div className="min-w-0 flex-1 space-y-1">
+                    <h4 className="text-sm font-bold leading-5 text-[#136DEC]">{title}</h4>
+                    <p className="text-sm font-normal leading-relaxed text-foreground/80">
                         {description}
-                    </div>
+                    </p>
                 </div>
             </div>
 
-            <div className="flex flex-col justify-end items-start h-[69.5px] shrink-0">
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={onClick}
-                    className="flex flex-row justify-center items-center px-4 py-2 gap-2 h-9 min-w-25 border-primary rounded-[8px] bg-transparent text-[14px] font-medium text-primary hover:bg-[#136DEC0D]  shadow-[0px_1px_2px_rgba(0,0,0,0.05)] cursor-pointer"
-                >
-                    <Import size={16} />
-                    {buttonText}
-                </Button>
-            </div>
+            <Button
+                type="button"
+                variant="outline"
+                onClick={onClick}
+                className="h-9 w-full shrink-0 gap-2 self-stretch border-primary bg-transparent px-4 text-sm font-medium text-primary shadow-[0px_1px_2px_rgba(0,0,0,0.05)] hover:bg-[#136DEC0D] sm:w-auto sm:self-center"
+            >
+                <Import size={16} />
+                {buttonText}
+            </Button>
         </div>
     );
 }

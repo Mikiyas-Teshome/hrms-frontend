@@ -32,22 +32,17 @@ const RolesTable: React.FC<RolesTableProps> = ({ roles, isLoading, onRefresh, on
     const [searchValue, setSearchValue] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = React.useState(10);
-    // const [showFilters, setShowFilters] = useState(false);
     const [activeFilters] = useState({ role: 'all', status: 'all' });
-    // const [pendingFilters, setPendingFilters] = useState({ role: 'all', status: 'all' });
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
-    // const activeCount = Object.values(activeFilters).filter((v) => v !== 'all').length;
 
     const filteredRoles = React.useMemo(() => {
         return roles.filter((role) => {
-            // Search filter
             const matchesSearch =
                 role.name.toLowerCase().includes(searchValue.toLowerCase()) ||
                 (role.description?.toLowerCase() || '').includes(searchValue.toLowerCase());
 
-            // Role type filter
             const matchesRole =
                 activeFilters.role === 'all' ||
                 role.name.toLowerCase().includes(activeFilters.role.toLowerCase());
@@ -90,16 +85,6 @@ const RolesTable: React.FC<RolesTableProps> = ({ roles, isLoading, onRefresh, on
         }
     };
 
-    // const handleApply = () => {
-    //     setActiveFilters(pendingFilters);
-    //     setShowFilters(false);
-    // };
-
-    // const handleReset = () => {
-    //     const defaultFilters = { role: 'all', status: 'all' };
-    //     setPendingFilters(defaultFilters);
-    //     setActiveFilters(defaultFilters);
-    // };
 
     const columns: ColumnConfig<Role>[] = [
         {
@@ -108,16 +93,6 @@ const RolesTable: React.FC<RolesTableProps> = ({ roles, isLoading, onRefresh, on
             sortable: true,
             className: 'font-medium',
         },
-        // {
-        //     key: 'companyId',
-        //     label: t('tableRoleType'),
-        //     sortable: true,
-        //     render: (item) => (
-        //         <span className="capitalize">
-        //             {item.companyId ? t('tenantRole') : t('globalRole')}
-        //         </span>
-        //     ),
-        // },
         {
             key: 'description',
             label: t('tableDescription'),

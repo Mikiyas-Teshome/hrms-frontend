@@ -30,7 +30,6 @@ export function BrandColorProvider({ children }: { children: React.ReactNode }) 
     }
   }, []);
 
-  // Sync color on mount
   useEffect(() => {
     applyColor(themeColorId);
   }, [applyColor, themeColorId]);

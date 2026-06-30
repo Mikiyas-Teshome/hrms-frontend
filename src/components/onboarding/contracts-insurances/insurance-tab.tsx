@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -20,28 +20,35 @@ import {
 } from '@/features/insurance/hooks/useInsurance';
 import {
     InsuranceCoverageType,
-    InsuranceAssignment,
     InsuranceRenewalType,
     InsuranceIncludedService,
     DependentRelationship,
     EmploymentType
 } from '@/features/insurance/insurance.types';
 import { formatInsuranceFormPayload } from '@/components/dashboard/benefits/insurance-form.utils';
+import {
+    getIncludedServiceOptionsForCoverageType,
+    pruneIncludedServicesForCoverageType,
+    coverageTypeSupportsIncludedServices,
+} from '@/features/insurance/insurance-included-services.util';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
+import { useCompanyOptions } from '@/features/organization/hooks/useOrganization';
+import {
+    buildCompanyNameByOuIdMap,
+    resolveCompanyLabel,
+} from '@/features/organization/organization-unit-options.util';
 
 
 const FormSelectAny = FormSelect as any;
 
-// Zod schema for Insurance Form in Onboarding
 export const insuranceOnboardingSchema = z.object({
-    companyOuId: z.string().min(1, 'Company is required'),
+    ouId: z.string().min(1, 'Company is required'),
     insuranceName: z.string().min(1, 'Insurance name is required'),
     providerName: z.string().min(1, 'Provider name is required'),
     policyNumber: z.string().min(1, 'Policy number is required'),
     cardId: z.string().optional(),
     coverageType: z.nativeEnum(InsuranceCoverageType),
     coverageAmount: z.coerce.number().min(0).optional(),
-    assignment: z.nativeEnum(InsuranceAssignment),
     renewalType: z.nativeEnum(InsuranceRenewalType),
     hasDependentsCoverage: z.boolean().default(false),
     maxDependents: z.coerce.number().min(0).optional(),
@@ -60,27 +67,29 @@ export type InsuranceOnboardingValues = z.infer<typeof insuranceOnboardingSchema
 interface InsuranceTabProps {
     selectedCompanyId: string;
     companyName?: string;
+    onContinueToContract?: () => void;
 }
 
-export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabProps) {
+export function InsuranceTab({ selectedCompanyId, companyName, onContinueToContract }: InsuranceTabProps) {
     const { t } = useTranslation(['contractsInsurances', 'contracts', 'insurance', 'dashboard']);
     const { toast } = useToast();
-    
-    // Pagination state
+    const { companies: companiesData } = useCompanyOptions();
+    const companyNameByOuId = useMemo(
+        () => buildCompanyNameByOuIdMap(companiesData ?? []),
+        [companiesData],
+    );
+
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
 
-    // Fetch lists from backend
     const { data: insurancesList, refetch: refetchInsurances } = useInsurances({
         limit: rowsPerPage,
         page: currentPage,
-        companyOuId: selectedCompanyId || undefined
+        ouId: selectedCompanyId || undefined
     });
 
-    // Mutations
     const createInsuranceMutation = useCreateInsurance();
 
-    // Insurance Form Hook
     const {
         register: registerIns,
         handleSubmit: handleSubmitIns,
@@ -88,40 +97,52 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
         setValue: setValueIns,
         control: controlIns,
         reset: resetIns,
+        getValues: getValuesIns,
         formState: { errors: errorsIns, isSubmitting: isSubmittingIns }
     } = useForm<InsuranceOnboardingValues>({
         resolver: zodResolver(insuranceOnboardingSchema) as any,
         defaultValues: {
-            companyOuId: selectedCompanyId || '',
+            ouId: selectedCompanyId || '',
             insuranceName: '',
             providerName: '',
-            policyNumber: 'AUTO-GEN-POLICY', // Auto fill since it's not in mock image
+            policyNumber: 'AUTO-GEN-POLICY',
             coverageType: InsuranceCoverageType.HEALTH,
-            assignment: InsuranceAssignment.ALL_EMPLOYEES,
             renewalType: InsuranceRenewalType.YEARLY,
             hasDependentsCoverage: false,
-            maxDependents: 4,
+            maxDependents: 1,
             allowedDependents: [],
             includedServices: [],
             employerContribution: 100,
             employeeContribution: 0,
             employmentType: EmploymentType.full_time,
-            minTenureMonths: '0' as any,
+            minTenureMonths: 0,
         }
     });
 
-    // Sync selectedCompanyId to Insurance Form
     useEffect(() => {
         if (selectedCompanyId) {
-            setValueIns('companyOuId', selectedCompanyId);
+            setValueIns('ouId', selectedCompanyId);
             refetchInsurances();
         }
     }, [selectedCompanyId, setValueIns, refetchInsurances]);
 
-    // Watchers
+    const coverageType = watchIns('coverageType');
     const hasDependentsCoverage = watchIns('hasDependentsCoverage');
     const allowedDependents = watchIns('allowedDependents') || [];
     const includedServices = watchIns('includedServices') || [];
+
+    const includedServiceOptions = useMemo(
+        () => getIncludedServiceOptionsForCoverageType(coverageType),
+        [coverageType],
+    );
+
+    useEffect(() => {
+        const current = getValuesIns('includedServices') || [];
+        const pruned = pruneIncludedServicesForCoverageType(coverageType, current);
+        if (pruned.length !== current.length) {
+            setValueIns('includedServices', pruned, { shouldValidate: true });
+        }
+    }, [coverageType, getValuesIns, setValueIns]);
 
     const handleCheckboxChange = (
         field: 'allowedDependents' | 'includedServices',
@@ -136,10 +157,8 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
         }
     };
 
-    // Form Submissions
     const onAddInsurance = async (data: InsuranceOnboardingValues) => {
         try {
-            // Set dynamic start and end dates if not provided to bypass backend validation
             const today = new Date();
             const nextYear = new Date();
             nextYear.setFullYear(today.getFullYear() + 1);
@@ -167,21 +186,20 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
                 description: 'Insurance plan added successfully!'
             });
             resetIns({
-                companyOuId: selectedCompanyId,
+                ouId: selectedCompanyId,
                 insuranceName: '',
                 providerName: '',
                 policyNumber: 'AUTO-GEN-POLICY',
                 coverageType: InsuranceCoverageType.HEALTH,
-                assignment: InsuranceAssignment.ALL_EMPLOYEES,
                 renewalType: InsuranceRenewalType.YEARLY,
                 hasDependentsCoverage: false,
-                maxDependents: 4,
+                maxDependents: 1,
                 allowedDependents: [],
                 includedServices: [],
                 employerContribution: 100,
                 employeeContribution: 0,
                 employmentType: EmploymentType.full_time,
-                minTenureMonths: 3,
+                minTenureMonths: 0,
             });
             refetchInsurances();
         } catch (error: any) {
@@ -195,14 +213,12 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
 
     return (
         <div className="space-y-8 animate-in fade-in duration-300 w-full">
-            {/* Add Insurance Card */}
             <Card className="rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-none bg-white dark:bg-zinc-950/20 overflow-hidden w-full">
                 <CardHeader className="bg-slate-50/50 dark:bg-zinc-900/40 border-b border-slate-200/60 dark:border-zinc-850 px-6 py-4">
                     <CardTitle className="text-base font-bold text-foreground">Add Insurance</CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
                     <form onSubmit={(handleSubmitIns as any)(onAddInsurance)} className="space-y-6">
-                        {/* Row 1: Insurance name & Provider */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormField
                                 id="insuranceName"
@@ -225,7 +241,6 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
                             />
                         </div>
 
-                        {/* Row 2: Coverage Type & Amount */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <FormSelectAny
                                 id="coverageType"
@@ -256,25 +271,7 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
                             </div>
                         </div>
 
-                        {/* Row 3: Assignment & Renewal Type */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <FormSelectAny
-                                id="assignment"
-                                label="Assignment"
-                                placeholder="Select Assignment"
-                                control={controlIns as any}
-                                name="assignment"
-                                error={errorsIns.assignment}
-                                options={[
-                                    { label: 'All employees', value: InsuranceAssignment.ALL_EMPLOYEES },
-                                    { label: 'Individual', value: InsuranceAssignment.INDIVIDUAL },
-                                    { label: 'Department based', value: InsuranceAssignment.DEPARTMENT_BASED },
-                                    { label: 'Role based', value: InsuranceAssignment.ROLE_BASED },
-                                ]}
-                                t={t}
-                                containerClassName="space-y-2"
-                            />
-
                             <FormSelectAny
                                 id="renewalType"
                                 label="Renewal Type"
@@ -292,13 +289,17 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
                             />
                         </div>
 
-                        {/* Row 4: Dependents Coverage Options */}
                         <div className="pt-2 space-y-4">
                             <div className="flex items-center gap-3">
                                 <Switch
                                     id="hasDependentsCoverage"
                                     checked={hasDependentsCoverage}
-                                    onCheckedChange={(checked) => setValueIns('hasDependentsCoverage', checked, { shouldValidate: true })}
+                                    onCheckedChange={(checked) => {
+                                        setValueIns('hasDependentsCoverage', checked, { shouldValidate: true });
+                                        if (checked && (watchIns('maxDependents') === undefined || watchIns('maxDependents') === null)) {
+                                            setValueIns('maxDependents', 1, { shouldValidate: true });
+                                        }
+                                    }}
                                     className="data-[state=checked]:bg-primary"
                                 />
                                 <Label htmlFor="hasDependentsCoverage" className="font-semibold text-sm cursor-pointer text-foreground">Dependents Coverage</Label>
@@ -306,21 +307,19 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
 
                             {hasDependentsCoverage && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-xl bg-slate-50/65 dark:bg-zinc-900/60 border border-slate-100 dark:border-zinc-800 animate-in slide-in-from-top-2 duration-200">
-                                    <FormSelectAny
-                                        id="maxDependents"
-                                        label="Max dependents"
-                                        control={controlIns as any}
-                                        name="maxDependents"
-                                        options={[
-                                            { label: '1', value: '1' },
-                                            { label: '2', value: '2' },
-                                            { label: '3', value: '3' },
-                                            { label: '4', value: '4' },
-                                            { label: '5', value: '5' },
-                                        ]}
-                                        t={t}
-                                        containerClassName="space-y-2"
-                                    />
+                                    <div className="flex flex-col gap-2">
+                                        <Label className="text-sm font-semibold text-foreground">Max dependents</Label>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            {...registerIns('maxDependents', { valueAsNumber: true })}
+                                            placeholder="1"
+                                            className="flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-sm ring-offset-background placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        />
+                                        {errorsIns.maxDependents && (
+                                            <span className="text-xs text-destructive">{errorsIns.maxDependents.message}</span>
+                                        )}
+                                    </div>
 
                                     <div className="space-y-2">
                                         <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Relationships</Label>
@@ -346,29 +345,35 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
                             )}
                         </div>
 
-                        {/* Row 5: Included medical services */}
-                        <div className="pt-2 space-y-3">
-                            <Label className="text-sm font-semibold text-foreground">Included services</Label>
-                            <div className="flex flex-wrap gap-x-8 gap-y-3">
-                                {[
-                                    { label: 'Hospitalization', value: InsuranceIncludedService.HOSPITALIZATION },
-                                    { label: 'Outpatient', value: InsuranceIncludedService.OUTPATIENT },
-                                    { label: 'Dental', value: InsuranceIncludedService.DENTAL },
-                                    { label: 'Vision', value: InsuranceIncludedService.VISION },
-                                ].map((service) => (
-                                    <div key={service.value} className="flex items-center gap-2">
-                                        <Checkbox
-                                            id={`service-${service.value}`}
-                                            checked={includedServices.includes(service.value)}
-                                            onCheckedChange={(checked) => handleCheckboxChange('includedServices', service.value, !!checked)}
-                                        />
-                                        <Label htmlFor={`service-${service.value}`} className="text-sm font-medium cursor-pointer text-foreground">{service.label}</Label>
-                                    </div>
-                                ))}
+                        {coverageTypeSupportsIncludedServices(coverageType) ? (
+                            <div className="pt-2 space-y-3">
+                                <Label className="text-sm font-semibold text-foreground">Included services</Label>
+                                <div className="flex flex-wrap gap-x-8 gap-y-3">
+                                    {includedServiceOptions.map((service) => (
+                                        <div key={service.value} className="flex items-center gap-2">
+                                            <Checkbox
+                                                id={`service-${service.value}`}
+                                                checked={includedServices.includes(service.value)}
+                                                onCheckedChange={(checked) =>
+                                                    handleCheckboxChange(
+                                                        'includedServices',
+                                                        service.value,
+                                                        !!checked,
+                                                    )
+                                                }
+                                            />
+                                            <Label
+                                                htmlFor={`service-${service.value}`}
+                                                className="text-sm font-medium cursor-pointer text-foreground"
+                                            >
+                                                {service.label}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        ) : null}
 
-                        {/* Row 6: Employment type & Minimum tenure */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                             <FormSelectAny
                                 id="employmentType"
@@ -387,23 +392,21 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
                                 containerClassName="space-y-2"
                             />
 
-                            <FormSelectAny
-                                id="minTenureMonths"
-                                label="Minimum tenure"
-                                control={controlIns as any}
-                                name="minTenureMonths"
-                                options={[
-                                    { label: 'No minimum', value: '0' },
-                                    { label: '3 months', value: '3' },
-                                    { label: '6 months', value: '6' },
-                                    { label: '12 months', value: '12' },
-                                ]}
-                                t={t}
-                                containerClassName="space-y-2"
-                            />
+                            <div className="flex flex-col gap-2">
+                                <Label className="text-sm font-semibold text-foreground">Minimum tenure (months)</Label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    {...registerIns('minTenureMonths', { valueAsNumber: true })}
+                                    placeholder="0"
+                                    className="flex h-11 w-full rounded-lg border border-input bg-background px-3.5 py-2 text-sm ring-offset-background placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+                                {errorsIns.minTenureMonths && (
+                                    <span className="text-xs text-destructive">{errorsIns.minTenureMonths.message}</span>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Row 7: Contributions */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                             <div className="flex flex-col gap-2">
                                 <Label className="text-sm font-semibold text-foreground">Employer Contribution</Label>
@@ -458,7 +461,7 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
                             </div>
                         </div>
 
-                        <div className="flex justify-end pt-4">
+                        <div className="flex justify-end gap-3 pt-4">
                             <Button
                                 type="submit"
                                 disabled={isSubmittingIns || createInsuranceMutation.isPending}
@@ -470,15 +473,23 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
                                         Saving...
                                     </>
                                 ) : (
-                                    'Save insurance'
+                                    t('actions.saveInsurance', { defaultValue: 'Save insurance' })
                                 )}
                             </Button>
+                            {(insurancesList?.data?.length ?? 0) > 0 && onContinueToContract ? (
+                                <Button
+                                    type="button"
+                                    onClick={onContinueToContract}
+                                    className="bg-primary hover:bg-primary/90 text-white py-2 px-4 font-medium text-sm transition-colors"
+                                >
+                                    {t('actions.continueToContract', { defaultValue: 'Continue to contract' })}
+                                </Button>
+                            ) : null}
                         </div>
                     </form>
                 </CardContent>
             </Card>
 
-            {/* Added Plans Table List - Stretches full width below the card */}
             <div className="w-full">
                 <Card className="rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 shadow-none bg-white dark:bg-zinc-950/20 overflow-hidden w-full">
                     <CardContent className="p-0">
@@ -497,9 +508,15 @@ export function InsuranceTab({ selectedCompanyId, companyName }: InsuranceTabPro
                                         insurancesList.data.map((ins) => (
                                             <tr key={ins.id} className="hover:bg-slate-50/30 dark:hover:bg-zinc-900/10 transition-colors font-medium">
                                                 <td className="px-6 py-4 text-slate-800 dark:text-zinc-200 font-semibold">{ins.insuranceName}</td>
-                                                <td className="px-6 py-4 text-slate-600 dark:text-zinc-400">{companyName || 'ABC engineering'}</td>
+                                                <td className="px-6 py-4 text-slate-600 dark:text-zinc-400">
+                                                    {resolveCompanyLabel(
+                                                        ins.ouId,
+                                                        companyNameByOuId,
+                                                        companyName,
+                                                    )}
+                                                </td>
                                                 <td className="px-6 py-4 text-slate-600 dark:text-zinc-400 font-semibold">
-                                                    {ins.renewalType === 'YEARLY' ? 'Indefinite' : '2 months'}
+                                                    {ins.providerName || '—'}
                                                 </td>
                                                 <td className="px-6 py-4 text-slate-600 dark:text-zinc-400">
                                                     {(() => {

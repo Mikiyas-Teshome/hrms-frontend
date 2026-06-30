@@ -1,10 +1,10 @@
 "use client";
 
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+// import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetHeader,
@@ -16,8 +16,8 @@ import { FormSelect } from "@/components/ui/FormSelect";
 import { TimezoneSelect } from "@/components/ui/TimezoneSelect";
 import { CurrencySelect } from "@/components/ui/CurrencySelect";
 import { IndustrySelect } from "@/components/ui/IndustrySelect";
-import { cn } from "@/lib/utils";
-import { ORGANIZATION_THEME_COLORS } from "@/constants/colors";
+// import { cn } from "@/lib/utils";
+// import { ORGANIZATION_THEME_COLORS } from "@/constants/colors";
 import { OUType } from "@/types/domain";
 
 interface UnitSheetProps {
@@ -33,6 +33,21 @@ interface UnitSheetProps {
   defaultParentId?: string;
 }
 
+const BASE_UNIT_DEFAULTS = {
+  name: "",
+  parentId: "",
+  legalName: "",
+  taxId: "",
+  registrationNumber: "",
+  tradeLicenseNumber: "",
+  currency: "AED",
+  timezone: "Asia/Dubai",
+  industry: "Information Technology & Services",
+  address: "",
+  dunsNumber: "",
+  themeColor: "",
+};
+
 export function UnitSheet({
   isOpen,
   onOpenChange,
@@ -47,46 +62,41 @@ export function UnitSheet({
 }: UnitSheetProps) {
   const { t } = useTranslation("orgStructure");
 
-  const emptyDefaults = {
-    name: "",
-    parentId: defaultParentId || parentOptions[0]?.id || "",
-    legalName: "",
-    taxId: "",
-    registrationNumber: "",
-    tradeLicenseNumber: "",
-    currency: "AED",
-    timezone: "Asia/Dubai",
-    industry: "Information Technology & Services",
-    address: "",
-    dunsNumber: "",
-    themeColor: "",
-  };
+  const emptyDefaults = useMemo(
+    () => ({
+      ...BASE_UNIT_DEFAULTS,
+      parentId: defaultParentId || parentOptions[0]?.id || "",
+    }),
+    [defaultParentId, parentOptions],
+  );
 
   const {
     register,
     handleSubmit,
     control,
-    setValue,
-    watch,
+    // setValue,
+    // watch,
     reset,
     formState: { errors },
   } = useForm({
     defaultValues: mode === "add" ? emptyDefaults : (unit || emptyDefaults),
   });
 
-  // Reset form to empty values every time the sheet opens in 'add' mode
   useEffect(() => {
-    if (isOpen && mode === "add") {
+    if (!isOpen) return;
+
+    if (mode === "add") {
       reset({
         ...emptyDefaults,
         parentId: defaultParentId || parentOptions[0]?.id || "",
       });
+      return;
     }
-    if (isOpen && mode === "edit" && unit) {
+
+    if (mode === "edit" && unit) {
       reset(unit);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, mode]);
+  }, [isOpen, mode, defaultParentId, levelType, unit, reset, emptyDefaults, parentOptions]);
 
   const onSubmit = async (data: any) => {
     await onSave({ ...data, type: levelType });
@@ -94,12 +104,12 @@ export function UnitSheet({
 
   const isView = mode === "view";
 
-  const selectedColor = watch("themeColor");
+  // const selectedColor = watch("themeColor");
 
-  const themeColors = ORGANIZATION_THEME_COLORS.map(color => ({
-    ...color,
-    label: t(`builder.sheet.fields.colors.${color.id}`)
-  }));
+  // const themeColors = ORGANIZATION_THEME_COLORS.map(color => ({
+  //   ...color,
+  //   label: t(`builder.sheet.fields.colors.${color.id}`)
+  // }));
 
   const getTitle = () => {
     if (mode === "add") return t("builder.sheet.addTitle", { type: levelName.toLowerCase() });
@@ -109,15 +119,14 @@ export function UnitSheet({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-[800px] p-0 flex flex-col h-full border-l border-border/50 overflow-hidden">
-        <SheetHeader className="p-6 flex flex-row items-center justify-between border-b border-border/30 shrink-0">
-          <SheetTitle className="text-2xl font-bold text-foreground leading-tight">
+      <SheetContent className="w-full max-w-full sm:max-w-200 p-0 flex flex-col h-full border-l border-border/50 overflow-hidden">
+        <SheetHeader className="p-4 sm:p-6 flex flex-row items-center justify-between border-b border-border/30 shrink-0">
+          <SheetTitle className="text-xl sm:text-2xl font-bold text-foreground leading-tight pr-10">
             {getTitle()}
           </SheetTitle>
         </SheetHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-8 pb-24">
-          {/* Info Section */}
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 sm:space-y-8 pb-24">
           <div className="border border-border rounded-xl overflow-hidden shadow-[0px_1px_2px_rgba(0,0,0,0.05)] bg-background">
             <div className="bg-muted/50 px-4 py-3 border-b border-border">
               <span className="text-sm font-semibold text-foreground">
@@ -125,7 +134,6 @@ export function UnitSheet({
               </span>
             </div>
             <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Name */}
               <FormFieldUI
                 id="name"
                 label={t("builder.sheet.fields.name")}
@@ -137,7 +145,6 @@ export function UnitSheet({
                 t={t}
               />
 
-              {/* Parent */}
               <FormSelect
                 id="parentId"
                 label={t("builder.sheet.fields.parent")}
@@ -149,10 +156,8 @@ export function UnitSheet({
                 t={t}
               />
 
-              {/* level specific fields */}
               {levelType === OUType.COMPANY && (
                 <>
-                  {/* Legal Name */}
                   <FormFieldUI
                     id="legalName"
                     label={t("builder.sheet.fields.legalName")}
@@ -165,7 +170,6 @@ export function UnitSheet({
                     t={t}
                   />
 
-                  {/* Tax ID */}
                   <FormFieldUI
                     id="taxId"
                     label={t("builder.sheet.fields.taxId")}
@@ -178,7 +182,6 @@ export function UnitSheet({
                     t={t}
                   />
 
-                  {/* Registration Number */}
                   <FormFieldUI
                     id="registrationNumber"
                     label={t("builder.sheet.fields.registrationNumber")}
@@ -191,7 +194,6 @@ export function UnitSheet({
                     t={t}
                   />
 
-                  {/* Trade License Number */}
                   <FormFieldUI
                     id="tradeLicenseNumber"
                     label={t("builder.sheet.fields.tradeLicenseNumber")}
@@ -204,7 +206,6 @@ export function UnitSheet({
                     t={t}
                   />
 
-                  {/* DUNS Number */}
                   <FormFieldUI
                     id="dunsNumber"
                     label={t("builder.sheet.fields.dunsNumber")}
@@ -218,7 +219,6 @@ export function UnitSheet({
 
 
 
-                  {/* Currency */}
                   <CurrencySelect
                     control={control}
                     name="currency"
@@ -229,7 +229,6 @@ export function UnitSheet({
                     t={t}
                   />
 
-                  {/* Timezone */}
                   <TimezoneSelect
                     control={control}
                     name="timezone"
@@ -240,7 +239,6 @@ export function UnitSheet({
                     t={t}
                   />
 
-                  {/* Industry */}
                   <IndustrySelect
                     control={control}
                     name="industry"
@@ -257,7 +255,6 @@ export function UnitSheet({
             </div>
           </div>
 
-          {/* Address Section */}
           {(levelType === OUType.COMPANY || levelType === OUType.DIVISION) && (
             <div className="border border-border rounded-xl overflow-hidden shadow-[0px_1px_2px_rgba(0,0,0,0.05)] bg-background">
               <div className="bg-muted/50 px-4 py-3 border-b border-border">
@@ -279,8 +276,7 @@ export function UnitSheet({
             </div>
           )}
 
-          {/* Theme Setup Section */}
-          {levelType === OUType.COMPANY && (
+          {/* {levelType === OUType.COMPANY && (
             <div className="border border-border rounded-xl overflow-hidden shadow-[0px_1px_2px_rgba(0,0,0,0.05)] bg-background">
               <div className="bg-muted/50 px-4 py-3 border-b border-border">
                 <span className="text-sm font-semibold text-foreground">
@@ -334,17 +330,16 @@ export function UnitSheet({
                 )}
               </div>
             </div>
-          )}
+          )} */}
         </form>
 
-        {/* Footer */}
         {!isView && (
-          <div className="p-6 border-t border-border/30 bg-background flex justify-end gap-6 shrink-0 z-10">
+          <div className="p-4 sm:p-6 border-t border-border/30 bg-background flex justify-end gap-3 sm:gap-6 shrink-0 z-10">
             <Button
               variant="outline"
               type="button"
               onClick={() => onOpenChange(false)}
-              className="h-10 px-6 rounded-lg border-border text-foreground hover:bg-muted/50"
+              className="h-10 px-8"
             >
               {t("actions.cancel")}
             </Button>
@@ -352,7 +347,7 @@ export function UnitSheet({
               type="button"
               disabled={isSaving}
               onClick={handleSubmit(onSubmit)}
-              className="h-10 px-8 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium shadow-md shadow-primary/20"
+              className="h-10 px-8"
             >
               {isSaving ? "Saving..." : t("actions.save")}
             </Button>

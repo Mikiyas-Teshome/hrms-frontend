@@ -1,11 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     useMyEmployeeContracts,
     useActivateMyEmployeeContract,
-    useRejectMyEmployeeContract,
 } from '@/features/contracts/hooks/useEmployeeContracts';
 import { ContractStatus } from '@/features/contracts/contracts.types';
 import { EMPLOYEE_DECLINED_TERMINATION_REASON } from '@/features/contracts/employee-contract.constants';
@@ -13,8 +12,22 @@ import type { EmployeeContract } from '@/features/contracts/employee-contract.ty
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { useProfile } from '@/features/auth/hooks/useAuth';
+import { persistStaffOnboardingStep } from '@/lib/onboarding/persist-staff-onboarding-step';
+import { writeStaffOnboardingStepSession } from '@/lib/onboarding/staff-onboarding-step-storage';
+import { AUTH_PROFILE_QUERY_KEY } from '@/features/auth/auth-session.constants';
+import { writeAuthSessionCache } from '@/features/auth/auth-session-cache.util';
+import { useQueryClient } from '@tanstack/react-query';
+import { getUserRoleLabel } from '@/features/auth/utils/user-display.util';
+import { useMyEmployeeProfile } from '@/features/employee/hooks/useEmployee';
+import { useMySalaryStructure } from '@/features/payroll/salary-structure/hooks/useSalaryStructure';
+import { useDisplayCurrency } from '@/features/settings/hooks/useDisplayCurrency';
 import { FileText, Loader2, AlertCircle, XCircle } from 'lucide-react';
+import { ContractDocumentPreviewButton } from '@/components/dashboard/contracts/ContractDocumentPreviewButton';
 import { Skeleton } from '../ui/skeleton';
+import { Checkbox } from '../ui/checkbox';
+import { Label } from '../ui/label';
+import { STAFF_ONBOARDING_PROFILE_FIRST_STEP } from '@/lib/onboarding/staff-steps';
 
 interface StaffContractReviewStepProps {
     onAccept: () => void;
@@ -51,6 +64,7 @@ function resolveContractReviewState(assignments: EmployeeContract[]): {
 export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepProps) {
     const { t } = useTranslation(['staffSignup', 'common']);
     const { toast } = useToast();
+    const queryClient = useQueryClient();
 
     const {
         data: contractsResponse,
@@ -60,8 +74,16 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
         refetch: refetchContracts,
     } = useMyEmployeeContracts({ limit: 20 });
 
+    const [hasAgreed, setHasAgreed] = useState(false);
     const activateContractMutation = useActivateMyEmployeeContract();
-    const rejectContractMutation = useRejectMyEmployeeContract();
+    const { data: authProfile } = useProfile();
+    const {
+        data: employeeProfile,
+        isLoading: isLoadingProfile,
+    } = useMyEmployeeProfile();
+    const tenantCompanyId = authProfile?.companyId ?? employeeProfile?.companyOuId ?? undefined;
+    const { data: mySalaryStructure, isLoading: isLoadingSalaryStructure } = useMySalaryStructure();
+    const { formatAmount } = useDisplayCurrency(tenantCompanyId);
 
     const { contract: employeeContract, mode: reviewMode } = useMemo(
         () => resolveContractReviewState(contractsResponse?.data ?? []),
@@ -88,6 +110,25 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
         ];
     }, [contractTemplate?.contractName, contractTemplate?.documentUrl, t]);
 
+    const continueToProfileSetup = async () => {
+        if (authProfile?.id) {
+            const result = await persistStaffOnboardingStep(
+                authProfile.id,
+                STAFF_ONBOARDING_PROFILE_FIRST_STEP,
+            );
+            if (result.user) {
+                queryClient.setQueryData(AUTH_PROFILE_QUERY_KEY, result.user);
+                writeAuthSessionCache(result.user);
+            } else {
+                writeStaffOnboardingStepSession(
+                    authProfile.id,
+                    STAFF_ONBOARDING_PROFILE_FIRST_STEP,
+                );
+            }
+        }
+        onAccept();
+    };
+
     const handleAccept = async () => {
         if (!employeeContract?.id) {
             return;
@@ -100,7 +141,7 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
                 title: t('staffSignup:contractAcceptedTitle', { defaultValue: 'Contract Accepted!' }),
                 description: t('staffSignup:contractAcceptedDesc', { defaultValue: 'Your employment contract has been signed and activated successfully.' }),
             });
-            onAccept();
+            await continueToProfileSetup();
         } catch (error: any) {
             console.error('Failed to activate contract:', error);
             toast({
@@ -111,38 +152,19 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
         }
     };
 
-    const handleDeclineClick = async () => {
-        if (!employeeContract?.id || !isPendingSignature) {
-            return;
-        }
+    const displaySalary =
+        employeeContract?.salary ??
+        employeeProfile?.salary ??
+        mySalaryStructure?.baseSalary ??
+        null;
 
-        try {
-            await rejectContractMutation.mutateAsync(employeeContract.id);
-            toast({
-                title: t('staffSignup:contractDeclinedTitle', { defaultValue: 'Contract Declined' }),
-                description: t('staffSignup:contractDeclinedContinueDesc', {
-                    defaultValue:
-                        'Your contract has been marked as declined. You can continue setting up your profile.',
-                }),
-            });
-            onAccept();
-        } catch (error: any) {
-            console.error('Failed to decline contract:', error);
-            toast({
-                title: t('staffSignup:contractDeclineErrorTitle', { defaultValue: 'Failed to decline contract' }),
-                description:
-                    error.message ||
-                    t('staffSignup:contractDeclineErrorDesc', {
-                        defaultValue: 'Something went wrong. Please try again.',
-                    }),
-                variant: 'destructive',
-            });
-        }
-    };
+    const displayRole = getUserRoleLabel(authProfile, t);
+
+    const isLoading = isLoadingContracts || isLoadingProfile || isLoadingSalaryStructure;
 
     const formatCurrency = (value: number | null | undefined) => {
         if (value === undefined || value === null) return '—';
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+        return formatAmount(value, { maximumFractionDigits: 0 });
     };
 
     const formatEmploymentType = (type: string | null | undefined) => {
@@ -153,10 +175,10 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
         }).join('-');
     };
 
-    if (isLoadingContracts) {
+    if (isLoading) {
         return (
             <div className="w-full max-w-3xl flex flex-col gap-3">
-                <Card className="w-full bg-card border border-border shadow-[0px_32px_64px_-12px_rgba(0,0,0,0.14)] rounded-[12px] flex flex-col p-0 overflow-hidden">
+                <Card className="flex w-full flex-col overflow-hidden rounded-[12px] border border-border bg-card p-0 shadow-sm">
                     <CardHeader className="flex flex-col gap-2 p-6 pb-0">
                         <Skeleton className="h-5 w-48 bg-muted rounded" />
                         <Skeleton className="h-4 w-96 max-w-full bg-muted rounded mt-1" />
@@ -202,12 +224,12 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
 
     if (isContractsError) {
         return (
-            <div className="flex w-full max-w-2xl flex-col items-center gap-6 bg-card border border-border p-8 rounded-[32px] text-center shadow-[0px_32px_64px_-12px_rgba(0,0,0,0.14)]">
-                <div className="flex items-center justify-center size-12 rounded-full bg-red-500/10 mb-2">
+            <div className="flex w-full max-w-2xl flex-col items-center gap-6 rounded-[12px] border border-border bg-card p-6 text-center shadow-sm sm:p-8">
+                <div className="mb-2 flex size-12 items-center justify-center rounded-full bg-red-500/10">
                     <XCircle className="size-6 text-red-500" />
                 </div>
                 <div className="space-y-2">
-                    <h2 className="text-2xl font-semibold text-foreground">
+                    <h2 className="text-xl font-semibold text-foreground">
                         {t('staffSignup:contractLoadErrorTitle', { defaultValue: 'Could not load contract' })}
                     </h2>
                     <p className="text-muted-foreground text-[15px] leading-relaxed max-w-md">
@@ -226,7 +248,7 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
 
     if (isDeclined) {
         return (
-            <div className="flex w-full max-w-2xl flex-col items-center gap-6 bg-card border border-border p-8 rounded-[32px] text-center animate-in fade-in zoom-in duration-300 shadow-[0px_32px_64px_-12px_rgba(0,0,0,0.14)]">
+            <div className="flex w-full max-w-2xl flex-col items-center gap-6 rounded-[12px] border border-border bg-card p-6 text-center shadow-sm sm:p-8">
                 <div className="flex items-center justify-center size-12 rounded-full bg-red-500/10 mb-2">
                     <XCircle className="size-6 text-red-500" />
                 </div>
@@ -241,7 +263,7 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
                         })}
                     </p>
                 </div>
-                <Button onClick={onAccept} className="mt-2">
+                <Button onClick={() => void continueToProfileSetup()} className="mt-2">
                     {t('staffSignup:continueButton', { defaultValue: 'Continue' })}
                 </Button>
             </div>
@@ -250,7 +272,7 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
 
     if (!employeeContract) {
         return (
-            <div className="flex w-full max-w-2xl flex-col items-center gap-6 bg-card border border-border p-8 rounded-[32px] text-center shadow-[0px_32px_64px_-12px_rgba(0,0,0,0.14)]">
+            <div className="flex w-full max-w-2xl flex-col items-center gap-6 rounded-[12px] border border-border bg-card p-6 text-center shadow-sm sm:p-8">
                 <div className="flex items-center justify-center size-12 rounded-full bg-amber-500/10 mb-2">
                     <AlertCircle className="size-6 text-amber-500" />
                 </div>
@@ -270,20 +292,23 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
     }
 
     return (
-        <div className="w-full max-w-3xl flex flex-col gap-3 animate-in fade-in zoom-in duration-300">
-            <Card className="w-full bg-card border border-border shadow-[0px_32px_64px_-12px_rgba(0,0,0,0.14)] rounded-[12px] flex flex-col p-0 overflow-hidden">
-                <CardHeader className="flex flex-col gap-2 p-6 pb-0">
-                    <CardTitle className="text-xl font-semibold text-foreground leading-5">
-                        {t('staffSignup:reviewContractTitle', { defaultValue: 'Please review you contract' })}
+        <div className="flex w-full max-w-3xl flex-col gap-3">
+            <Card className="flex w-full flex-col overflow-hidden rounded-[12px] border border-border bg-card p-0 shadow-sm">
+                <CardHeader className="flex flex-col gap-2 p-4 pb-0 sm:p-6">
+                    <CardTitle className="text-xl font-semibold leading-5 text-foreground">
+                        {t('staffSignup:reviewContractTitle', { defaultValue: 'Review your employment contract' })}
                     </CardTitle>
-                    <CardDescription className="text-sm font-normal text-muted-foreground leading-5 m-0 mt-1">
-                        {t('staffSignup:reviewContractSubtitle', { defaultValue: 'Review you assigned contract and accept to continue to join the workstation.' })}
+                    <CardDescription className="m-0 text-sm leading-5 text-muted-foreground">
+                        {t('staffSignup:reviewContractSubtitle', {
+                            defaultValue:
+                                'Review your assigned contract details and documents before continuing.',
+                        })}
                     </CardDescription>
                 </CardHeader>
 
-                <CardContent className="flex flex-col p-6 gap-8">
+                <CardContent className="flex flex-col gap-6 p-4 sm:gap-8 sm:p-6">
                     <div className="flex flex-col gap-4">
-                        <h3 className="text-sm font-semibold text-foreground tracking-wide uppercase">
+                        <h3 className="text-sm font-medium text-foreground">
                             {t('staffSignup:contractInformation', { defaultValue: 'Contract information' })}
                         </h3>
                         
@@ -302,7 +327,7 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
                                     {t('staffSignup:roleLabel', { defaultValue: 'Role' })}
                                 </span>
                                 <span className="text-sm font-medium text-foreground">
-                                    {t('staffSignup:roleEmployee', { defaultValue: 'Employee' })}
+                                    {displayRole}
                                 </span>
                             </div>
 
@@ -311,8 +336,16 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
                                     {t('staffSignup:salaryLabel', { defaultValue: 'Salary' })}
                                 </span>
                                 <span className="text-sm font-semibold text-foreground">
-                                    {formatCurrency(employeeContract.salary)}
+                                    {formatCurrency(displaySalary)}
                                 </span>
+                                {displaySalary == null && !isLoading ? (
+                                    <span className="text-xs text-muted-foreground">
+                                        {t('staffSignup:salaryPendingPayroll', {
+                                            defaultValue:
+                                                'Salary has not been assigned yet. Please contact HR to confirm your compensation details.',
+                                        })}
+                                    </span>
+                                ) : null}
                             </div>
 
                             <div className="flex flex-col justify-between p-4 gap-2 bg-muted/30 hover:bg-muted/50 border border-border/60 rounded-lg transition-colors">
@@ -337,7 +370,7 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
 
                     {contractDocuments.length > 0 ? (
                     <div className="flex flex-col gap-4">
-                        <h3 className="text-sm font-semibold text-foreground tracking-wide uppercase">
+                        <h3 className="text-sm font-medium text-foreground">
                             {t('staffSignup:contractDocuments', { defaultValue: 'Contract documents' })}
                         </h3>
 
@@ -345,7 +378,7 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
                             {contractDocuments.map((document) => (
                             <div
                                 key={document.url}
-                                className="flex items-center justify-between p-4 border border-border/80 bg-card hover:border-primary/40 rounded-lg transition-all shadow-sm"
+                                className="flex flex-col gap-3 rounded-lg border border-border/80 bg-card p-4 shadow-sm transition-all hover:border-primary/40 sm:flex-row sm:items-center sm:justify-between"
                             >
                                 <div className="flex items-center gap-3">
                                     <div className="flex items-center justify-center size-9 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500">
@@ -357,49 +390,48 @@ export function StaffContractReviewStep({ onAccept }: StaffContractReviewStepPro
                                         </span>
                                     </div>
                                 </div>
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="text-primary hover:text-primary hover:bg-primary/5 text-xs font-semibold px-3 py-1.5"
-                                    asChild
-                                >
-                                    <a href={document.url} target="_blank" rel="noopener noreferrer">
-                                        {t('staffSignup:previewDocument', { defaultValue: 'Preview' })}
-                                    </a>
-                                </Button>
+                                <ContractDocumentPreviewButton
+                                    documentReference={document.url}
+                                    documentName={document.name}
+                                    variant="button"
+                                    previewLabel={t('staffSignup:previewDocument', { defaultValue: 'Preview' })}
+                                />
                             </div>
                             ))}
                         </div>
                     </div>
                     ) : null}
 
-                    <div className="flex items-center justify-end gap-4 border-t border-border/60 pt-6 mt-2">
-                        {isPendingSignature ? (
-                            <Button
-                                variant="destructive"
-                                onClick={handleDeclineClick}
-                                className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-6 font-medium"
-                                disabled={
-                                    activateContractMutation.isPending ||
-                                    rejectContractMutation.isPending
-                                }
+                    {isPendingSignature ? (
+                        <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/20 p-4">
+                            <Checkbox
+                                id="contract-agreement"
+                                checked={hasAgreed}
+                                onCheckedChange={(checked) => setHasAgreed(checked === true)}
+                            />
+                            <Label
+                                htmlFor="contract-agreement"
+                                className="cursor-pointer text-sm leading-5 text-foreground"
                             >
-                                {rejectContractMutation.isPending ? (
-                                    <Loader2 className="size-4 animate-spin mr-2" />
-                                ) : null}
-                                {t('staffSignup:declineButton', { defaultValue: 'Decline' })}
-                            </Button>
-                        ) : null}
+                                {t('staffSignup:contractAgreementLabel', {
+                                    defaultValue:
+                                        'I have read and understood the employment contract and employee agreement, and I agree to its terms and conditions.',
+                                })}
+                            </Label>
+                        </div>
+                    ) : null}
+
+                    <div className="mt-2 border-t border-border/60 pt-6">
                         <Button
                             onClick={handleAccept}
-                            className="bg-primary hover:bg-primary/90 text-white rounded-lg px-6 font-medium min-w-32"
+                            className="h-9 w-full sm:ml-auto sm:w-auto sm:min-w-32"
                             disabled={
                                 activateContractMutation.isPending ||
-                                rejectContractMutation.isPending
+                                (isPendingSignature && !hasAgreed)
                             }
                         >
                             {activateContractMutation.isPending ? (
-                                <Loader2 className="size-4 animate-spin mr-2" />
+                                <Loader2 className="mr-2 size-4 animate-spin" />
                             ) : null}
                             {isPendingSignature
                                 ? t('staffSignup:acceptButton', { defaultValue: 'Accept' })

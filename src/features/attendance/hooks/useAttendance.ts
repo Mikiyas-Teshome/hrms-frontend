@@ -247,8 +247,6 @@ export const useUpdateOvertimeStatus = () => {
     });
 };
 
-// Query Hooks
-
 export const useAttendanceRecords = (userId: string, startDate?: string, endDate?: string) => {
     return useQuery({
         queryKey: ['attendance', 'records', userId, startDate, endDate],
@@ -325,6 +323,7 @@ export const useAttendanceOverviewStats = (
     startDate: string,
     endDate: string,
     forOvertime = false,
+    enabled = true,
 ) => {
     return useQuery({
         queryKey: ['attendance', 'overview-stats', startDate, endDate, forOvertime],
@@ -333,7 +332,7 @@ export const useAttendanceOverviewStats = (
             if (!result.success) throw new Error(result.error);
             return result.data;
         },
-        enabled: !!startDate && !!endDate,
+        enabled: enabled && !!startDate && !!endDate,
     });
 };
 
@@ -341,6 +340,7 @@ export const usePaginatedAttendanceRecords = (
     page: number,
     size: number,
     filter?: PaginatedAttendanceRecordsFilterInput,
+    enabled = true,
 ) => {
     return useQuery({
         queryKey: ['attendance', 'paginated-records', page, size, filter],
@@ -351,6 +351,7 @@ export const usePaginatedAttendanceRecords = (
             }
             return result.data;
         },
+        enabled,
     });
 };
 

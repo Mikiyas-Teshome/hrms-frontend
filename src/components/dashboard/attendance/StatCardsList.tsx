@@ -29,7 +29,7 @@ const StatCardsList: React.FC<StatCardsListProps> = ({ stats, isLoading }) => {
     icon: stat.icon,
     iconColor: stat.iconColor,
     iconBgColor: stat.bgColor,
-    borderColor: stat.iconColor === stat.bgColor ? undefined : stat.iconColor // Heuristic to match original design if needed, but let's just pass it
+    borderColor: stat.iconColor === stat.bgColor ? undefined : stat.iconColor
   }));
 
   return <SummaryStatList stats={transformedStats} />;

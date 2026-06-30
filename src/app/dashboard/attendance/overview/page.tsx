@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAttendanceOverviewStats } from '@/features/attendance/hooks/useAttendance';
-import { attendanceOverviewStats } from '@/data/attendance';
+import { buildAttendanceOverviewStatCards } from '@/features/attendance/attendance-stat-cards.util';
 import StatCardsList from '@/components/dashboard/attendance/StatCardsList';
 import AttendanceOverviewTable from '@/components/dashboard/attendance/AttendanceOverviewTable';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { ProtectedRoute } from '@/components/auth/protected-route';
+
 export default function AttendanceOverviewPage() {
     const { t } = useTranslation('dashboard');
     const now = new Date();
@@ -24,28 +25,10 @@ export default function AttendanceOverviewPage() {
         dateRange.to.toISOString()
     );
 
-    const stats = attendanceOverviewStats.map((stat) => {
-        if (!statsData) {
-            return { ...stat, value: stat.id === 'overtime' ? '0hrs' : '0' };
-        }
-
-        let value = '0';
-        switch (stat.id) {
-            case 'employees':
-                value = statsData.totalEmployees.toString();
-                break;
-            case 'active':
-                value = statsData.activeEmployees.toString();
-                break;
-            case 'leave':
-                value = statsData.onLeave.toString();
-                break;
-            case 'overtime':
-                value = `${statsData.totalOvertimeHours}hrs`;
-                break;
-        }
-        return { ...stat, value };
-    });
+    const stats = useMemo(
+        () => buildAttendanceOverviewStatCards(statsData, t),
+        [statsData, t],
+    );
 
     return (
         <ProtectedRoute module="attendance">
@@ -57,8 +40,11 @@ export default function AttendanceOverviewPage() {
                     <div>
                         <DateRangePicker
                             value={dateRange}
-                            onChange={(r: any) => setDateRange(r)}
-                            className="flex sm:justify-end justify-start"
+                            onChange={(range) => {
+                                if (range?.from && range?.to) {
+                                    setDateRange({ from: range.from, to: range.to });
+                                }
+                            }}
                         />
                     </div>
                 </div>

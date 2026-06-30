@@ -8,14 +8,12 @@ export function EmployeeLifecycleSkeleton() {
                     key={idx} 
                     className="flex flex-col flex-1 min-w-[240px] max-w-[300px] bg-card border border-border/80 shadow-sm rounded-xl overflow-hidden h-fit"
                 >
-                    {/* Column Header Skeleton */}
                     <div className="flex flex-row items-center px-6 h-[50px] bg-muted/50 shrink-0 border-t-4 border-muted">
                         <Skeleton className="h-4 w-24 rounded-md" />
                         <div className="flex-1" />
                         <Skeleton className="h-5 w-8 rounded-full" />
                     </div>
 
-                    {/* Column Items Skeleton */}
                     <div className="flex flex-col w-full max-h-[600px] overflow-y-auto no-scrollbar">
                         {Array.from({ length: 5 }).map((_, itemIdx) => (
                             <div 

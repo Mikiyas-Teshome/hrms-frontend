@@ -25,6 +25,7 @@ export const CONTRACT_FIELDS_FRAGMENT = `
     benefitEntitlements {
       ...BenefitEntitlementFields
     }
+    contractsSignedCount
   }
 `;
 
@@ -46,6 +47,24 @@ export const GET_CONTRACTS_QUERY = `
         total
         totalPages
       }
+    }
+  }
+  ${CONTRACT_QUERY_FRAGMENTS}
+`;
+
+export const GET_CONTRACT_FOR_OU_QUERY = `
+  query GetContractForOrganizationUnit($ouId: String!) {
+    contractForOrganizationUnit(ouId: $ouId) {
+      ...ContractFields
+    }
+  }
+  ${CONTRACT_QUERY_FRAGMENTS}
+`;
+
+export const GET_CONTRACTS_FOR_OU_QUERY = `
+  query GetContractsForOrganizationUnit($ouId: String!) {
+    contractsForOrganizationUnit(ouId: $ouId) {
+      ...ContractFields
     }
   }
   ${CONTRACT_QUERY_FRAGMENTS}

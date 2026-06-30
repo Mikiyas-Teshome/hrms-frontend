@@ -11,7 +11,6 @@ export function StaffSignupSuccess() {
     return (
         <div className="flex w-full md:w-118.5 flex-col items-start gap-8 bg-card p-8 rounded-[32px] border border-border animate-in fade-in zoom-in duration-500">
             <div className="flex flex-col items-start gap-4">
-                {/* Success Icon */}
                 <div className="flex items-center justify-center size-12 rounded-full bg-green-500/10">
                     <svg
                         width="24"
@@ -31,7 +30,6 @@ export function StaffSignupSuccess() {
                     </svg>
                 </div>
 
-                {/* Text Content */}
                 <div className="flex flex-col items-start gap-2">
                     <h1 className="text-[32px] font-semibold leading-[130%] tracking-tight text-foreground">
                         {t('successTitlePart1')} <br />
@@ -43,7 +41,6 @@ export function StaffSignupSuccess() {
                 </div>
             </div>
 
-            {/* Action Button */}
             <Button
                 onClick={() => router.push('/dashboard')}
                 className="h-10 w-full rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all"

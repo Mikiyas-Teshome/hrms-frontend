@@ -92,7 +92,6 @@ export function AddMembersModal({
             "flex flex-col items-center gap-4 md:flex-row",
             isRtl && "md:flex-row-reverse"
           )}>
-            {/* Unassigned Section */}
             <div className="flex-1 w-full rounded-[12px] border border-border bg-card overflow-hidden shadow-none h-70 flex flex-col">
               <div className="flex items-center justify-between border-b border-border p-4 gap-4">
                 <span className="text-[14px] font-medium text-foreground shrink-0">
@@ -134,7 +133,6 @@ export function AddMembersModal({
               </div>
             </div>
 
-            {/* Arrow */}
             <div className="shrink-0 flex items-center justify-center p-2 opacity-50 text-muted-foreground">
               {isRtl ? (
                 <ArrowLeft className="size-6" />
@@ -143,7 +141,6 @@ export function AddMembersModal({
               )}
             </div>
 
-            {/* Assigned Section */}
             <div className="flex-1 w-full rounded-[12px] border border-border bg-card overflow-hidden shadow-none h-70 flex flex-col">
               <div className="border-b border-border p-4">
                 <span className="text-[14px] font-medium text-foreground">

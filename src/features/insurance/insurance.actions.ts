@@ -21,12 +21,12 @@ import {
 } from './insurance.types';
 import { revalidatePath } from 'next/cache';
 
-export async function fetchInsuranceStats(companyOuId?: string): Promise<InsuranceStats> {
+export async function fetchInsuranceStats(ouId?: string): Promise<InsuranceStats> {
   try {
     const data = await gqlRequest<{ insuranceStats: InsuranceStats }>(
       GraphQLService.CORE_HR,
       GET_INSURANCE_STATS_QUERY,
-      { companyOuId: companyOuId || undefined },
+      { ouId: ouId || undefined },
     );
     return data.insuranceStats;
   } catch (error) {

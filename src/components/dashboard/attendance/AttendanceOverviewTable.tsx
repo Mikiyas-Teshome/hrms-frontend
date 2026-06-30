@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { UniversalDataTable, ColumnConfig } from '@/components/ui/universal-data-table';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -44,7 +44,23 @@ interface AttendanceOverviewTableProps {
 }
 
 const AttendanceOverviewTable = ({ startDate, endDate }: AttendanceOverviewTableProps) => {
-    const { t } = useTranslation('dashboard');
+    const { t, i18n } = useTranslation('dashboard');
+    const dateLocale = i18n.language === 'ar' ? 'ar-SA' : i18n.language;
+    const timeUnits = useMemo(
+        () => ({
+            hours: t('attendance.timeUnits.hours', 'h'),
+            minutes: t('attendance.timeUnits.minutes', 'm'),
+        }),
+        [t],
+    );
+    const formatDuration = useCallback(
+        (minutes: number) => formatMinutesToHr(minutes, timeUnits),
+        [timeUnits],
+    );
+    const getStatusLabel = useCallback(
+        (status: string) => t(`attendance.statusLabels.${status}`, status.replace(/_/g, ' ')),
+        [t],
+    );
     const { toast } = useToast();
     const { hasPermission, hasScope } = usePermissions();
 
@@ -92,11 +108,9 @@ const AttendanceOverviewTable = ({ startDate, endDate }: AttendanceOverviewTable
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
 
-    // Edit Record States
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [recordToEdit, setRecordToEdit] = useState<AttendanceRecord | null>(null);
 
-    // Change Status States
     const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
     const [recordToChangeStatus, setRecordToChangeStatus] = useState<AttendanceRecord | null>(null);
 
@@ -134,31 +148,32 @@ const AttendanceOverviewTable = ({ startDate, endDate }: AttendanceOverviewTable
                     {
                         header: t('attendance.date', 'Date'),
                         key: 'date',
-                        render: (item: AttendanceRecord) => formatDateString(item.date),
+                        render: (item: AttendanceRecord) => formatDateString(item.date, dateLocale),
                     },
                     {
                         header: t('attendance.clockIn', 'Clock in'),
                         key: 'clockIn',
-                        render: (item: AttendanceRecord) => formatClockTime(item.clockIn),
+                        render: (item: AttendanceRecord) => formatClockTime(item.clockIn, dateLocale),
                     },
                     {
                         header: t('attendance.clockOut', 'Clock out'),
                         key: 'clockOut',
-                        render: (item: AttendanceRecord) => formatClockTime(item.clockOut),
+                        render: (item: AttendanceRecord) => formatClockTime(item.clockOut, dateLocale),
                     },
                     {
                         header: t('attendance.totalTime', 'Total time'),
                         key: 'totalMinutes',
-                        render: (item: AttendanceRecord) => formatMinutesToHr(item.totalMinutes),
+                        render: (item: AttendanceRecord) => formatDuration(item.totalMinutes),
                     },
                     {
                         header: t('attendance.overtime', 'Overtime'),
                         key: 'overtimeMinutes',
-                        render: (item: AttendanceRecord) => formatMinutesToHr(item.overtimeMinutes),
+                        render: (item: AttendanceRecord) => formatDuration(item.overtimeMinutes),
                     },
                     {
                         header: t('attendance.status', 'Status'),
                         key: 'status',
+                        render: (item: AttendanceRecord) => getStatusLabel(item.status),
                     },
                 ],
                 data: allRecords,
@@ -224,15 +239,15 @@ const AttendanceOverviewTable = ({ startDate, endDate }: AttendanceOverviewTable
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44 rounded-xl shadow-lg">
                     <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => console.log('View', item.id)}>
-                        <Eye className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.view', 'View')}</span>
+                        <Eye className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.actions.view', 'View')}</span>
                     </DropdownMenuItem>
                     {canUpdate && (
                         <>
                             <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => handleEditClick(item)}>
-                                <Pencil className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.edit', 'Edit')}</span>
+                                <Pencil className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.actions.edit', 'Edit')}</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem className="gap-3 cursor-pointer py-2.5" onClick={() => handleStatusClick(item)}>
-                                <RefreshCw className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.changeStatus', 'Change status')}</span>
+                                <RefreshCw className="h-4 w-4 text-muted-foreground" /><span>{t('attendance.actions.changeStatus', 'Change status')}</span>
                             </DropdownMenuItem>
                         </>
                     )}
@@ -258,7 +273,7 @@ const AttendanceOverviewTable = ({ startDate, endDate }: AttendanceOverviewTable
             onClick={() => setShowFilters((v) => !v)}
         >
             <ListFilter className="h-4 w-4" />
-            <span>Filter</span>
+            <span>{t('attendance.filter', 'Filter')}</span>
             {activeCount > 0 && (
                 <span className="ml-1 flex size-4 items-center justify-center rounded-full bg-brand-600 text-[10px] text-white font-semibold">
                     {activeCount}
@@ -267,10 +282,10 @@ const AttendanceOverviewTable = ({ startDate, endDate }: AttendanceOverviewTable
         </Button>
     );
 
-    const columns: ColumnConfig<AttendanceRecord>[] = [
+    const columns: ColumnConfig<AttendanceRecord>[] = useMemo(() => [
         {
             key: 'userId',
-            label: 'Employee',
+            label: t('attendance.employee', 'Employee'),
             render: (item) => {
                 const displayName = item.employeeName ?? '';
                 const initial = displayName.charAt(0).toUpperCase();
@@ -287,32 +302,32 @@ const AttendanceOverviewTable = ({ startDate, endDate }: AttendanceOverviewTable
         },
         { 
             key: 'date', 
-            label: 'Date',
-            render: (item) => formatDateString(item.date)
+            label: t('attendance.date', 'Date'),
+            render: (item) => formatDateString(item.date, dateLocale),
         },
         { 
             key: 'clockIn', 
-            label: 'Clock in',
-            render: (item) => formatClockTime(item.clockIn)
+            label: t('attendance.clockIn', 'Clock in'),
+            render: (item) => formatClockTime(item.clockIn, dateLocale),
         },
         { 
             key: 'clockOut', 
-            label: 'Clock out',
-            render: (item) => formatClockTime(item.clockOut)
+            label: t('attendance.clockOut', 'Clock out'),
+            render: (item) => formatClockTime(item.clockOut, dateLocale),
         },
         { 
             key: 'totalMinutes', 
-            label: 'Total time',
-            render: (item) => formatMinutesToHr(item.totalMinutes)
+            label: t('attendance.totalTime', 'Total time'),
+            render: (item) => formatDuration(item.totalMinutes),
         },
         { 
             key: 'overtimeMinutes', 
-            label: 'Overtime',
-            render: (item) => formatMinutesToHr(item.overtimeMinutes)
+            label: t('attendance.overtime', 'Overtime'),
+            render: (item) => formatDuration(item.overtimeMinutes),
         },
         {
             key: 'status',
-            label: 'Status',
+            label: t('attendance.status', 'Status'),
             render: (item) => (
                 <Badge
                     variant="outline"
@@ -322,11 +337,11 @@ const AttendanceOverviewTable = ({ startDate, endDate }: AttendanceOverviewTable
                     )}
                 >
                     <div className="size-1.5 rounded-full mr-1.5 bg-current" />
-                    {item.status}
+                    {getStatusLabel(item.status)}
                 </Badge>
             ),
         },
-    ];
+    ], [t, dateLocale, formatDuration, getStatusLabel]);
 
     return (
         <div className="flex flex-col gap-4">
@@ -364,14 +379,12 @@ const AttendanceOverviewTable = ({ startDate, endDate }: AttendanceOverviewTable
                 endDate={endDate}
             />
 
-            {/* Edit Record Detailed Dialog */}
             <EditAttendanceModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
                 record={recordToEdit}
             />
 
-            {/* Change Status Standalone Modal */}
             <ChangeStatusModal
                 isOpen={isStatusModalOpen}
                 onClose={() => setIsStatusModalOpen(false)}

@@ -21,10 +21,10 @@ export const useBenefitEntitlements = (filter: BenefitEntitlementFilterInput = {
   });
 };
 
-export const useBenefitEntitlementStats = (companyOuId?: string) => {
+export const useBenefitEntitlementStats = (ouId?: string) => {
   return useQuery({
-    queryKey: ['benefitEntitlementStats', companyOuId],
-    queryFn: () => fetchBenefitEntitlementStats(companyOuId),
+    queryKey: ['benefitEntitlementStats', ouId],
+    queryFn: () => fetchBenefitEntitlementStats(ouId),
   });
 };
 

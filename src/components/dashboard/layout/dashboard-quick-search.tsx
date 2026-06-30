@@ -70,7 +70,7 @@ export function DashboardQuickSearch({ isRTL = false, className }: DashboardQuic
         >
             <Popover open={open} onOpenChange={setOpen} modal={false}>
                 <PopoverAnchor asChild>
-                    <div ref={containerRef} className={cn('relative w-87.5', className)}>
+                    <div ref={containerRef} className={cn('relative w-full min-w-0', className)}>
                         <Search
                             className={cn(
                                 'absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none',

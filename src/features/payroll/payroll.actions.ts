@@ -7,21 +7,19 @@ import {
   GET_UPCOMING_PAYROLL_DATE_QUERY,
   GET_PAYROLL_RUN_QUERY,
   GET_PAYROLL_RUNS_QUERY,
+  GET_PAYROLL_RUNS_PAGINATED_QUERY,
   GET_PAYSLIP_QUERY,
-  GET_PAYSLIPS_BY_EMPLOYEE_QUERY,
-  GET_PAYSLIPS_BY_PAYROLL_RUN_QUERY,
-  GET_SALARY_STRUCTURE_QUERY,
+  GET_PAYSLIPS_PAGINATED_QUERY,
+  EMPLOYEE_PAYROLL_PREVIEW_QUERY,
   CREATE_PAYROLL_RUN_MUTATION,
   FINALIZE_PAYROLL_RUN_MUTATION,
   MARK_PAYROLL_RUN_PAID_MUTATION,
+  DELETE_PAYROLL_RUN_MUTATION,
   GENERATE_PAYSLIP_MUTATION,
+  REGENERATE_PAYSLIP_MUTATION,
+  GENERATE_PAYROLL_RUN_PAYSLIPS_MUTATION,
   GENERATE_WPS_FILE_MUTATION,
   UPDATE_PAYROLL_CONFIG_MUTATION,
-  CREATE_SALARY_STRUCTURE_MUTATION,
-  ADD_ALLOWANCE_TO_SALARY_STRUCTURE_MUTATION,
-  REMOVE_ALLOWANCE_FROM_SALARY_STRUCTURE_MUTATION,
-  ADD_DEDUCTION_TO_SALARY_STRUCTURE_MUTATION,
-  REMOVE_DEDUCTION_FROM_SALARY_STRUCTURE_MUTATION,
   CREATE_PAYROLL_COMPONENT_MUTATION,
   UPDATE_PAYROLL_COMPONENT_MUTATION,
   UPSERT_PAYROLL_COMPONENTS_MUTATION,
@@ -34,20 +32,37 @@ import {
   UpcomingPayrollResponse,
   PayrollRunResponse,
   PayslipResponse,
-  SalaryStructureResponse,
+  PayslipDetailResponse,
   WpsFileResult,
   PayrollComponent,
   PayrollComponentType,
+  PaginatedPayrollComponentResponse,
+  PayrollComponentFilterInput,
+  PayrollComponentPaginationInput,
+  PaginatedPayrollRunResponse,
+  PaginatedPayslipResponse,
+  PayrollRunFilterInput,
+  PayrollRunPaginationInput,
+  PayslipFilterInput,
+  PayslipPaginationInput,
   CreatePayrollRunInput,
+  PreviewEmployeePayrollInput,
+  EmployeePayrollPreviewResponse,
   GeneratePayslipInput,
+  GeneratePayrollRunPayslipsInput,
+  GeneratePayrollRunPayslipsResponse,
   GenerateWpsInput,
   UpdatePayrollConfigInput,
-  CreateSalaryStructureInput,
   CreatePayrollComponentInput,
   UpdatePayrollComponentInput,
   UpsertPayrollComponentInput,
   SalaryHistory,
+  toPayrollValueType,
 } from './payroll.types';
+import {
+  serializePayrollRunFilterForGraphql,
+  serializePayslipFilterForGraphql,
+} from './payroll-graphql-filter.utils';
 import { revalidatePath } from 'next/cache';
 
 export async function fetchPayrollConfig(companyId: string): Promise<PayrollConfigResponse | null> {
@@ -64,22 +79,49 @@ export async function fetchPayrollConfig(companyId: string): Promise<PayrollConf
   }
 }
 
-export async function fetchPayrollComponents(companyId: string, isActive?: boolean): Promise<PayrollComponent[]> {
+function mapPayrollComponentInput<T extends CreatePayrollComponentInput | UpsertPayrollComponentInput>(
+  input: T,
+): T {
+  return {
+    ...input,
+    type: toPayrollValueType(String(input.type)),
+  };
+}
+
+export async function fetchPayrollComponents(
+  ouId: string,
+  filter?: PayrollComponentFilterInput,
+  pagination?: PayrollComponentPaginationInput,
+): Promise<PaginatedPayrollComponentResponse> {
   try {
-    const variables: any = { companyId };
-    if (isActive !== undefined) {
-      variables.isActive = isActive;
-    }
-    
-    const data = await gqlRequest<{ payrollComponents: PayrollComponent[] }>(
+    const data = await gqlRequest<{ payrollComponents: PaginatedPayrollComponentResponse }>(
       GraphQLService.PAYROLL,
       GET_PAYROLL_COMPONENTS_QUERY,
-      variables
+      {
+        ouId,
+        ...(filter ? { filter } : {}),
+        ...(pagination ? { pagination } : {}),
+      },
     );
     return data.payrollComponents;
   } catch (error) {
     console.error('Failed to fetch payroll components:', error);
-    return [];
+    return {
+      data: [],
+      metaData: {
+        page: 1,
+        size: pagination?.size ?? 20,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
+      },
+      summary: {
+        activeCount: 0,
+        fixedCount: 0,
+        totalFixedValue: 0,
+      },
+    };
   }
 }
 
@@ -111,6 +153,46 @@ export async function fetchPayrollRuns(companyId: string): Promise<PayrollRunRes
   }
 }
 
+export async function fetchPayrollRunsPaginated(
+  companyId: string,
+  filter?: PayrollRunFilterInput,
+  pagination?: PayrollRunPaginationInput,
+  displayCurrency?: string,
+): Promise<PaginatedPayrollRunResponse> {
+  try {
+    const data = await gqlRequest<{ payrollRunsPaginated: PaginatedPayrollRunResponse }>(
+      GraphQLService.PAYROLL,
+      GET_PAYROLL_RUNS_PAGINATED_QUERY,
+      {
+        companyId,
+        ...(filter ? { filter: serializePayrollRunFilterForGraphql(filter) } : {}),
+        ...(pagination ? { pagination } : {}),
+        ...(displayCurrency ? { displayCurrency } : {}),
+      },
+    );
+    return data.payrollRunsPaginated;
+  } catch (error) {
+    console.error('Failed to fetch paginated payroll runs:', error);
+    return {
+      data: [],
+      metaData: {
+        page: 1,
+        size: pagination?.size ?? 10,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
+      },
+      summary: {
+        totalRuns: 0,
+        completedRuns: 0,
+        pendingRuns: 0,
+        totalGrossPay: 0,
+      },
+    };
+  }
+}
+
 export async function fetchPayrollRun(id: string): Promise<PayrollRunResponse | null> {
   try {
     const data = await gqlRequest<{ payrollRun: PayrollRunResponse }>(
@@ -125,60 +207,65 @@ export async function fetchPayrollRun(id: string): Promise<PayrollRunResponse | 
   }
 }
 
-export async function fetchPayslip(id: string): Promise<PayslipResponse | null> {
+export async function fetchPayslip(id: string): Promise<PayslipDetailResponse | null> {
+  const data = await gqlRequest<{ payslip: PayslipDetailResponse }>(
+    GraphQLService.PAYROLL,
+    GET_PAYSLIP_QUERY,
+    { id },
+  );
+  return data.payslip ?? null;
+}
+
+export async function fetchPayslipsPaginated(
+  companyId: string,
+  filter?: PayslipFilterInput,
+  pagination?: PayslipPaginationInput,
+  displayCurrency?: string,
+): Promise<PaginatedPayslipResponse> {
   try {
-    const data = await gqlRequest<{ payslip: PayslipResponse }>(
+    const data = await gqlRequest<{ payslipsPaginated: PaginatedPayslipResponse }>(
       GraphQLService.PAYROLL,
-      GET_PAYSLIP_QUERY,
-      { id }
+      GET_PAYSLIPS_PAGINATED_QUERY,
+      {
+        companyId,
+        ...(filter ? { filter: serializePayslipFilterForGraphql(filter) } : {}),
+        ...(pagination ? { pagination } : {}),
+        ...(displayCurrency ? { displayCurrency } : {}),
+      },
     );
-    return data.payslip;
+    return data.payslipsPaginated;
   } catch (error) {
-    console.error(`Failed to fetch payslip with id ${id}:`, error);
-    return null;
+    console.error(`Failed to fetch payslips for company ${companyId}:`, error);
+    return {
+      data: [],
+      metaData: {
+        page: pagination?.page ?? 1,
+        size: pagination?.size ?? 10,
+        total: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
+      },
+      summary: {
+        totalGrossPay: 0,
+        totalNetPay: 0,
+      },
+    };
   }
 }
 
-export async function fetchPayslipsByEmployee(employeeId: string): Promise<PayslipResponse[]> {
+export async function fetchEmployeePayrollPreview(
+  input: PreviewEmployeePayrollInput,
+): Promise<EmployeePayrollPreviewResponse | null> {
   try {
-    const data = await gqlRequest<{ payslipsByEmployee: PayslipResponse[] }>(
+    const data = await gqlRequest<{ employeePayrollPreview: EmployeePayrollPreviewResponse }>(
       GraphQLService.PAYROLL,
-      GET_PAYSLIPS_BY_EMPLOYEE_QUERY,
-      { employeeId }
+      EMPLOYEE_PAYROLL_PREVIEW_QUERY,
+      { input },
     );
-    return data.payslipsByEmployee;
+    return data.employeePayrollPreview;
   } catch (error) {
-    console.error(`Failed to fetch payslips for employee ${employeeId}:`, error);
-    return [];
-  }
-}
-
-export async function fetchPayslipsByPayrollRun(payrollRunId: string): Promise<PayslipResponse[]> {
-  try {
-    const data = await gqlRequest<{ payslipsByPayrollRun: PayslipResponse[] }>(
-      GraphQLService.PAYROLL,
-      GET_PAYSLIPS_BY_PAYROLL_RUN_QUERY,
-      { payrollRunId }
-    );
-    return data.payslipsByPayrollRun;
-  } catch (error) {
-    console.error(`Failed to fetch payslips for payroll run ${payrollRunId}:`, error);
-    return [];
-  }
-}
-
-export async function fetchSalaryStructure(
-  employeeId: string
-): Promise<SalaryStructureResponse | null> {
-  try {
-    const data = await gqlRequest<{ salaryStructure: SalaryStructureResponse | null }>(
-      GraphQLService.PAYROLL,
-      GET_SALARY_STRUCTURE_QUERY,
-      { employeeId }
-    );
-    return data.salaryStructure;
-  } catch (error) {
-    console.error(`Failed to fetch salary structure for employee ${employeeId}:`, error);
+    console.error('Failed to fetch employee payroll preview:', error);
     return null;
   }
 }
@@ -219,6 +306,18 @@ export async function markPayrollRunPaid(id: string): Promise<ActionResult<Payro
   });
 }
 
+export async function deletePayrollRun(id: string): Promise<ActionResult<boolean>> {
+  return safeAction(async () => {
+    const data = await gqlRequest<{ deletePayrollRun: boolean }>(
+      GraphQLService.PAYROLL,
+      DELETE_PAYROLL_RUN_MUTATION,
+      { id },
+    );
+    revalidatePath('/dashboard/payroll/runs');
+    return data.deletePayrollRun;
+  });
+}
+
 export async function generatePayslip(input: GeneratePayslipInput): Promise<ActionResult<PayslipResponse>> {
   return safeAction(async () => {
     const data = await gqlRequest<{ generatePayslip: PayslipResponse }>(
@@ -227,7 +326,36 @@ export async function generatePayslip(input: GeneratePayslipInput): Promise<Acti
       { input }
     );
     revalidatePath('/dashboard/payroll/payslips');
+    revalidatePath('/dashboard/payroll/runs');
     return data.generatePayslip;
+  });
+}
+
+export async function regeneratePayslip(input: GeneratePayslipInput): Promise<ActionResult<PayslipResponse>> {
+  return safeAction(async () => {
+    const data = await gqlRequest<{ regeneratePayslip: PayslipResponse }>(
+      GraphQLService.PAYROLL,
+      REGENERATE_PAYSLIP_MUTATION,
+      { input },
+    );
+    revalidatePath('/dashboard/payroll/payslips');
+    revalidatePath('/dashboard/payroll/runs');
+    return data.regeneratePayslip;
+  });
+}
+
+export async function generatePayrollRunPayslips(
+  input: GeneratePayrollRunPayslipsInput,
+): Promise<ActionResult<GeneratePayrollRunPayslipsResponse>> {
+  return safeAction(async () => {
+    const data = await gqlRequest<{ generatePayrollRunPayslips: GeneratePayrollRunPayslipsResponse }>(
+      GraphQLService.PAYROLL,
+      GENERATE_PAYROLL_RUN_PAYSLIPS_MUTATION,
+      { input },
+    );
+    revalidatePath('/dashboard/payroll/payslips');
+    revalidatePath('/dashboard/payroll/runs');
+    return data.generatePayrollRunPayslips;
   });
 }
 
@@ -256,80 +384,6 @@ export async function updatePayrollConfig(
   });
 }
 
-export async function createSalaryStructure(
-  input: CreateSalaryStructureInput
-): Promise<ActionResult<SalaryStructureResponse>> {
-  return safeAction(async () => {
-    const data = await gqlRequest<{ createSalaryStructure: SalaryStructureResponse }>(
-      GraphQLService.PAYROLL,
-      CREATE_SALARY_STRUCTURE_MUTATION,
-      { input }
-    );
-    revalidatePath('/dashboard/payroll/salary-structures');
-    return data.createSalaryStructure;
-  });
-}
-
-export async function addAllowanceToSalaryStructure(
-  id: string,
-  allowanceId: string
-): Promise<ActionResult<SalaryStructureResponse>> {
-  return safeAction(async () => {
-    const data = await gqlRequest<{ addAllowanceToSalaryStructure: SalaryStructureResponse }>(
-      GraphQLService.PAYROLL,
-      ADD_ALLOWANCE_TO_SALARY_STRUCTURE_MUTATION,
-      { id, allowanceId }
-    );
-    revalidatePath('/dashboard/payroll/salary-structures');
-    return data.addAllowanceToSalaryStructure;
-  });
-}
-
-export async function removeAllowanceFromSalaryStructure(
-  id: string,
-  allowanceId: string
-): Promise<ActionResult<SalaryStructureResponse>> {
-  return safeAction(async () => {
-    const data = await gqlRequest<{ removeAllowanceFromSalaryStructure: SalaryStructureResponse }>(
-      GraphQLService.PAYROLL,
-      REMOVE_ALLOWANCE_FROM_SALARY_STRUCTURE_MUTATION,
-      { id, allowanceId }
-    );
-    revalidatePath('/dashboard/payroll/salary-structures');
-    return data.removeAllowanceFromSalaryStructure;
-  });
-}
-
-export async function addDeductionToSalaryStructure(
-  id: string,
-  deductionId: string
-): Promise<ActionResult<SalaryStructureResponse>> {
-  return safeAction(async () => {
-    const data = await gqlRequest<{ addDeductionToSalaryStructure: SalaryStructureResponse }>(
-      GraphQLService.PAYROLL,
-      ADD_DEDUCTION_TO_SALARY_STRUCTURE_MUTATION,
-      { id, deductionId }
-    );
-    revalidatePath('/dashboard/payroll/salary-structures');
-    return data.addDeductionToSalaryStructure;
-  });
-}
-
-export async function removeDeductionFromSalaryStructure(
-  id: string,
-  deductionId: string
-): Promise<ActionResult<SalaryStructureResponse>> {
-  return safeAction(async () => {
-    const data = await gqlRequest<{ removeDeductionFromSalaryStructure: SalaryStructureResponse }>(
-      GraphQLService.PAYROLL,
-      REMOVE_DEDUCTION_FROM_SALARY_STRUCTURE_MUTATION,
-      { id, deductionId }
-    );
-    revalidatePath('/dashboard/payroll/salary-structures');
-    return data.removeDeductionFromSalaryStructure;
-  });
-}
-
 export async function createPayrollComponent(
   input: CreatePayrollComponentInput
 ): Promise<ActionResult<PayrollComponent>> {
@@ -337,7 +391,7 @@ export async function createPayrollComponent(
     const data = await gqlRequest<{ createPayrollComponent: PayrollComponent }>(
       GraphQLService.PAYROLL,
       CREATE_PAYROLL_COMPONENT_MUTATION,
-      { input }
+      { input: mapPayrollComponentInput(input) }
     );
     revalidatePath('/dashboard/payroll/settings');
     return data.createPayrollComponent;
@@ -351,7 +405,7 @@ export async function upsertPayrollComponents(
     const data = await gqlRequest<{ upsertPayrollComponents: PayrollComponent[] }>(
       GraphQLService.PAYROLL,
       UPSERT_PAYROLL_COMPONENTS_MUTATION,
-      { inputs }
+      { inputs: inputs.map(mapPayrollComponentInput) }
     );
     revalidatePath('/dashboard/payroll/settings');
     return data.upsertPayrollComponents;
@@ -368,7 +422,7 @@ export async function createPayrollComponentsBatch(
       const data = await gqlRequest<{ createPayrollComponent: PayrollComponent }>(
         GraphQLService.PAYROLL,
         CREATE_PAYROLL_COMPONENT_MUTATION,
-        { input }
+        { input: mapPayrollComponentInput(input) }
       );
       results.push(data.createPayrollComponent);
     }
@@ -383,10 +437,14 @@ export async function updatePayrollComponent(
 ): Promise<ActionResult<PayrollComponent>> {
   return safeAction(async () => {
     const { id, ...inputWithoutId } = input;
+    const payload = {
+      ...inputWithoutId,
+      type: toPayrollValueType(String(inputWithoutId.type)),
+    };
     const data = await gqlRequest<{ updatePayrollComponent: PayrollComponent }>(
       GraphQLService.PAYROLL,
       UPDATE_PAYROLL_COMPONENT_MUTATION,
-      { id, input: inputWithoutId }
+      { id, input: payload }
     );
     revalidatePath('/dashboard/payroll/settings');
     return data.updatePayrollComponent;
@@ -395,13 +453,13 @@ export async function updatePayrollComponent(
 
 export async function deletePayrollComponent(
   id: string,
-  componentType: PayrollComponentType
+  category: PayrollComponentType
 ): Promise<ActionResult<boolean>> {
   return safeAction(async () => {
     const data = await gqlRequest<{ deletePayrollComponent: boolean }>(
       GraphQLService.PAYROLL,
       DELETE_PAYROLL_COMPONENT_MUTATION,
-      { id, componentType }
+      { id, category }
     );
     revalidatePath('/dashboard/payroll/settings');
     return data.deletePayrollComponent;

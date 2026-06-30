@@ -112,7 +112,10 @@
     "customizeAlert": "You can customize these to match your organization structure!",
     "continueToBuilder": "Continue to builder",
     "nomenclatureUpdated": "Hierarchy labels successfully updated",
-    "buildingDatabase": "Wait a second, until the database creation is finished...",
+    "buildingDatabase": "Preparing your organization structure...",
+    "builderNotReady": "Organization structure is not ready yet. Go back to the hierarchy tab and click Continue to builder.",
+    "setupPendingTitle": "Organization setup is still preparing",
+    "setupPendingDescription": "Your workspace is still being initialized. Please wait a moment and try again.",
     "levelFallback": "Level {{number}}"
   },
   "toasts": {

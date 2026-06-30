@@ -23,7 +23,6 @@ export function TeamSetupForm({ onNext, onBack }: TeamSetupFormProps) {
     const { setTeamData, teamData } = useOnboarding();
     const { toast } = useToast();
 
-    // Directory State
     const {
         control: directoryControl,
         handleSubmit: handleDirectorySubmit,
@@ -74,7 +73,6 @@ export function TeamSetupForm({ onNext, onBack }: TeamSetupFormProps) {
                     appendEmployee={appendEmployee}
                 />
 
-                {/* Info Alert */}
                 <div className="flex items-start gap-4 rounded-xl bg-primary/10 border border-primary/20 p-5">
                     <Info className="mt-0.5 size-5 shrink-0 text-primary" />
                     <p className="text-[11px] leading-relaxed text-brand-800 rtl:text-start">
@@ -82,7 +80,6 @@ export function TeamSetupForm({ onNext, onBack }: TeamSetupFormProps) {
                     </p>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex items-center justify-between pt-8">
                     <Button
                         type="button"

@@ -53,6 +53,29 @@ export interface RefreshTokenInput {
     refreshToken: string;
 }
 
+export interface WidgetCardStructure {
+    dataCategory: string;
+    visualization: 'table' | 'pie_chart' | 'line_chart' | 'bar_chart';
+}
+
+export interface DashboardPreferences {
+    version: number;
+    adminExecutive: {
+        kpiSlugs: string[];
+        widgetSlugs: string[];
+        widgetConfigs?: Partial<Record<string, WidgetCardStructure>>;
+        sectionOrder?: string[];
+    };
+}
+
+export interface UpdateDashboardPreferencesInput {
+    adminExecutive: {
+        kpiSlugs: string[];
+        widgetSlugs: string[];
+        widgetConfigs?: Partial<Record<string, WidgetCardStructure>>;
+    };
+}
+
 export interface UserResponse {
     id: string;
     email: string;
@@ -72,6 +95,8 @@ export interface UserResponse {
     lastLoginAt?: string | null;
     createdAt: string;
     updatedAt: string;
+    dashboardPreferences?: DashboardPreferences | null;
+    avatarUrl?: string | null;
 }
 
 export interface AuthResponse {
@@ -152,7 +177,8 @@ export interface UpdateUserInput {
 }
 
 export interface UpdateOnboardingCompleteInput {
-    onboardingComplete: boolean;
+    onboardingComplete?: boolean;
+    onboardingStep?: number;
     userId?: string;
 }
 
@@ -241,6 +267,15 @@ export interface CompanyResponse {
     maxEmployees: number;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface InvitationOnboardContext {
+    tenantId: string;
+    companyName: string;
+    companyEmail?: string | null;
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
 }
 
 export type { AppPermission, AppRole };

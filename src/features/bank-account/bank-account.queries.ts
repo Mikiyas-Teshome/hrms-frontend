@@ -51,6 +51,15 @@ export const UPDATE_BANK_ACCOUNT_MUTATION = `
   ${BANK_ACCOUNT_FIELDS_FRAGMENT}
 `;
 
+export const UPDATE_MY_BANK_ACCOUNT_MUTATION = `
+  mutation UpdateMyBankAccount($id: ID!, $input: UpdateBankAccountInput!) {
+    updateMyBankAccount(id: $id, input: $input) {
+      ...BankAccountFields
+    }
+  }
+  ${BANK_ACCOUNT_FIELDS_FRAGMENT}
+`;
+
 export const GET_BANK_ACCOUNT_QUERY = `
   query GetBankAccount($id: ID!) {
     bankAccount(id: $id) {
@@ -63,6 +72,15 @@ export const GET_BANK_ACCOUNT_QUERY = `
 export const GET_BANK_ACCOUNTS_QUERY = `
   query GetBankAccounts($employeeId: ID!) {
     bankAccounts(employeeId: $employeeId) {
+      ...BankAccountFields
+    }
+  }
+  ${BANK_ACCOUNT_FIELDS_FRAGMENT}
+`;
+
+export const GET_MY_BANK_ACCOUNTS_QUERY = `
+  query GetMyBankAccounts {
+    myBankAccounts {
       ...BankAccountFields
     }
   }

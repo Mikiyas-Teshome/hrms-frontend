@@ -7,6 +7,8 @@ export interface ContractType {
     renewable: boolean;
     contractsSigned: number;
     status: 'Active' | 'Inactive';
+    ouId?: string;
+    companyName?: string;
 }
 
 export const contractTypes: ContractType[] = [

@@ -19,7 +19,6 @@ interface OrgUnitTableProps {
 }
 
 import { OrgUnitTableSkeleton } from './OrgUnitTableSkeleton';
-// Helper functions moved outside component to handle recursion and avoid re-creation
 const countChildren = (unit: OrganizationUnitType, childType: string) => {
     const count = (node: OrganizationUnitType): number => {
         let total = node.type === childType ? 1 : 0;
@@ -163,7 +162,6 @@ export function OrgUnitTable({ type }: OrgUnitTableProps) {
         return filteredUnits.slice(start, start + pageSize);
     }, [filteredUnits, currentPage, pageSize]);
 
-    // Options for filters
     const companyOptions = useMemo(() => {
         const companies = getAllUnitsOfType('COMPANY', hierarchy || []);
         return [{ label: t('orgStructure:hierarchy.levels.level2'), value: 'all' }, ...companies.map(c => ({ label: c.name, value: c.id }))];
@@ -276,7 +274,6 @@ export function OrgUnitTable({ type }: OrgUnitTableProps) {
 
     return (
         <div className="space-y-6">
-            {/* Page Header with Parallel Filters */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 className="text-2xl font-bold text-foreground">{unitLabel}</h1>
                 

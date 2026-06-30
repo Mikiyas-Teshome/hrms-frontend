@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { FormField } from '@/components/ui/FormField';
 import { PasswordField } from '@/components/ui/PasswordField';
 import { useTranslation } from 'react-i18next';
@@ -26,11 +25,6 @@ const accountDisplaySchema = z.object({
     passwordPlaceholder: z.string(),
 });
 
-const securitySchema = z.object({
-    twoFaEnabled: z.boolean().default(false),
-    systemTwoFa: z.boolean().default(false),
-});
-
 const passwordSchema = z
     .object({
         currentPassword: z.string().min(1, 'required'),
@@ -43,7 +37,6 @@ const passwordSchema = z
     });
 
 type AccountDisplayValues = z.infer<typeof accountDisplaySchema>;
-type SecurityValues = z.infer<typeof securitySchema>;
 type PasswordValues = z.infer<typeof passwordSchema>;
 
 function getSessionIcon(userAgent?: string | null) {
@@ -78,33 +71,23 @@ function formatSessionTime(value: string) {
     }).format(date);
 }
 
-function canManageSessions(role?: string | null) {
-    return role === 'ADMIN' || role === 'SYSTEM_ADMIN' || role === 'TENANT_SUPER_ADMIN';
-}
-
 export function SecuritySection() {
     const { t } = useTranslation('settings');
     const { toast } = useToast();
     const { data: profile } = useProfile();
     const changePasswordMutation = useChangePassword();
     const revokeSessionMutation = useRevokeSession();
-    const sessionsEnabled = canManageSessions(profile?.role);
     const {
         data: sessions,
         isLoading: sessionsLoading,
         isError: sessionsError,
-    } = useUserSessions(sessionsEnabled ? (profile?.id ?? '') : '');
+    } = useUserSessions(profile?.id ?? '');
     const [showPasswordForm, setShowPasswordForm] = useState(false);
     const [revokingSessionId, setRevokingSessionId] = useState<string | null>(null);
 
     const { register: registerAccount, reset: resetAccount } = useForm<AccountDisplayValues>({
         resolver: zodResolver(accountDisplaySchema) as never,
         defaultValues: { accountEmail: '', passwordPlaceholder: '**********' },
-    });
-
-    const { watch, setValue } = useForm<SecurityValues>({
-        resolver: zodResolver(securitySchema) as never,
-        defaultValues: { twoFaEnabled: false, systemTwoFa: false },
     });
 
     const {
@@ -116,22 +99,12 @@ export function SecuritySection() {
         resolver: zodResolver(passwordSchema) as never,
     });
 
-    const twoFaEnabled = watch('twoFaEnabled');
-    const systemTwoFa = watch('systemTwoFa');
-
     useEffect(() => {
         resetAccount({
             accountEmail: profile?.email ?? '',
             passwordPlaceholder: '**********',
         });
     }, [profile?.email, resetAccount]);
-
-    const handleSave = () => {
-        toast({
-            title: t('success.title'),
-            description: t('security.settingsSaved'),
-        });
-    };
 
     const onPasswordSubmit = async (data: PasswordValues) => {
         try {
@@ -282,36 +255,6 @@ export function SecuritySection() {
                         </form>
                     )}
                 </div>
-
-                <div className="flex items-start justify-between gap-8 max-w-xl">
-                    <div>
-                        <p className="text-sm font-medium text-foreground">
-                            {t('security.twoFactor', 'Two-Factor Authentication')}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                            {t('security.twoFactorDesc', 'Turn on your 2FA for a better security.')}
-                        </p>
-                    </div>
-                    <Switch
-                        checked={twoFaEnabled}
-                        onCheckedChange={(v) => setValue('twoFaEnabled', v)}
-                        className="shrink-0"
-                    />
-                </div>
-
-                {twoFaEnabled && (
-                    <div className="max-w-xl rounded-lg border border-border bg-muted/20 px-4 py-3">
-                        <p className="text-sm font-medium text-foreground">
-                            {t('security.twoFactorAuthenticator', 'Authenticator app')}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                            {t(
-                                'security.twoFactorAuthenticatorDesc',
-                                'Use an authenticator app like Google Authenticator or Authy.',
-                            )}
-                        </p>
-                    </div>
-                )}
             </div>
 
             <div className="border-t border-border" />
@@ -326,21 +269,13 @@ export function SecuritySection() {
                     </p>
                 </div>
                 <div className="flex flex-col gap-0">
-                    {!sessionsEnabled && (
-                        <p className="text-sm text-muted-foreground py-2">
-                            {t(
-                                'security.sessionsAdminOnly',
-                                'Active sessions can only be viewed by organization administrators.',
-                            )}
-                        </p>
-                    )}
-                    {sessionsEnabled && sessionsLoading && <SessionsListSkeleton />}
-                    {sessionsEnabled && sessionsError && !sessionsLoading && (
+                    {sessionsLoading && <SessionsListSkeleton />}
+                    {sessionsError && !sessionsLoading && (
                         <p className="text-sm text-destructive py-2">
                             {t('security.sessionsLoadFailed', 'Failed to load active sessions.')}
                         </p>
                     )}
-                    {sessionsEnabled && !sessionsLoading && !sessionsError && (sessions ?? []).map((session) => {
+                    {!sessionsLoading && !sessionsError && (sessions ?? []).map((session) => {
                         const Icon = getSessionIcon(session.userAgent ?? session.deviceInfo);
                         const deviceLabel =
                             session.deviceInfo ??
@@ -374,41 +309,12 @@ export function SecuritySection() {
                             </div>
                         );
                     })}
-                    {sessionsEnabled && !sessionsLoading && !sessionsError && (sessions ?? []).length === 0 && (
+                    {!sessionsLoading && !sessionsError && (sessions ?? []).length === 0 && (
                         <p className="text-sm text-muted-foreground py-2">
                             {t('security.noActiveSessions', 'No active sessions found.')}
                         </p>
                     )}
                 </div>
-            </div>
-
-            <div className="border-t border-border" />
-
-            <div className="flex flex-col gap-4">
-                <h3 className="text-sm font-semibold text-foreground">
-                    {t('security.systemSecurity', 'System security')}
-                </h3>
-                <div className="flex items-start justify-between gap-8 max-w-xl">
-                    <div>
-                        <p className="text-sm font-medium text-foreground">
-                            {t('security.systemTwoFactor', 'Turn on Two-Factor Authentication for all employees')}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                            {t('security.systemTwoFactorDesc', 'This will affect all employees in your organization')}
-                        </p>
-                    </div>
-                    <Switch
-                        checked={systemTwoFa}
-                        onCheckedChange={(v) => setValue('systemTwoFa', v)}
-                        className="shrink-0"
-                    />
-                </div>
-            </div>
-
-            <div className="pt-2">
-                <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-white h-9 px-5 rounded-lg">
-                    {t('saveChange', 'Save change')}
-                </Button>
             </div>
         </SectionLayout>
     );

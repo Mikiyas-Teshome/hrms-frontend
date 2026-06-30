@@ -43,29 +43,34 @@
     "shiftEndPlaceholder": "05:00 PM"
   },
   "leavePolicies": {
-    "title": "Leave Policies",
-    "addNew": "Add New Leave Type",
+    "title": "Leave policies",
+    "addNew": "Add leave policy",
     "days": "Days",
-    "addLeaveType": {
-      "title": "Add a leave type",
-      "titleUpdate": "Edit leave type",
-      "leaveInfo": "Leave info",
-      "leaveName": "Leave name",
-      "leaveNamePlaceholder": "Enter leave name",
+    "addLeavePolicy": {
+      "title": "Add a leave policy",
+      "titleUpdate": "Edit leave policy",
+      "policyInfo": "Policy info",
+      "policyName": "Policy name",
+      "policyNamePlaceholder": "Enter policy name",
+      "code": "Code",
+      "codePlaceholder": "Select code",
       "status": "Status",
       "statusActive": "Active",
       "statusInactive": "Inactive",
       "maxDays": "Maximum days per year",
       "maxDaysPlaceholder": "0",
-      "condition": "Condition",
-      "conditionPaid": "Paid",
-      "conditionUnpaid": "Unpaid",
+      "entitlementGrantMode": "Entitlement grant mode",
+      "grantModeYearly": "Yearly allocation",
+      "grantModeMonthly": "Monthly accrual",
+      "grantModeManual": "Manual",
+      "paidLeave": "Paid leave",
+      "carryForward": "Carry forward",
       "description": "Description",
       "descriptionPlaceholder": "Add description",
       "actions": {
         "cancel": "Cancel",
-        "save": "Save leave type",
-        "saveUpdate": "Update leave type"
+        "save": "Save leave policy",
+        "saveUpdate": "Update leave policy"
       }
     },
     "types": {
@@ -112,7 +117,10 @@
     "shiftStartRequired": "Shift start time is required",
     "shiftEndRequired": "Shift end time is required",
     "holidayNameRequired": "Holiday name is required",
-    "holidayDateRequired": "Holiday date is required"
+    "holidayDateRequired": "Holiday date is required",
+    "policyNameRequired": "Policy name is required",
+    "policyCodeRequired": "Policy code is required",
+    "maxDaysRequired": "Maximum days per year is required"
   },
   "actions": {
     "back": "Back",

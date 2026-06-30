@@ -45,14 +45,16 @@ export function TimezoneSelect<T extends FieldValues>({ control, name, label, pl
                 aria-expanded={open}
                 disabled={disabled}
                 className={cn(
-                  "w-full justify-between font-normal h-9 px-4 rounded-[8px] bg-background border border-input focus:border-primary focus:ring-primary/20",
+                  "w-full min-w-0 justify-between font-normal h-9 px-4 rounded-[8px] bg-background border border-input focus:border-primary focus:ring-primary/20",
                   !field.value && "text-muted-foreground",
                   error && "border-destructive"
                 )}
               >
-                {field.value
-                  ? timezones.find((tz) => tz.value === field.value)?.label
-                  : placeholder}
+                <span className="truncate text-start">
+                  {field.value
+                    ? timezones.find((tz) => tz.value === field.value)?.label
+                    : placeholder}
+                </span>
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>

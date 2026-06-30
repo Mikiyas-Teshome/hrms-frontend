@@ -1,5 +1,6 @@
 'use client';
 
+import { FormEventHandler } from 'react';
 import { FormSection } from '@/components/ui/form-section';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTranslation } from 'react-i18next';
@@ -9,26 +10,76 @@ import { NationalitySelect } from '@/components/ui/NationalitySelect';
 import { CountrySelect } from '@/components/ui/CountrySelect';
 import type { UseFormReturn, FieldError, FieldValues, Path } from 'react-hook-form';
 import { useOrganizationUnitOptions } from '@/features/organization/hooks/useOrganization';
-import { UpdateEmployeeInput, EMPLOYMENT_TYPE_OPTIONS } from '@/features/employee/employee.types';
+import { UpdateEmployeeInput } from '@/features/employee/employee.types';
+import { EditEmployeeBankingTab } from '@/components/dashboard/employees/EditEmployeeBankingTab';
+import { EditEmployeeContractTab } from '@/components/dashboard/employees/EditEmployeeContractTab';
 
 interface EmployeeFormValues extends UpdateEmployeeInput {
     employeeNumber?: string;
 }
 
-export function EditEmployeeFormFields<T extends FieldValues = EmployeeFormValues>({ form }: { form: UseFormReturn<T> }) {
+type SelectOption = {
+    id: string;
+    label: string;
+};
+
+export function EditEmployeeFormFields<T extends FieldValues = EmployeeFormValues>({
+    form,
+    canEditEmployment = true,
+    showBankingTab = false,
+    employeeId,
+    bankingUseSelfService = true,
+    profileFormId = 'edit-employee-form',
+    onProfileSubmit,
+    activeTab = 'general',
+    onActiveTabChange,
+    selectedContractOption = null,
+    selectedSalaryStructureOption = null,
+}: {
+    form: UseFormReturn<T>;
+    canEditEmployment?: boolean;
+    showBankingTab?: boolean;
+    employeeId?: string;
+    bankingUseSelfService?: boolean;
+    profileFormId?: string;
+    onProfileSubmit?: FormEventHandler<HTMLFormElement>;
+    activeTab?: string;
+    onActiveTabChange?: (tab: string) => void;
+    selectedContractOption?: SelectOption | null;
+    selectedSalaryStructureOption?: SelectOption | null;
+}) {
     const { t } = useTranslation('employees');
     const { unitOptions, isLoading: hierarchyLoading } = useOrganizationUnitOptions();
+    const tabCount = (canEditEmployment ? 6 : 4) + (showBankingTab && employeeId ? 1 : 0);
+
+    const departmentId = form.watch('departmentId' as any);
 
     return (
-        <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-8">
+        <Tabs value={activeTab} onValueChange={onActiveTabChange} className="w-full">
+            <TabsList
+                className="grid w-full mb-8"
+                style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}
+            >
                 <TabsTrigger value="general">{t('general', 'General')}</TabsTrigger>
-                <TabsTrigger value="employment">{t('employment', 'Employment')}</TabsTrigger>
+                {canEditEmployment && (
+                    <TabsTrigger value="employment">{t('employment', 'Employment')}</TabsTrigger>
+                )}
+                {canEditEmployment && (
+                    <TabsTrigger value="contract">{t('contract', 'Contract')}</TabsTrigger>
+                )}
                 <TabsTrigger value="documents">{t('documents', 'Documents')}</TabsTrigger>
                 <TabsTrigger value="address">{t('address', 'Address')}</TabsTrigger>
                 <TabsTrigger value="emergency">{t('emergency', 'Emergency')}</TabsTrigger>
+                {showBankingTab && employeeId && (
+                    <TabsTrigger value="banking">{t('banking', 'Banking')}</TabsTrigger>
+                )}
             </TabsList>
 
+            <form
+                id={profileFormId}
+                onSubmit={onProfileSubmit}
+                className="space-y-8"
+            >
             <TabsContent value="general" className="space-y-6 animate-in fade-in duration-300">
                 <FormSection title={t('basicInfo')}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -42,7 +93,7 @@ export function EditEmployeeFormFields<T extends FieldValues = EmployeeFormValue
                             className="bg-muted"
                             t={(key) => t(key)}
                         />
-                        <div className="hidden md:block" /> {/* Spacer */}
+                        <div className="hidden md:block" />
                         <FormField
                             id="firstName"
                             label={t('firstName')}
@@ -73,6 +124,8 @@ export function EditEmployeeFormFields<T extends FieldValues = EmployeeFormValue
                             name="email"
                             register={form.register}
                             error={form.formState.errors.email as FieldError}
+                            readOnly={!canEditEmployment}
+                            className={!canEditEmployment ? 'bg-muted' : undefined}
                             t={(key) => t(key)}
                         />
                         <FormField
@@ -81,6 +134,8 @@ export function EditEmployeeFormFields<T extends FieldValues = EmployeeFormValue
                             name="businessEmail"
                             register={form.register}
                             error={form.formState.errors.businessEmail as FieldError}
+                            readOnly={!canEditEmployment}
+                            className={!canEditEmployment ? 'bg-muted' : undefined}
                             t={(key) => t(key)}
                         />
                         <FormField
@@ -150,6 +205,7 @@ export function EditEmployeeFormFields<T extends FieldValues = EmployeeFormValue
                 </FormSection>
             </TabsContent>
 
+            {canEditEmployment && (
             <TabsContent value="employment" className="space-y-6 animate-in fade-in duration-300">
                 <FormSection title={t('jobDetails', 'Job Details')}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -164,59 +220,21 @@ export function EditEmployeeFormFields<T extends FieldValues = EmployeeFormValue
                             disabled={hierarchyLoading}
                             t={(key) => t(key)}
                         />
-                        <FormField
-                            id="jobTitle"
-                            label={t('jobTitle', 'Job Title')}
-                            name="jobTitle"
-                            register={form.register}
-                            error={form.formState.errors.jobTitle as FieldError}
-                            t={(key) => t(key)}
-                        />
-                        <FormSelect
-                            id="employmentType"
-                            label={t('employmentType', 'Employment Type')}
-                            name={"employmentType" as Path<T>}
-                            control={form.control}
-                            error={form.formState.errors.employmentType as FieldError}
-                            options={EMPLOYMENT_TYPE_OPTIONS.map(opt => ({ label: t(opt.value, opt.label), value: opt.value }))}
-                            placeholder="Select type"
-                            t={(key) => t(key)}
-                        />
-                        <FormField
-                            id="managerId"
-                            label={t('manager', 'Line Manager')}
-                            name="managerId"
-                            register={form.register}
-                            error={form.formState.errors.managerId as FieldError}
-                            placeholder="Manager ID or Name"
-                            t={(key) => t(key)}
-                        />
-                    </div>
-                </FormSection>
-
-                <FormSection title={t('financials', 'Financials')}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <FormField
-                            id="salary"
-                            label={t('salary', 'Base Salary')}
-                            name="salary"
-                            type="number"
-                            register={form.register}
-                            error={form.formState.errors.salary as FieldError}
-                            t={(key) => t(key)}
-                        />
-                        <FormField
-                            id="currency"
-                            label={t('currency', 'Currency')}
-                            name="currency"
-                            register={form.register}
-                            error={form.formState.errors.currency as FieldError}
-                            placeholder="e.g. SAR, USD"
-                            t={(key) => t(key)}
-                        />
                     </div>
                 </FormSection>
             </TabsContent>
+            )}
+
+            {canEditEmployment && (
+            <TabsContent value="contract" className="space-y-6 animate-in fade-in duration-300">
+                <EditEmployeeContractTab
+                    form={form}
+                    departmentId={departmentId}
+                    selectedContractOption={selectedContractOption}
+                    selectedSalaryStructureOption={selectedSalaryStructureOption}
+                />
+            </TabsContent>
+            )}
 
             <TabsContent value="documents" className="space-y-6 animate-in fade-in duration-300">
                 <FormSection title={t('passportInfo', 'Passport Information')}>
@@ -421,6 +439,16 @@ export function EditEmployeeFormFields<T extends FieldValues = EmployeeFormValue
                     </div>
                 </FormSection>
             </TabsContent>
+            </form>
+
+            {showBankingTab && employeeId && (
+                <TabsContent value="banking" className="space-y-6 animate-in fade-in duration-300">
+                    <EditEmployeeBankingTab
+                        employeeId={employeeId}
+                        useSelfService={bankingUseSelfService}
+                    />
+                </TabsContent>
+            )}
         </Tabs>
     );
 }
